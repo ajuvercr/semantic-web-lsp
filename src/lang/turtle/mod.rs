@@ -31,11 +31,11 @@ use crate::{
         self, head,
         turtle::completion::{NextTokenCompletionCtx, NsCompletionCtx},
     },
-    prefix::Prefixes,
     semantics::semantic_tokens,
     utils::{position_to_offset, range_to_range},
 };
 use lsp_core::model::{spanned, Spanned};
+use lsp_core::prefix::Prefixes;
 
 use self::{
     completion::{ArcedNamespaceCompletionProvider, CompletionProvider},

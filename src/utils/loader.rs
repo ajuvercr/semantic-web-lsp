@@ -8,10 +8,9 @@ use locspan::{Meta, Span};
 use mime::Mime;
 use once_cell::sync::OnceCell;
 use rdf_types::{vocabulary::Index, IriVocabulary, IriVocabularyMut};
-use reqwest::StatusCode;
 use std::{collections::HashMap, fmt, hash::Hash, str::FromStr, string::FromUtf8Error};
 
-use super::fetch::fetch;
+use lsp_core::utils::{fetch, ReqwestError, ReqwestStatusCode};
 
 /// Loader options.
 pub struct Options<I> {
@@ -37,7 +36,7 @@ impl<I> Default for Options<I> {
 /// Loading error.
 #[derive(Debug)]
 pub enum Error<E> {
-    Reqwest(reqwest::Error),
+    Reqwest(ReqwestError),
 
     /// The server returned a `303 See Other` redirection status code.
     Redirection303,
@@ -46,7 +45,7 @@ pub enum Error<E> {
 
     InvalidRedirectionUrl(iref::Error),
 
-    QueryFailed(StatusCode),
+    QueryFailed(ReqwestStatusCode),
 
     InvalidContentType,
 
@@ -236,10 +235,10 @@ impl<I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, 
                     Err(_x) => return Err(Error::TooManyRedirections),
                 };
 
-                let status = StatusCode::from_u16(resp.status).unwrap();
+                let status = ReqwestStatusCode::from_u16(resp.status).unwrap();
 
                 match status {
-                    StatusCode::OK => {
+                    ReqwestStatusCode::OK => {
                         let profile = HashSet::new();
 
                         let bytes = Bytes::from(resp.body.into_bytes());
@@ -285,7 +284,7 @@ impl<I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, 
                         // }
                         // break Err(Error::InvalidContentType);
                     }
-                    StatusCode::SEE_OTHER => {
+                    ReqwestStatusCode::SEE_OTHER => {
                         break Err(Error::Redirection303);
                     }
                     _code if status.is_redirection() => match resp.headers.get("location") {

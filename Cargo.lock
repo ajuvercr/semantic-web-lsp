@@ -814,7 +814,6 @@ dependencies = [
  "mime",
  "once_cell",
  "rdf-types",
- "reqwest",
  "ropey",
  "serde",
  "serde_json",
@@ -967,6 +966,11 @@ name = "lsp-core"
 version = "0.1.0"
 dependencies = [
  "enum-methods",
+ "reqwest",
+ "serde_json",
+ "sophia_api",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
