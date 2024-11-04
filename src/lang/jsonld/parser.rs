@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use chumsky::{prelude::*, Parser, Stream};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use crate::model::{spanned, Spanned};
+use lsp_core::model::{spanned, Spanned};
 
 use super::tokenizer::JsonToken;
 
@@ -100,51 +100,6 @@ impl JsonFormatter {
             }
         }
         Ok(())
-    }
-}
-
-pub struct JsonIter<'a> {
-    stack: Vec<Result<&'a Spanned<Json>, Spanned<&'a JsonToken>>>,
-}
-impl<'a> Iterator for JsonIter<'a> {
-    type Item = Spanned<&'a JsonToken>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let c = self.stack.pop()?;
-            match c {
-                Ok(s) => match &s.0 {
-                    Json::Invalid => {}
-                    Json::Token(token) => return Some(spanned(&token, s.1.clone())),
-                    Json::Array(xs) => self.stack.extend(xs.iter().map(Result::Ok)),
-                    Json::Object(xs) => {
-                        for x in xs.iter() {
-                            match x.0 {
-                                ObjectMember::Full(ref x, ref s) => {
-                                    self.stack.push(Err(x.as_ref()));
-                                    self.stack.push(Ok(s));
-                                }
-
-                                ObjectMember::Partial(ref x, _, ref s) => {
-                                    self.stack.push(Err(x.as_ref()));
-                                    if let Some(s) = s {
-                                        self.stack.push(Ok(s));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                Err(x) => return Some(x),
-            }
-        }
-    }
-}
-impl Spanned<Json> {
-    pub fn iter<'a>(&'a self) -> JsonIter<'a> {
-        JsonIter {
-            stack: vec![Ok(self)],
-        }
     }
 }
 

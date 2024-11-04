@@ -5,7 +5,7 @@ use super::{
     shacl::{MyQuad, MyTerm, Triples},
     token::StringStyle,
 };
-use crate::model::Spanned;
+use lsp_core::model::Spanned;
 use std::{fmt::Display, ops::Range};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

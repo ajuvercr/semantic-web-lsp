@@ -3,23 +3,10 @@ use std::ops::Range;
 pub mod backend;
 pub mod contexts;
 pub mod lang;
-pub mod model;
 pub mod ns;
-pub mod parent;
 pub mod prefix;
 pub mod semantics;
-pub mod triple;
 pub mod utils;
-
-#[cfg(feature = "web")]
-pub mod web;
-
-#[cfg(feature = "bin")]
-pub mod bare;
-
-#[allow(unused)]
-#[cfg(feature = "bin")]
-pub use bare::*;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
 pub struct Error {
@@ -29,9 +16,6 @@ pub struct Error {
 
 #[cfg(feature = "bin")]
 pub use tower_lsp::lsp_types;
-
-#[cfg(not(feature = "bin"))]
-pub use lsp_types;
 
 #[cfg(test)]
 mod tests {

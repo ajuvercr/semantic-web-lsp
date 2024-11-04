@@ -1,8 +1,8 @@
-use std::io::{self, Cursor, Write};
-
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use crate::{model::Spanned, parent::ParentingSystem};
+use lsp_core::model::Spanned;
+
+use lsp_core::parent::ParentingSystem;
 
 use super::{
     parser::{Json, ObjectMember},
@@ -48,48 +48,56 @@ impl JsonNode {
     }
 }
 
-impl ParentingSystem<Spanned<JsonNode>> {
-    fn write(&self, node: &Spanned<JsonNode>, write: &mut impl Write) -> io::Result<()> {
+pub use helpers::to_json_vec;
+mod helpers {
+    use super::JsonNode;
+    use lsp_core::model::Spanned;
+    use lsp_core::parent::ParentingSystem;
+    use std::io::{self, Cursor, Write};
+
+    type This = ParentingSystem<Spanned<JsonNode>>;
+
+    fn write(this: &This, node: &Spanned<JsonNode>, to_write: &mut impl Write) -> io::Result<()> {
         match node.value() {
             JsonNode::Leaf(node) => {
-                write!(write, "{}", node)?;
+                write!(to_write, "{}", node)?;
             }
             JsonNode::Array(arr) => {
-                write!(write, "[")?;
+                write!(to_write, "[")?;
                 if let Some(x) = arr.first() {
-                    self.write(&self[*x], write)?;
+                    write(this, &this[*x], to_write)?;
                     for i in &arr[1..] {
-                        write!(write, ",")?;
-                        self.write(&self[*i], write)?;
+                        write!(to_write, ",")?;
+                        write(this, &this[*i], to_write)?;
                     }
                 }
-                write!(write, "]")?;
+                write!(to_write, "]")?;
             }
             JsonNode::Object(arr) => {
-                write!(write, "{{")?;
+                write!(to_write, "{{")?;
                 if let Some(x) = arr.first() {
-                    self.write(&self[*x], write)?;
+                    write(this, &this[*x], to_write)?;
                     for i in &arr[1..] {
-                        write!(write, ",")?;
-                        self.write(&self[*i], write)?;
+                        write!(to_write, ",")?;
+                        write(this, &this[*i], to_write)?;
                     }
                 }
-                write!(write, "}}")?;
+                write!(to_write, "}}")?;
             }
             JsonNode::Kv(s, k) => {
-                write!(write, "\"{}\":", s.value())?;
-                self.write(&self[*k], write)?;
+                write!(to_write, "\"{}\":", s.value())?;
+                write(this, &this[*k], to_write)?;
             }
         }
 
         Ok(())
     }
 
-    pub fn to_json_vec(&self) -> io::Result<Vec<u8>> {
+    pub fn to_json_vec(this: &This) -> io::Result<Vec<u8>> {
         let mut cursor = Cursor::new(Vec::new());
 
-        if let Some(x) = self.start_element() {
-            self.write(&x, &mut cursor)?;
+        if let Some(x) = this.start_element() {
+            write(this, &x, &mut cursor)?;
         }
 
         Ok(cursor.into_inner())

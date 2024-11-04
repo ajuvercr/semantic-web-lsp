@@ -2,9 +2,10 @@ use std::ops::Range;
 
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use crate::{lang, model::Spanned};
+use crate::lang;
 
 use super::semantic_token;
+use lsp_core::model::Spanned;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
 pub enum Token {

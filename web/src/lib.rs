@@ -1,18 +1,16 @@
-use crate::backend::ClientSync;
-use crate::{
-    backend::Client,
+mod web_types;
+use jsonld_language_server::{
+    backend::{Backend, Client, ClientSync},
     lang::{jsonld::JsonLd, turtle::TurtleLang},
     lsp_types::*,
     prefix::Prefixes,
-    utils::web_types as wt,
 };
 use serde::Serializer;
 use serde_json::json;
 use tower_lsp::LanguageServer;
 use tracing::info;
 use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
-
-use crate::backend::Backend;
+use web_types as wt;
 
 const SER: serde_wasm_bindgen::Serializer = serde_wasm_bindgen::Serializer::json_compatible();
 static mut LOG_FN: Option<js_sys::Function> = None;
@@ -231,7 +229,7 @@ pub async fn turtle_backend(client: WebClient) -> Option<TurtleWebBackend> {
     let prefixes = Prefixes::new().await?;
 
     Some(TurtleWebBackend {
-        inner: Backend::new(client, (prefixes, Default::default(), Default::default())),
+        inner: Backend::new(client, (prefixes, Default::default())),
     })
 }
 

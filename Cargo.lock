@@ -49,12 +49,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "as_variant"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5f0433b0fa54e66df07b6db40704ed9570a560193f854288f4039a345e88028"
-
-[[package]]
 name = "async-recursion"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -799,26 +793,23 @@ dependencies = [
 name = "jsonld-language-server"
 version = "0.1.0"
 dependencies = [
- "as_variant",
  "async-recursion",
  "async-trait",
  "bytes",
  "cfg-if",
  "chumsky",
- "console_error_panic_hook",
  "dashmap",
  "enum-methods",
  "env_logger",
  "futures",
  "hashbrown 0.13.2",
- "hyper",
  "iref",
- "js-sys",
  "json-ld",
  "json-ld-syntax",
  "json-syntax",
  "locspan",
  "log",
+ "lsp-core",
  "lsp-types",
  "mime",
  "once_cell",
@@ -826,9 +817,7 @@ dependencies = [
  "reqwest",
  "ropey",
  "serde",
- "serde-wasm-bindgen",
  "serde_json",
- "smallstr",
  "sophia_api",
  "sophia_iri",
  "thiserror",
@@ -836,10 +825,6 @@ dependencies = [
  "tower-lsp",
  "tracing",
  "tracing-subscriber",
- "tracing-wasm",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
 ]
 
 [[package]]
@@ -978,6 +963,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "518ef76f2f87365916b142844c16d8fefd85039bc5699050210a7778ee1cd1de"
 
 [[package]]
+name = "lsp-core"
+version = "0.1.0"
+dependencies = [
+ "enum-methods",
+]
+
+[[package]]
 name = "lsp-types"
 version = "0.94.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -988,6 +980,26 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "url",
+]
+
+[[package]]
+name = "lsp-web"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
+ "jsonld-language-server",
+ "lsp-core",
+ "lsp-types",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "tower-lsp",
+ "tracing",
+ "tracing-wasm",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
