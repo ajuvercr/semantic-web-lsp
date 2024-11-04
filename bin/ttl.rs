@@ -1,6 +1,6 @@
 use jsonld_language_server::backend::Backend;
 use jsonld_language_server::lang::turtle::TurtleLang;
-use jsonld_language_server::prefix::Prefixes;
+use lsp_core::prefix::Prefixes;
 use std::fs::File;
 use std::io;
 use std::sync::Mutex;

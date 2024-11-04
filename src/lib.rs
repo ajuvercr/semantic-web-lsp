@@ -3,8 +3,6 @@ use std::ops::Range;
 pub mod backend;
 pub mod contexts;
 pub mod lang;
-pub mod ns;
-pub mod prefix;
 pub mod semantics;
 pub mod utils;
 

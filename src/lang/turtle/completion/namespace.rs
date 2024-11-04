@@ -21,9 +21,9 @@ use crate::{
         },
         SimpleCompletion,
     },
-    ns::rdf,
-    utils::{fetch, turtle::*},
+    utils::turtle::*,
 };
+use lsp_core::{ns::rdf, utils::fetch};
 
 use super::{CompletionProvider, ShapeCompletionProvider, Turtle};
 use hashbrown::{HashMap, HashSet};

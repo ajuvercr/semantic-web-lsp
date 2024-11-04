@@ -2,9 +2,6 @@ mod loader;
 pub use loader::*;
 pub mod turtle;
 
-mod fetch;
-pub use fetch::*;
-
 use crate::lsp_types::{Position, Range};
 use ropey::Rope;
 
