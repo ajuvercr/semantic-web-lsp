@@ -1,8 +1,6 @@
-use crate::{
-    lang::turtle::{parse_turtle, tokenizer, Turtle},
-    model::spanned,
-};
+use crate::lang::turtle::{parse_turtle, tokenizer, Turtle};
 use chumsky::Parser;
+use lsp_core::model::spanned;
 use lsp_types::CompletionItemKind;
 
 pub fn parse(str: &str, location: &lsp_types::Url) -> Result<Turtle, String> {

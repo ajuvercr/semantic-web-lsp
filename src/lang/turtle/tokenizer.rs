@@ -1,5 +1,4 @@
-use crate::model::spanned;
-use crate::model::Spanned;
+use lsp_core::model::{spanned, Spanned};
 
 use super::token::{StringStyle, Token};
 use chumsky::chain::Chain;

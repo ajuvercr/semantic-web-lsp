@@ -8,15 +8,15 @@ use iref::IriBuf;
 use json_ld::{ContextLoader, ExtractContext};
 use json_ld_syntax::context::{AnyValueMut, Value};
 use locspan::Span;
+use lsp_core::{model::Spanned, parent::ParentingSystem};
 use lsp_types::{CompletionItemKind, Position, SemanticToken, SemanticTokenType};
+use parent::to_json_vec;
 use ropey::Rope;
 use tracing::debug;
 
 use crate::{
     backend::Client,
     contexts::filter_definition,
-    model::Spanned,
-    parent::ParentingSystem,
     semantics::semantic_tokens,
     utils::{position_to_offset, ReqwestLoader},
 };
@@ -260,7 +260,7 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
         debug!("update parents");
 
         if state.parents.last_is_valid() {
-            if let Ok(bytes) = state.parents.last_valid.to_json_vec() {
+            if let Ok(bytes) = to_json_vec(&state.parents.last_valid) {
                 let st = String::from_utf8(bytes).unwrap();
                 set_ctx(&self.cache, &self.id, st).await;
             }

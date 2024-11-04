@@ -1,0 +1,10 @@
+
+[package]
+name = "lsp-core"
+version = "0.1.0"    # the current version, obeying semver
+edition = "2021"     # the edition, will have no effect on a resolver used in the workspace
+authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
+
+[dependencies]
+
+enum-methods.workspace = true

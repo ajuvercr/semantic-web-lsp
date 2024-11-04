@@ -3,6 +3,8 @@ use std::{fmt::Display, hash::Hash, ops::Range, sync::Arc};
 use chumsky::prelude::Simple;
 use futures::FutureExt;
 use futures::{channel::mpsc, StreamExt};
+use lsp_core::model::Spanned;
+use lsp_core::parent::ParentingSystem;
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionItemKind, CompletionTextEdit, Diagnostic,
     DiagnosticSeverity, Documentation, FormattingOptions, Hover, InsertTextFormat, Position,
@@ -11,7 +13,7 @@ use lsp_types::{
 use ropey::Rope;
 use tracing::debug;
 
-use crate::{backend::Client, model::Spanned, parent::ParentingSystem, utils::offset_to_position};
+use crate::{backend::Client, utils::offset_to_position};
 
 pub struct SimpleDiagnostic {
     pub range: Range<usize>,

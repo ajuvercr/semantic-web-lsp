@@ -2,11 +2,9 @@ use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
 use chumsky::prelude::*;
 
-use crate::{
-    lang::Token,
-    model::{spanned, Spanned},
-};
+use crate::lang::Token;
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
+use lsp_core::model::{spanned, Spanned};
 
 #[derive(
     Clone, Debug, PartialEq, PartialOrd, Eq, Hash, EnumIntoGetters, EnumIsA, EnumToGetters,

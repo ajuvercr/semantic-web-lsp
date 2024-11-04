@@ -5,6 +5,8 @@ mod model;
 mod node;
 // mod parser;
 mod parser2;
+use lsp_core::parent::ParentingSystem;
+use node::new_turtle;
 pub use parser2::parse_turtle;
 pub mod shacl;
 mod token;
@@ -29,12 +31,11 @@ use crate::{
         self, head,
         turtle::completion::{NextTokenCompletionCtx, NsCompletionCtx},
     },
-    model::{spanned, Spanned},
-    parent::ParentingSystem,
     prefix::Prefixes,
     semantics::semantic_tokens,
     utils::{position_to_offset, range_to_range},
 };
+use lsp_core::model::{spanned, Spanned};
 
 use self::{
     completion::{ArcedNamespaceCompletionProvider, CompletionProvider},
@@ -216,7 +217,7 @@ impl Lang for TurtleLang {
     }
 
     fn parents(&self, element: &Spanned<Self::Element>) -> ParentingSystem<Spanned<Self::Node>> {
-        ParentingSystem::new_turtle(element.clone())
+        new_turtle(element.clone())
     }
 
     fn special_semantic_tokens(
