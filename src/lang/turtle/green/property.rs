@@ -5,14 +5,11 @@ use sophia_api::{
     term::Term,
 };
 
-use crate::lang::{
-    turtle::{
-        shacl::{MyTerm, Triples},
-        Turtle,
-    },
-    SimpleCompletion,
+use crate::lang::turtle::{
+    shacl::{MyTerm, Triples},
+    Turtle,
 };
-use lsp_core::ns::*;
+use lsp_core::{lang::SimpleCompletion, ns::*};
 
 use super::ClassProvider;
 

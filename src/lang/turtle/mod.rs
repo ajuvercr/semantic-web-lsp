@@ -26,16 +26,14 @@ pub use parser2::*;
 use ropey::Rope;
 
 use crate::{
-    backend::Client,
-    lang::{
-        self, head,
-        turtle::completion::{NextTokenCompletionCtx, NsCompletionCtx},
-    },
+    lang::turtle::completion::{NextTokenCompletionCtx, NsCompletionCtx},
     semantics::semantic_tokens,
-    utils::{position_to_offset, range_to_range},
 };
+use lsp_core::client::Client;
+use lsp_core::lang::head;
 use lsp_core::model::{spanned, Spanned};
 use lsp_core::prefix::Prefixes;
+use lsp_core::utils::{position_to_offset, range_to_range};
 
 use self::{
     completion::{ArcedNamespaceCompletionProvider, CompletionProvider},
@@ -44,7 +42,7 @@ use self::{
     token::Token,
 };
 
-use super::{
+use lsp_core::lang::{
     CurrentLangState, CurrentLangStatePart, DiagnosticSender, Lang, LangState, SimpleCompletion,
     SimpleDiagnostic,
 };
@@ -225,7 +223,7 @@ impl Lang for TurtleLang {
         state: &CurrentLangState<Self>,
         mut apply: impl FnMut(Range<usize>, lsp_types::SemanticTokenType) -> (),
     ) {
-        use lang::Token;
+        use lsp_core::lang::Token as _;
         state.tokens.current.iter().for_each(|token| {
             Token::span_tokens(token)
                 .into_iter()
@@ -426,7 +424,7 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for TurtleLang {
         position: &Position,
         state: &CurrentLangState<Self>,
         _client: &C,
-    ) -> Vec<super::SimpleCompletion> {
+    ) -> Vec<SimpleCompletion> {
         let mut completions = Vec::new();
 
         let location =

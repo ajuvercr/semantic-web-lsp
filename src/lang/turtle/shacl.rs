@@ -9,8 +9,8 @@ use sophia_api::{
 use std::{borrow::Cow, ops::Deref, usize};
 use tracing::info;
 
-use crate::lang::SimpleCompletion;
 use hashbrown::HashSet;
+use lsp_core::lang::SimpleCompletion;
 use lsp_core::model::Spanned;
 
 use super::{

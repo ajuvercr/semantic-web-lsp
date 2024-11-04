@@ -1,14 +1,12 @@
 use hashbrown::HashMap;
+use lsp_core::lang::SimpleCompletion;
 use lsp_types::Range;
 use tracing::info;
 
-use crate::lang::{
-    turtle::{
-        green::{ClassProvider, Property, PropertyProvider},
-        shacl::{parse_shapes, Shape, Triples},
-        Turtle,
-    },
-    SimpleCompletion,
+use crate::lang::turtle::{
+    green::{ClassProvider, Property, PropertyProvider},
+    shacl::{parse_shapes, Shape, Triples},
+    Turtle,
 };
 
 #[derive(Clone, Debug, Default)]

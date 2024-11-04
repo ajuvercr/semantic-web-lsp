@@ -1,11 +1,10 @@
 use std::ops::Range;
 
-use common::Token;
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 use lsp_types::SemanticTokenType;
 
 use super::{Literal, NamedNode};
-use crate::lang::common;
+use lsp_core::lang::{self, Token};
 use lsp_core::model::Spanned;
 
 #[derive(Clone, Debug, PartialEq, EnumIntoGetters, EnumIsA, EnumToGetters)]
@@ -86,7 +85,7 @@ impl Node {
     }
 }
 
-impl common::Node<Leaf> for Node {
+impl lang::Node<Leaf> for Node {
     fn leaf<'a>(&'a self) -> Option<&'a Leaf> {
         match self {
             Node::Leaf(leaf) => Some(leaf),

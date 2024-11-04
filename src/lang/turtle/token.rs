@@ -2,8 +2,6 @@ use std::ops::Range;
 
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use crate::lang;
-
 use super::semantic_token;
 use lsp_core::model::Spanned;
 
@@ -64,7 +62,7 @@ pub enum Token {
     Invalid(String),
 }
 
-impl lang::Token for Token {
+impl lsp_core::lang::Token for Token {
     fn token(&self) -> Option<lsp_types::SemanticTokenType> {
         match self {
             Token::PrefixTag
