@@ -1,7 +1,8 @@
-use crate::lang::{CurrentLangState, Lang, LangState, Publisher};
 use crate::lsp_types::*;
+use lsp_core::client::Client;
+use lsp_core::lang::{CurrentLangState, Lang, LangState, Publisher};
 
-use crate::utils::{offsets_to_range, position_to_offset};
+use lsp_core::utils::{offsets_to_range, position_to_offset};
 
 use futures::future::join;
 use futures::lock::Mutex;
@@ -9,25 +10,9 @@ use ropey::Rope;
 use tracing::info;
 
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::sync::Arc;
 use tower_lsp::jsonrpc::{Error, ErrorCode, Result};
 use tower_lsp::LanguageServer;
-
-#[tower_lsp::async_trait]
-pub trait Client: Clone + ClientSync {
-    async fn log_message<M: Display + Sync + Send + 'static>(&self, ty: MessageType, msg: M) -> ();
-    async fn publish_diagnostics(
-        &self,
-        uri: Url,
-        diags: Vec<Diagnostic>,
-        version: Option<i32>,
-    ) -> ();
-}
-
-pub trait ClientSync {
-    fn spawn<O: Send + 'static, F: std::future::Future<Output = O> + Send + 'static>(&self, fut: F);
-}
 
 #[derive(Debug)]
 pub struct Backend<C: Client + Send + Sync + 'static, L: LangState<C>> {
@@ -422,30 +407,5 @@ impl<C: Client + Send + Sync + 'static, L: LangState<C> + Send + Sync> Backend<C
         }
 
         Some(())
-    }
-}
-
-impl ClientSync for tower_lsp::Client {
-    fn spawn<O: Send + 'static, F: std::future::Future<Output = O> + Send + 'static>(
-        &self,
-        fut: F,
-    ) {
-        tokio::spawn(fut);
-    }
-}
-
-#[tower_lsp::async_trait]
-impl Client for tower_lsp::Client {
-    async fn log_message<M: Display + Sync + Send + 'static>(&self, ty: MessageType, msg: M) -> () {
-        self.log_message(ty, msg).await;
-    }
-
-    async fn publish_diagnostics(
-        &self,
-        uri: Url,
-        diags: Vec<Diagnostic>,
-        version: Option<i32>,
-    ) -> () {
-        self.publish_diagnostics(uri, diags, version).await;
     }
 }

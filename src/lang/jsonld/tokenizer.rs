@@ -2,8 +2,8 @@ use std::{fmt::Display, num::ParseIntError, str::FromStr};
 
 use chumsky::prelude::*;
 
-use crate::lang::Token;
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
+use lsp_core::lang::Token;
 use lsp_core::model::{spanned, Spanned};
 
 #[derive(

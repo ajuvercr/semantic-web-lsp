@@ -11,5 +11,10 @@ sophia_api.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 tokio.workspace = true
+chumsky.workspace = true
+ropey.workspace = true
+lsp-types.workspace = true
+futures.workspace = true
+tower-lsp.workspace = true
 
 reqwest = { version = "0.11.22", features = ["blocking"] }

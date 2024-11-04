@@ -13,6 +13,9 @@ enum-methods = "0.0.8"
 sophia_api = "0.8.0"
 sophia_iri = "0.8.0"
 tokio = { version = "1.33.0", features = ["full"] }
+chumsky = "0.9.0"
+ropey = "1.5.0"
+futures = "0.3.27"
 
 [dependencies]
 serde.workspace = true
@@ -24,18 +27,18 @@ enum-methods.workspace = true
 sophia_iri.workspace = true
 sophia_api.workspace = true
 tokio = { optional = true, workspace = true }
+chumsky.workspace = true
+ropey.workspace = true
+futures.workspace = true
 
 lsp-core = {path = "./core"}
-chumsky = "0.9.0"
 env_logger = "0.9.0"
-ropey = "1.5.0"
 dashmap = "5.1.0"
 log = "0.4.14"
 iref = "2.2.3"
 locspan = "0.7.13"
 async-recursion = "1.0.2"
 rdf-types = "0.14.2"
-futures = "0.3.27"
 json-ld = { version = "0.14" }
 json-ld-syntax = "0.14.0"
 json-syntax = "0.9.1"

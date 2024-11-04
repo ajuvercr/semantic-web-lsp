@@ -14,20 +14,16 @@ use parent::to_json_vec;
 use ropey::Rope;
 use tracing::debug;
 
-use crate::{
-    backend::Client,
-    contexts::filter_definition,
-    semantics::semantic_tokens,
-    utils::{position_to_offset, ReqwestLoader},
-};
+use crate::{contexts::filter_definition, semantics::semantic_tokens, utils::ReqwestLoader};
+use lsp_core::client::Client;
+use lsp_core::lang::{CurrentLangState, Lang, LangState, Node, SimpleCompletion};
+use lsp_core::utils::position_to_offset;
 
 use self::{
     parent::JsonNode,
     parser::{Json, JsonFormatter},
     tokenizer::{tokenize, JsonToken},
 };
-
-use super::{CurrentLangState, Lang, LangState, Node, SimpleCompletion};
 
 pub mod parent;
 pub mod parser;
@@ -279,7 +275,7 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
         position: &Position,
         state: &CurrentLangState<Self>,
         _client: &C,
-    ) -> Vec<super::SimpleCompletion> {
+    ) -> Vec<SimpleCompletion> {
         let parents = &state.parents.last_valid;
         let location = position_to_offset(position.clone(), &self.rope).unwrap();
 

@@ -1,6 +1,5 @@
+use lsp_core::lang::SimpleCompletion;
 use lsp_types::Range;
-
-use crate::lang::SimpleCompletion;
 
 use super::Turtle;
 
