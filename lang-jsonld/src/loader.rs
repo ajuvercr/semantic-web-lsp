@@ -35,6 +35,7 @@ impl<I> Default for Options<I> {
 }
 /// Loading error.
 #[derive(Debug)]
+#[allow(unused)]
 pub enum Error<E> {
     Reqwest(ReqwestError),
 

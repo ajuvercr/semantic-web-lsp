@@ -1,5 +1,5 @@
 use jsonld_language_server::backend::Backend;
-use jsonld_language_server::lang::jsonld::JsonLd;
+use lang_jsonld::JsonLd;
 use std::fs::File;
 use std::io;
 use std::sync::Mutex;

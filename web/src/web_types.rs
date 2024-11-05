@@ -56,7 +56,6 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "SetReadFileFn")]
     pub type SetReadFileFn;
 
-
     #[wasm_bindgen(typescript_type = "DocumentFormattingParams")]
     pub type DocumentFormattingParams;
 }

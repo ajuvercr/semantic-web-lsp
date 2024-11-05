@@ -222,11 +222,7 @@ impl Term {
     pub fn expand(&self, turtle: &Turtle) -> Option<String> {
         self.named_node()?.expand(turtle)
     }
-    pub fn expand_step<'a>(
-        &'a self,
-        turtle: &Turtle,
-        done: HashSet<&'a str>,
-    ) -> Option<String> {
+    pub fn expand_step<'a>(&'a self, turtle: &Turtle, done: HashSet<&'a str>) -> Option<String> {
         self.named_node()?.expand_step(turtle, done)
     }
 }
