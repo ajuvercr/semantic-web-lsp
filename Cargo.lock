@@ -693,7 +693,6 @@ version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c2be3faed8b0e6bc3c5ab769c54f647f564fac6d912b7f4bcc09ffe8764a836"
 dependencies = [
- "bytes",
  "contextual",
  "derivative",
  "futures",
@@ -711,7 +710,6 @@ dependencies = [
  "permutohedron",
  "pretty_dtoa",
  "rdf-types",
- "reqwest",
  "ryu-js",
  "smallvec",
  "static-iref",
@@ -795,7 +793,6 @@ version = "0.1.0"
 dependencies = [
  "async-recursion",
  "async-trait",
- "bytes",
  "cfg-if",
  "chumsky",
  "dashmap",
@@ -803,18 +800,11 @@ dependencies = [
  "env_logger",
  "futures",
  "hashbrown 0.13.2",
- "iref",
- "json-ld",
- "json-ld-syntax",
- "json-syntax",
+ "lang-jsonld",
  "lang-turtle",
- "locspan",
  "log",
  "lsp-core",
  "lsp-types",
- "mime",
- "once_cell",
- "rdf-types",
  "ropey",
  "serde",
  "serde_json",
@@ -825,6 +815,35 @@ dependencies = [
  "tower-lsp",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "lang-jsonld"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "chumsky",
+ "enum-methods",
+ "futures",
+ "hashbrown 0.13.2",
+ "iref",
+ "json-ld",
+ "json-ld-syntax",
+ "json-syntax",
+ "locspan",
+ "lsp-core",
+ "lsp-types",
+ "mime",
+ "once_cell",
+ "rdf-types",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "sophia_iri",
+ "tokio",
+ "tower-lsp",
+ "tracing",
 ]
 
 [[package]]

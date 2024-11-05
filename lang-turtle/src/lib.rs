@@ -1,9 +1,9 @@
-mod utils;
 mod completion;
 mod formatter;
 mod green;
 mod model;
 mod node;
+mod utils;
 // mod parser;
 mod parser2;
 use lsp_core::parent::ParentingSystem;

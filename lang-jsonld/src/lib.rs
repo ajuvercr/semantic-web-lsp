@@ -15,7 +15,7 @@ use parent::to_json_vec;
 use ropey::Rope;
 use tracing::debug;
 
-use crate::{contexts::filter_definition, utils::ReqwestLoader};
+use crate::{contexts::filter_definition, loader::ReqwestLoader};
 use lsp_core::client::Client;
 use lsp_core::lang::{CurrentLangState, Lang, LangState, Node, SimpleCompletion};
 use lsp_core::utils::position_to_offset;
@@ -26,6 +26,8 @@ use self::{
     tokenizer::{tokenize, JsonToken},
 };
 
+mod contexts;
+mod loader;
 pub mod parent;
 pub mod parser;
 pub mod tokenizer;
@@ -397,5 +399,38 @@ impl JsonLd {
             .cloned();
 
         ids.collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use iref::{Iri, IriRefBuf};
+
+    #[test]
+    fn test_iri_resolve() {
+        let resolved: Result<_, iref::Error> = (|| {
+            let base_iri = Iri::new("http://a/b/c/d;p?q")?;
+            let iri_ref = IriRefBuf::new("tetten")?;
+
+            Ok(iri_ref.resolved(base_iri))
+        })();
+
+        assert!(resolved.is_ok());
+        let resolved = resolved.unwrap();
+        assert_eq!(resolved, "http://a/b/c/tetten");
+    }
+
+    #[test]
+    fn test_iri_resolve_abs() {
+        let resolved: Result<_, iref::Error> = (|| {
+            let base_iri = Iri::new("http://a/b/c/d;p?q")?;
+            let iri_ref = IriRefBuf::new("http://tetten.com")?;
+
+            Ok(iri_ref.resolved(base_iri))
+        })();
+
+        assert!(resolved.is_ok());
+        let resolved = resolved.unwrap();
+        assert_eq!(resolved, "http://tetten.com");
     }
 }
