@@ -3,7 +3,7 @@ use lsp_core::lang::SimpleCompletion;
 use lsp_types::Range;
 use tracing::info;
 
-use crate::lang::turtle::{
+use crate::{
     green::{ClassProvider, Property, PropertyProvider},
     shacl::{parse_shapes, Shape, Triples},
     Turtle,
@@ -21,8 +21,8 @@ impl PropertyProvider for ShapeCompletionProvider {
     fn provide<'a>(
         &mut self,
         triples: &'a Triples<'a>,
-        class_provider: &mut impl crate::lang::turtle::green::ClassProvider,
-    ) -> Vec<crate::lang::turtle::green::Property> {
+        class_provider: &mut impl crate::green::ClassProvider,
+    ) -> Vec<crate::green::Property> {
         self.set_shapes(&triples, class_provider)
     }
 }

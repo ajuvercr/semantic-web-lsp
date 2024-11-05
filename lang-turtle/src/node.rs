@@ -98,7 +98,7 @@ pub use helpers::new_turtle;
 mod helpers {
     use lsp_core::parent::ParentingSystem;
 
-    use crate::lang::turtle::{Base, BlankNode, NamedNode, Prefix, Term, Triple, Turtle};
+    use crate::{Base, BlankNode, NamedNode, Prefix, Term, Triple, Turtle};
     use lsp_core::model::{spanned, Spanned};
 
     use super::{Leaf, Node, PO};

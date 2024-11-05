@@ -5,7 +5,7 @@ use sophia_api::{
     term::Term,
 };
 
-use crate::lang::turtle::{
+use crate::{
     shacl::{MyTerm, Triples},
     Turtle,
 };

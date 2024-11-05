@@ -1,5 +1,5 @@
-use crate::lang::turtle::{parse_turtle, tokenizer, Turtle};
-use chumsky::Parser;
+use crate::{parse_turtle, tokenizer, Turtle};
+use chumsky::Parser as _;
 use lsp_core::model::spanned;
 use lsp_types::CompletionItemKind;
 
@@ -23,6 +23,7 @@ pub fn parse(str: &str, location: &lsp_types::Url) -> Result<Turtle, String> {
 }
 
 #[derive(Default, Clone, Copy, Debug)]
+#[allow(unused)]
 pub enum PropertyType {
     Class,
     DatatypeProperty,
@@ -41,24 +42,25 @@ impl Into<CompletionItemKind> for PropertyType {
         }
     }
 }
-pub const TYPE: &'static str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 
-pub const PROPERTIES: &'static [(&'static str, PropertyType)] = &[
-    (
-        "http://www.w3.org/2002/07/owl#DatatypeProperty",
-        PropertyType::DatatypeProperty,
-    ),
-    (
-        "http://www.w3.org/2002/07/owl#ObjectProperty",
-        PropertyType::ObjectProperty,
-    ),
-    ("http://www.w3.org/2002/07/owl#Class", PropertyType::Class),
-    (
-        "http://www.w3.org/2000/01/rdf-schema#Class",
-        PropertyType::Class,
-    ),
-    (
-        "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property",
-        PropertyType::Property,
-    ),
-];
+// pub const TYPE: &'static str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+//
+// pub const PROPERTIES: &'static [(&'static str, PropertyType)] = &[
+//     (
+//         "http://www.w3.org/2002/07/owl#DatatypeProperty",
+//         PropertyType::DatatypeProperty,
+//     ),
+//     (
+//         "http://www.w3.org/2002/07/owl#ObjectProperty",
+//         PropertyType::ObjectProperty,
+//     ),
+//     ("http://www.w3.org/2002/07/owl#Class", PropertyType::Class),
+//     (
+//         "http://www.w3.org/2000/01/rdf-schema#Class",
+//         PropertyType::Class,
+//     ),
+//     (
+//         "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property",
+//         PropertyType::Property,
+//     ),
+// ];

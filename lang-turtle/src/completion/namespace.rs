@@ -10,15 +10,13 @@ use std::{ops::DerefMut, sync::Arc};
 use tracing::info;
 
 use crate::{
-    lang::turtle::{
-        green::{
-            BasicClassProvider, Class, ClassProvider, NsPropertyProvider, Property,
-            PropertyProvider, Range as R,
-        },
-        shacl::{MyTerm, Triples},
-        token::Token,
+    green::{
+        BasicClassProvider, Class, ClassProvider, NsPropertyProvider, Property, PropertyProvider,
+        Range as R,
     },
-    utils::turtle::*,
+    shacl::{MyTerm, Triples},
+    token::Token,
+    utils::*,
 };
 use lsp_core::{lang::SimpleCompletion, ns::rdf, utils::fetch};
 

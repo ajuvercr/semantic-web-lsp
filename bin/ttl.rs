@@ -1,5 +1,5 @@
 use jsonld_language_server::backend::Backend;
-use jsonld_language_server::lang::turtle::TurtleLang;
+use lang_turtle::TurtleLang;
 use lsp_core::prefix::Prefixes;
 use std::fs::File;
 use std::io;

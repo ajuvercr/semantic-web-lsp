@@ -16,6 +16,8 @@ tokio = { version = "1.33.0", features = ["full"] }
 chumsky = "0.9.0"
 ropey = "1.5.0"
 futures = "0.3.27"
+hashbrown = "0.13.2"
+async-trait = "0.1.68"
 
 [dependencies]
 serde.workspace = true
@@ -30,8 +32,11 @@ tokio = { optional = true, workspace = true }
 chumsky.workspace = true
 ropey.workspace = true
 futures.workspace = true
+hashbrown.workspace = true
+async-trait.workspace = true
 
 lsp-core = {path = "./core"}
+lang-turtle = {path = "./lang-turtle"}
 env_logger = "0.9.0"
 dashmap = "5.1.0"
 log = "0.4.14"
@@ -46,9 +51,7 @@ mime = "0.3.16"
 cfg-if = "1.0.0"
 once_cell = "1.17.1"
 bytes = "1.4.0"
-hashbrown = "0.13.2"
 thiserror = "1.0.40"
-async-trait = "0.1.68"
 tracing-subscriber = { version = "0.3.17", features = ["json"] }
 
 [features]
@@ -71,7 +74,7 @@ required-features = ["bin"]
 debug = true
 
 [workspace]
-members = ["core", "web"]
+members = ["core", "web", "lang-turtle"]
 resolver = "2"
 
 # default-members = ["core", "jsonld-language-server"]
