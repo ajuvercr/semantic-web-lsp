@@ -146,8 +146,9 @@ impl ClientSync for WebClient {
         &self,
         url: &str,
         headers: &std::collections::HashMap<String, String>,
-    ) -> std::pin::Pin<Box<dyn Send + std::future::Future<Output = Result<lsp_core::client::Resp, String>>>>
-    {
+    ) -> std::pin::Pin<
+        Box<dyn Send + std::future::Future<Output = Result<lsp_core::client::Resp, String>>>,
+    > {
         use futures::channel::oneshot;
         let (tx, rx) = oneshot::channel();
         let _ = wasm_bindgen_futures::future_to_promise(fetch::local_fetch(
