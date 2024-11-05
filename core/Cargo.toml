@@ -1,20 +1,21 @@
 
 [package]
 name = "lsp-core"
-version = "0.1.0"    # the current version, obeying semver
-edition = "2021"     # the edition, will have no effect on a resolver used in the workspace
+
 authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
+edition = "2021"
+version = "0.1.0"
 
 [dependencies]
+chumsky.workspace      = true
 enum-methods.workspace = true
-sophia_api.workspace = true
-serde_json.workspace = true
-tracing.workspace = true
-tokio.workspace = true
-chumsky.workspace = true
-ropey.workspace = true
-lsp-types.workspace = true
-futures.workspace = true
-tower-lsp.workspace = true
+futures.workspace      = true
+lsp-types.workspace    = true
+ropey.workspace        = true
+serde_json.workspace   = true
+sophia_api.workspace   = true
+tokio.workspace        = true
+tower-lsp.workspace    = true
+tracing.workspace      = true
 
 reqwest = { version = "0.11.22", features = ["blocking"] }

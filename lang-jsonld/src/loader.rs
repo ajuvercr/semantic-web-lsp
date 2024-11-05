@@ -199,8 +199,13 @@ impl<M> fmt::Display for ParseError<M> {
     }
 }
 
-impl<C: Client + Send, I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, E>
-    Loader<I, M> for ReqwestLoader<C, I, M, T, E>
+impl<
+        C: Client + Send,
+        I: Clone + Eq + Hash + Sync + Send + AsRef<str>,
+        T: Clone + Send,
+        M: Send,
+        E,
+    > Loader<I, M> for ReqwestLoader<C, I, M, T, E>
 {
     type Output = T;
     type Error = Error<E>;

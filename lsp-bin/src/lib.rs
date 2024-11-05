@@ -1,4 +1,3 @@
-
 use std::ops::Range;
 
 pub mod backend;
@@ -8,4 +7,3 @@ pub struct Error {
     pub msg: String,
     pub span: Range<usize>,
 }
-
