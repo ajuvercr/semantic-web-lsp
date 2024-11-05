@@ -9,14 +9,13 @@ use json_ld::{ContextLoader, ExtractContext};
 use json_ld_syntax::context::{AnyValueMut, Value};
 use locspan::Span;
 use lsp_core::semantics::semantic_tokens;
-use lsp_core::{model::Spanned, parent::ParentingSystem};
+use lsp_core::{client::Client, model::Spanned, parent::ParentingSystem};
 use lsp_types::{CompletionItemKind, Position, SemanticToken, SemanticTokenType};
 use parent::to_json_vec;
 use ropey::Rope;
 use tracing::debug;
 
 use crate::{contexts::filter_definition, loader::ReqwestLoader};
-use lsp_core::client::Client;
 use lsp_core::lang::{CurrentLangState, Lang, LangState, Node, SimpleCompletion};
 use lsp_core::utils::position_to_offset;
 
@@ -34,7 +33,7 @@ pub mod tokenizer;
 
 pub type Cache = Arc<Mutex<HashMap<String, Value<Span>>>>;
 
-async fn load_ctx(cache: &Cache, id: &str) -> Value<Span> {
+async fn load_ctx<C: Client + Send>(client: C, cache: &Cache, id: &str) -> Value<Span> {
     {
         let c = cache.lock().await;
 
@@ -43,7 +42,7 @@ async fn load_ctx(cache: &Cache, id: &str) -> Value<Span> {
         }
     }
 
-    let mut loader = ReqwestLoader::default();
+    let mut loader = ReqwestLoader::new_with_metadata_map(client, |_, _file, span| span);
     let ctx = loader
         .load_context(IriBuf::from_string(id.to_string()).unwrap())
         .await
@@ -271,13 +270,13 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
         semantic_tokens(self, &state, &self.rope)
     }
 
-    #[tracing::instrument(skip(self, state, _client), fields(id=self.id))]
+    #[tracing::instrument(skip(self, state, client), fields(id=self.id))]
     async fn do_completion(
         &mut self,
         trigger: Option<String>,
         position: &Position,
         state: &CurrentLangState<Self>,
-        _client: &C,
+        client: &C,
     ) -> Vec<SimpleCompletion> {
         let parents = &state.parents.last_valid;
         let location = position_to_offset(position.clone(), &self.rope).unwrap();
@@ -326,7 +325,7 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
             }
 
             let iri = IriBuf::from_str(&self.id).unwrap();
-            let mut x = load_ctx(&self.cache, &self.id).await;
+            let mut x = load_ctx(client.clone(), &self.cache, &self.id).await;
 
             let context_ids: Vec<_> = parents
                 .iter()
@@ -357,7 +356,7 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
             {
                 let resolved = id.resolved(&iri);
                 // let fut = self.cache.lock().unwrap().load_context(resolved);
-                let y = load_ctx(&self.cache, resolved.as_str()).await;
+                let y = load_ctx(client.clone(), &self.cache, resolved.as_str()).await;
                 x.append(y);
             }
 

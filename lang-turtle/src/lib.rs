@@ -356,6 +356,7 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for TurtleLang {
         &self,
         state: &CurrentLangState<Self>,
         sender: DiagnosticSender,
+        client: &C,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> {
         let undefined_prefixes = self.get_undefined_prefixes(
             state,
@@ -373,7 +374,10 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for TurtleLang {
 
         let turtle = &state.element.current;
         info!("Updating prefixes for {}", self.id);
-        let fut1 = self.namespace_completion_provider.update(turtle).await;
+        let fut1 = self
+            .namespace_completion_provider
+            .update(turtle, client)
+            .await;
 
         fut1.boxed()
     }

@@ -10,7 +10,10 @@ use once_cell::sync::OnceCell;
 use rdf_types::{vocabulary::Index, IriVocabulary, IriVocabularyMut};
 use std::{collections::HashMap, fmt, hash::Hash, str::FromStr, string::FromUtf8Error};
 
-use lsp_core::utils::{fetch, ReqwestError, ReqwestStatusCode};
+use lsp_core::client::{
+    reqwest::{Error as ReqwestError, StatusCode as ReqwestStatusCode},
+    Client,
+};
 
 /// Loader options.
 pub struct Options<I> {
@@ -72,6 +75,7 @@ type DynParser<I, M, T, E> = dyn 'static
 /// Loaded documents are not cached: a new network query is made each time
 /// an URL is loaded even if it has already been queried before.
 pub struct ReqwestLoader<
+    C: Client,
     I = Index,
     M = locspan::Location<I>,
     T = json_ld_syntax::Value<M>,
@@ -80,27 +84,30 @@ pub struct ReqwestLoader<
     parser: Box<DynParser<I, M, T, E>>,
     options: Options<I>,
     data: OnceCell<Data>,
+    client: C,
 }
 
-impl<I: AsRef<str>, M, T, E> std::fmt::Debug for ReqwestLoader<I, M, T, E> {
+impl<C: Client, I: AsRef<str>, M, T, E> std::fmt::Debug for ReqwestLoader<C, I, M, T, E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ReqwestLoader")
     }
 }
 
-impl<I, M, T, E> ReqwestLoader<I, M, T, E> {
+impl<C: Client, I, M, T, E> ReqwestLoader<C, I, M, T, E> {
     /// Creates a new loader with the given parsing function.
     pub fn new(
+        client: C,
         parser: impl 'static
             + Send
             + Sync
             + FnMut(&dyn IriVocabulary<Iri = I>, &I, Bytes) -> Result<Meta<T, M>, E>,
     ) -> Self {
-        Self::new_using(parser, Options::default())
+        Self::new_using(client, parser, Options::default())
     }
 
     /// Creates a new leader with the given parsing function and options.
     pub fn new_using(
+        client: C,
         parser: impl 'static
             + Send
             + Sync
@@ -108,6 +115,7 @@ impl<I, M, T, E> ReqwestLoader<I, M, T, E> {
         options: Options<I>,
     ) -> Self {
         Self {
+            client,
             parser: Box::new(parser),
             options,
             data: OnceCell::new(),
@@ -150,14 +158,15 @@ impl Data {
     }
 }
 
-impl<I: Clone, M> ReqwestLoader<I, M, json_ld_syntax::Value<M>, ParseError<M>> {
+impl<C: Client, I: Clone, M> ReqwestLoader<C, I, M, json_ld_syntax::Value<M>, ParseError<M>> {
     /// Creates a new loader with the default parser and given metadata map
     /// function.
     pub fn new_with_metadata_map(
+        client: C,
         f: impl 'static + Send + Sync + Fn(&dyn IriVocabulary<Iri = I>, &I, Span) -> M,
     ) -> Self {
         use json_syntax::Parse;
-        Self::new(move |vocab, file: &I, bytes| {
+        Self::new(client, move |vocab, file: &I, bytes| {
             let content = String::from_utf8(bytes.to_vec()).map_err(ParseError::InvalidEncoding)?;
             json_syntax::Value::parse_str(&content, |span| f(vocab, file, span))
                 .map_err(ParseError::Json)
@@ -165,11 +174,11 @@ impl<I: Clone, M> ReqwestLoader<I, M, json_ld_syntax::Value<M>, ParseError<M>> {
     }
 }
 
-impl<I: Clone> Default for ReqwestLoader<I, Span, json_ld_syntax::Value<Span>, ParseError<Span>> {
-    fn default() -> Self {
-        Self::new_with_metadata_map(|_, _file, span| span)
-    }
-}
+// impl<I: Clone> Default for ReqwestLoader<I, Span, json_ld_syntax::Value<Span>, ParseError<Span>> {
+//     fn default() -> Self {
+//         Self::new_with_metadata_map(|_, _file, span| span)
+//     }
+// }
 
 /// HTTP body parse error.
 #[derive(Debug)]
@@ -190,8 +199,8 @@ impl<M> fmt::Display for ParseError<M> {
     }
 }
 
-impl<I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, E> Loader<I, M>
-    for ReqwestLoader<I, M, T, E>
+impl<C: Client + Send, I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, E>
+    Loader<I, M> for ReqwestLoader<C, I, M, T, E>
 {
     type Output = T;
     type Error = Error<E>;
@@ -204,6 +213,7 @@ impl<I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, 
     where
         I: 'a,
     {
+        let client = self.client.clone();
         async move {
             // if let Some(bytes) = self.cache.get(&url) {
             //     let document =
@@ -231,7 +241,7 @@ impl<I: Clone + Eq + Hash + Sync + Send + AsRef<str>, T: Clone + Send, M: Send, 
                 let mut headers = HashMap::new();
                 headers.insert("accept".to_string(), data.accept_header.to_string());
 
-                let resp = match fetch(url.as_ref(), &headers).await {
+                let resp = match client.fetch(url.as_ref(), &headers).await {
                     Ok(resp) => resp,
                     Err(_x) => return Err(Error::TooManyRedirections),
                 };

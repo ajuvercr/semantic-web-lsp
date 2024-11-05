@@ -326,6 +326,7 @@ where
         &self,
         _state: &CurrentLangState<Self>,
         _sender: DiagnosticSender,
+        _client: &C,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> {
         async {}.boxed()
     }
@@ -390,7 +391,7 @@ where
                 .collect(),
         );
 
-        self.post_update_diagnostics(state, sender).await
+        self.post_update_diagnostics(state, sender, client).await
     }
 
     async fn do_completion(

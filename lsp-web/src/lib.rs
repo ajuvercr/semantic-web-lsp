@@ -1,4 +1,6 @@
+mod fetch;
 mod web_types;
+use futures::FutureExt as _;
 use lang_jsonld::JsonLd;
 use lang_turtle::TurtleLang;
 use lsp_bin::backend::Backend;
@@ -138,6 +140,30 @@ impl ClientSync for WebClient {
             fut.await;
             Ok("Good".into())
         });
+    }
+
+    fn fetch(
+        &self,
+        url: &str,
+        headers: &std::collections::HashMap<String, String>,
+    ) -> std::pin::Pin<Box<dyn Send + std::future::Future<Output = Result<lsp_core::client::Resp, String>>>>
+    {
+        use futures::channel::oneshot;
+        let (tx, rx) = oneshot::channel();
+        let _ = wasm_bindgen_futures::future_to_promise(fetch::local_fetch(
+            url.to_string(),
+            headers.clone(),
+            tx,
+        ));
+
+        async {
+            match rx.await {
+                Ok(Ok(x)) => Ok(x),
+                Ok(Err(x)) => Err(x.to_string()),
+                Err(_) => Err("Channel was canceled".to_string()),
+            }
+        }
+        .boxed()
     }
 }
 
