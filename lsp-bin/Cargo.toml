@@ -23,3 +23,5 @@ async-trait.workspace = true
 lsp-core = {path = "../core/"}
 lang-jsonld = {path = "../lang-jsonld/"}
 lang-turtle = {path = "../lang-turtle/"}
+
+tracing-subscriber = { version = "0.3.17", features = ["json"] }

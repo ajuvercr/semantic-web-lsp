@@ -18,7 +18,7 @@ use crate::{
     token::Token,
     utils::*,
 };
-use lsp_core::{lang::SimpleCompletion, ns::rdf, utils::fetch};
+use lsp_core::{client::Client, lang::SimpleCompletion, ns::rdf};
 
 use super::{CompletionProvider, ShapeCompletionProvider, Turtle};
 use hashbrown::{HashMap, HashSet};
@@ -57,9 +57,10 @@ pub struct NamespaceCompletionProvider {
 }
 
 impl ArcedNamespaceCompletionProvider {
-    pub async fn update(
+    pub async fn update<C: Client + Send + 'static>(
         &self,
         turtle: &Turtle,
+        client: &C,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> {
         // Add todo vec etc, add owl:imports
         let mut prefixes: Vec<_> = {
@@ -86,10 +87,11 @@ impl ArcedNamespaceCompletionProvider {
         let this = self.clone();
         update_types(&url, &this).await;
 
+        let client = client.clone();
         async move {
             let headers = [("Accept".to_string(), "text/turtle".to_string())].into();
             while let Some(prefix) = prefixes.pop() {
-                if let Ok(resp) = fetch(&prefix, &headers).await {
+                if let Ok(resp) = client.fetch(&prefix, &headers).await {
                     if let Ok(turtle) = parse(&resp.body, &lsp_types::Url::parse(&prefix).unwrap())
                     {
                         do_update(&turtle, &this, &mut prefixes).await;
