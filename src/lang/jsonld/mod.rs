@@ -8,13 +8,14 @@ use iref::IriBuf;
 use json_ld::{ContextLoader, ExtractContext};
 use json_ld_syntax::context::{AnyValueMut, Value};
 use locspan::Span;
+use lsp_core::semantics::semantic_tokens;
 use lsp_core::{model::Spanned, parent::ParentingSystem};
 use lsp_types::{CompletionItemKind, Position, SemanticToken, SemanticTokenType};
 use parent::to_json_vec;
 use ropey::Rope;
 use tracing::debug;
 
-use crate::{contexts::filter_definition, semantics::semantic_tokens, utils::ReqwestLoader};
+use crate::{contexts::filter_definition, utils::ReqwestLoader};
 use lsp_core::client::Client;
 use lsp_core::lang::{CurrentLangState, Lang, LangState, Node, SimpleCompletion};
 use lsp_core::utils::position_to_offset;

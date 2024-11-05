@@ -807,6 +807,7 @@ dependencies = [
  "json-ld",
  "json-ld-syntax",
  "json-syntax",
+ "lang-turtle",
  "locspan",
  "log",
  "lsp-core",
@@ -824,6 +825,26 @@ dependencies = [
  "tower-lsp",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "lang-turtle"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chumsky",
+ "enum-methods",
+ "futures",
+ "hashbrown 0.13.2",
+ "lsp-core",
+ "lsp-types",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "sophia_iri",
+ "tokio",
+ "tower-lsp",
+ "tracing",
 ]
 
 [[package]]

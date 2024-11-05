@@ -1,3 +1,4 @@
+mod utils;
 mod completion;
 mod formatter;
 mod green;
@@ -25,14 +26,12 @@ pub use model::*;
 pub use parser2::*;
 use ropey::Rope;
 
-use crate::{
-    lang::turtle::completion::{NextTokenCompletionCtx, NsCompletionCtx},
-    semantics::semantic_tokens,
-};
+use completion::{NextTokenCompletionCtx, NsCompletionCtx};
 use lsp_core::client::Client;
 use lsp_core::lang::head;
 use lsp_core::model::{spanned, Spanned};
 use lsp_core::prefix::Prefixes;
+use lsp_core::semantics::semantic_tokens;
 use lsp_core::utils::{position_to_offset, range_to_range};
 
 use self::{

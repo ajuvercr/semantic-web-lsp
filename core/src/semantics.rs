@@ -1,6 +1,6 @@
-use crate::lsp_types::{SemanticToken, SemanticTokenType};
-use lsp_core::lang::{CurrentLangState, Lang, Node, Token};
-use lsp_core::model::spanned;
+use crate::lang::{CurrentLangState, Lang, Node, Token};
+use crate::model::spanned;
+use lsp_types::{SemanticToken, SemanticTokenType};
 use ropey::Rope;
 use tracing::info;
 

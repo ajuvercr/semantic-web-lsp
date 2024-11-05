@@ -202,7 +202,7 @@ pub mod turtle_tests {
 
     use chumsky::{prelude::Simple, Parser, Stream};
 
-    use crate::lang::turtle::{
+    use crate::{
         parser::{blank_node, named_node, prefix, triple, turtle},
         token::Token,
         tokenizer, BlankNode,

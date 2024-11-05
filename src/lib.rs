@@ -3,7 +3,6 @@ use std::ops::Range;
 pub mod backend;
 pub mod contexts;
 pub mod lang;
-pub mod semantics;
 pub mod utils;
 
 #[derive(Debug, PartialEq, Clone, Hash, Eq)]
