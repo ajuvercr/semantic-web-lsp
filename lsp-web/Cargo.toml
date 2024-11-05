@@ -11,7 +11,10 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 lsp-core = {path = "../core/"}
-jsonld-language-server = {path="../"}
+lsp-bin = {path="../lsp-bin/"}
+lang-turtle = {path="../lang-turtle"}
+lang-jsonld = {path="../lang-jsonld"}
+
 console_error_panic_hook = "0.1.7"
 tracing-wasm =  {version = "0.2.1"}
 wasm-bindgen = { version = "0.2.86", features = ["serde", "serde-serialize", "serde_json"] }

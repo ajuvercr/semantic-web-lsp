@@ -1,6 +1,6 @@
-use crate::lsp_types::*;
 use lsp_core::client::Client;
 use lsp_core::lang::{CurrentLangState, Lang, LangState, Publisher};
+use lsp_types::*;
 
 use lsp_core::utils::{offsets_to_range, position_to_offset};
 
