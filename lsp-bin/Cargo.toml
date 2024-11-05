@@ -1,0 +1,25 @@
+[package]
+name = "lsp-bin"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enum-methods.workspace = true
+sophia_api.workspace = true
+sophia_iri.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+chumsky.workspace = true
+ropey.workspace = true
+lsp-types.workspace = true
+futures.workspace = true
+tower-lsp.workspace = true
+hashbrown.workspace = true
+async-trait.workspace = true
+
+lsp-core = {path = "../core/"}
+lang-jsonld = {path = "../lang-jsonld/"}
+lang-turtle = {path = "../lang-turtle/"}

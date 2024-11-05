@@ -1,10 +1,11 @@
 mod web_types;
-use jsonld_language_server::{
-    backend::{Backend, Client, ClientSync},
-    lang::{jsonld::JsonLd, turtle::TurtleLang},
-    lsp_types::*,
-    prefix::Prefixes,
-};
+use lang_jsonld::JsonLd;
+use lang_turtle::TurtleLang;
+use lsp_bin::backend::Backend;
+use lsp_core::client::{Client, ClientSync};
+use lsp_core::prefix::Prefixes;
+
+use lsp_types::Diagnostic;
 use serde::Serializer;
 use serde_json::json;
 use tower_lsp::LanguageServer;

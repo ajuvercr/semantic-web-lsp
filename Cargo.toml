@@ -1,7 +1,7 @@
-[package]
-name = "jsonld-language-server"
-version = "0.1.0"
-edition = "2021"
+# [package]
+# name = "jsonld-language-server"
+# version = "0.1.0"
+# edition = "2021"
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -19,54 +19,54 @@ futures = "0.3.27"
 hashbrown = "0.13.2"
 async-trait = "0.1.68"
 
-[dependencies]
-serde.workspace = true
-serde_json.workspace = true
-tower-lsp.workspace = true
-tracing.workspace = true
-lsp-types.workspace = true
-enum-methods.workspace = true
-sophia_iri.workspace = true
-sophia_api.workspace = true
-tokio = { optional = true, workspace = true }
-chumsky.workspace = true
-ropey.workspace = true
-futures.workspace = true
-hashbrown.workspace = true
-async-trait.workspace = true
+# [dependencies]
+# serde.workspace = true
+# serde_json.workspace = true
+# tower-lsp.workspace = true
+# tracing.workspace = true
+# lsp-types.workspace = true
+# enum-methods.workspace = true
+# sophia_iri.workspace = true
+# sophia_api.workspace = true
+# tokio = { optional = true, workspace = true }
+# chumsky.workspace = true
+# ropey.workspace = true
+# futures.workspace = true
+# hashbrown.workspace = true
+# async-trait.workspace = true
+#
+# lsp-core = {path = "./core"}
+# lang-turtle = {path = "./lang-turtle"}
+# lang-jsonld = {path = "./lang-jsonld"}
+# env_logger = "0.9.0"
+# dashmap = "5.1.0"
+# log = "0.4.14"
+# async-recursion = "1.0.2"
+# cfg-if = "1.0.0"
+# thiserror = "1.0.40"
+# tracing-subscriber = { version = "0.3.17", features = ["json"] }
 
-lsp-core = {path = "./core"}
-lang-turtle = {path = "./lang-turtle"}
-lang-jsonld = {path = "./lang-jsonld"}
-env_logger = "0.9.0"
-dashmap = "5.1.0"
-log = "0.4.14"
-async-recursion = "1.0.2"
-cfg-if = "1.0.0"
-thiserror = "1.0.40"
-tracing-subscriber = { version = "0.3.17", features = ["json"] }
-
-[features]
-default = ["bin"]
-bin = ["tokio"]
-
-
-[[bin]]
-name = "jsonld-language-server"
-path = "bin/jsonld.rs"
-required-features = ["bin"]
-
-[[bin]]
-name = "turtle-language-server"
-path = "bin/ttl.rs"
-required-features = ["bin"]
+# [features]
+# default = ["bin"]
+# bin = ["tokio"]
+#
+#
+# [[bin]]
+# name = "jsonld-language-server"
+# path = "bin/jsonld.rs"
+# required-features = ["bin"]
+#
+# [[bin]]
+# name = "turtle-language-server"
+# path = "bin/ttl.rs"
+# required-features = ["bin"]
 
 [profile.release]
 debug = true
 
 [workspace]
-members = ["core", "web", "lang-turtle", "lang-jsonld"]
+members = ["core", "lsp-web", "lang-turtle", "lang-jsonld", "lsp-bin"]
 resolver = "2"
 
-# default-members = ["core", "jsonld-language-server"]
+default-members = ["core", "lang-turtle", "lang-jsonld", "lsp-bin"]
 
