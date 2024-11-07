@@ -459,12 +459,10 @@ mod tests {
     use std::str::FromStr;
 
     use chumsky::{Parser, Stream};
+    use lsp_core::model::{spanned, Spanned};
     use ropey::Rope;
 
-    use crate::{
-        lang::turtle::{formatter::format_turtle, parser2::turtle, tokenizer, Turtle},
-        model::{spanned, Spanned},
-    };
+    use crate::{formatter::format_turtle, parser2::turtle, tokenizer, Turtle};
 
     #[derive(Debug)]
     pub enum Err {

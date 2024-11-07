@@ -373,6 +373,8 @@ pub fn parse_tokens() -> t!(Vec<Spanned<Token>>) {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Range;
+
     use super::*;
 
     #[allow(unused)]

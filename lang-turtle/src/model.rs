@@ -652,17 +652,14 @@ mod test {
 
     use std::{collections::HashSet, str::FromStr};
 
-    use chumsky::{chain::Chain, Parser};
+    use chumsky::Parser;
+    use lsp_core::model::{spanned, Spanned};
 
-    use crate::{
-        lang::turtle::{parser2, shacl::MyQuad, tokenizer, Turtle},
-        model::{spanned, Spanned},
-    };
+    use crate::{parser2, shacl::MyQuad, tokenizer, Turtle};
 
     #[derive(Debug)]
     pub enum Err {
         Tokenizing,
-        Parsing,
     }
 
     fn parse_turtle(
@@ -673,7 +670,7 @@ mod test {
             println!("Token error {:?}", err);
             Err::Tokenizing
         })?;
-        let end = inp.len() - 1..inp.len() + 1;
+        // let end = inp.len() - 1..inp.len() + 1;
 
         let mut comments: Vec<_> = tokens
             .iter()

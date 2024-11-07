@@ -399,7 +399,7 @@ impl<C: Client + Send + Sync + 'static, L: LangState<C> + Send + Sync> Backend<C
         let fut = lang
             .update_text(&params.text, state, sender, &self.client)
             .await;
-        self.client.spawn(join(fut, publisher.spawn()));
+        self.client.spawn(join(fut, publisher.spawn())).forget();
 
         {
             let mut ropes = self.ropes.lock().await;

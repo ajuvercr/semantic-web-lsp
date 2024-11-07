@@ -12,6 +12,7 @@ pub use parser2::parse_turtle;
 pub mod shacl;
 mod token;
 pub mod tokenizer;
+pub mod testing;
 use futures::FutureExt;
 use lsp_types::{
     CodeAction, CodeActionKind, CodeActionOrCommand, CodeActionResponse, CompletionItemKind,
@@ -51,6 +52,7 @@ pub mod semantic_token {
     pub const BOOLEAN: STT = STT::new("boolean");
     pub const LANG_TAG: STT = STT::new("langTag");
 }
+
 
 #[allow(unused)]
 pub struct TurtleLang {
