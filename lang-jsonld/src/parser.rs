@@ -177,7 +177,10 @@ fn parser() -> impl Parser<JsonToken, Spanned<Json>, Error = Simple<JsonToken>> 
 
 #[cfg(test)]
 mod tests {
-    use crate::lang::jsonld::{parent, tokenizer::tokenize};
+    use crate::{
+        parent::{self, to_json_vec},
+        tokenizer::tokenize,
+    };
 
     use super::*;
 
@@ -229,7 +232,7 @@ mod tests {
 
         let parents = parent::system(json);
 
-        let vec = parents.to_json_vec().unwrap();
+        let vec = to_json_vec(&parents).unwrap();
 
         assert_eq!(vec, b"[\"test\",42]");
 
@@ -243,7 +246,7 @@ mod tests {
 
         let parents = parent::system(json);
 
-        let vec = parents.to_json_vec().unwrap();
+        let vec = to_json_vec(&parents).unwrap();
 
         assert_eq!(vec, b"{}");
     }

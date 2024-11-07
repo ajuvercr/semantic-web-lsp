@@ -573,15 +573,13 @@ mod test {
     use std::str::FromStr;
 
     use chumsky::Parser;
+    use lsp_core::model::{spanned, Spanned};
     use sophia_api::{
         term::{IriRef, SimpleTerm},
         MownStr,
     };
 
-    use crate::{
-        lang::turtle::{parser2, shacl::parse_shape, tokenizer, Turtle},
-        model::{spanned, Spanned},
-    };
+    use crate::{parser2, shacl::parse_shape, tokenizer, Turtle};
 
     #[derive(Debug)]
     pub enum Err {

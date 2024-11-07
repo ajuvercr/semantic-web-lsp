@@ -1,18 +1,22 @@
 [workspace.dependencies]
-async-trait  = "0.1.68"
-chumsky      = "0.9.0"
+async-trait = "0.1.68"
+bevy_ecs = { version = "0.14.2", default-features = false, features = [
+  "multi_threaded",
+] }
+bevy_tasks = { version = "0.14.2", features = ["multi_threaded"] }
+chumsky = "0.9.0"
 enum-methods = "0.0.8"
-futures      = "0.3.27"
-hashbrown    = "0.13.2"
-lsp-types    = "0.94.0"
-ropey        = "1.5.0"
-serde        = { version = "1.0", features = ["derive"] }
-serde_json   = "1.0.96"
-sophia_api   = "0.8.0"
-sophia_iri   = "0.8.0"
-tokio        = { version = "1.33.0", features = ["full"] }
-tower-lsp    = "0.19.0"
-tracing      = "0.1.37"
+futures = { version = "0.3.31", features = ["thread-pool", "async-await"] }
+hashbrown = "0.13.2"
+lsp-types = "0.94.0"
+reqwest = { version = "0.11.22", features = ["blocking"] }
+ropey = "1.5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.96"
+sophia_api = "0.8.0"
+sophia_iri = "0.8.0"
+tower-lsp = "0.19.0"
+tracing = "0.1.37"
 
 [profile.release]
 debug = true

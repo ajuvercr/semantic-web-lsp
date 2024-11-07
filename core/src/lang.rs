@@ -2,13 +2,15 @@ use std::{fmt::Display, hash::Hash, ops::Range, sync::Arc};
 
 use crate::model::Spanned;
 use crate::parent::ParentingSystem;
+use bevy_ecs::component::Component;
+use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::FutureExt;
 use futures::{channel::mpsc, StreamExt};
 use lsp_types::{
     CodeActionResponse, CompletionItem, CompletionItemKind, CompletionTextEdit, Diagnostic,
     DiagnosticSeverity, Documentation, FormattingOptions, Hover, InsertTextFormat, Position,
-    SemanticToken, SemanticTokenType, TextEdit, Url,
+    SemanticToken, SemanticTokenType, TextDocumentItem, TextEdit, Url,
 };
 use ropey::Rope;
 use tower_lsp::async_trait;
@@ -16,6 +18,16 @@ use tracing::debug;
 
 use crate::{client::Client, utils::offset_to_position};
 
+#[derive(Component)]
+pub struct Source(pub String);
+
+#[derive(Component)]
+pub struct RopeC(pub Rope);
+
+#[derive(Component)]
+pub struct Label(pub String);
+
+#[derive(Debug)]
 pub struct SimpleDiagnostic {
     pub range: Range<usize>,
     pub msg: String,
@@ -407,6 +419,13 @@ where
 pub struct DiagnosticSender {
     tx: mpsc::UnboundedSender<Vec<SimpleDiagnostic>>,
 }
+
+#[derive(Debug)]
+pub struct DiagnosticItem {
+    pub diagnostics: Vec<Diagnostic>,
+    pub uri: Url,
+    pub version: Option<i32>,
+}
 impl DiagnosticSender {
     pub fn push(&self, diagnostic: SimpleDiagnostic) -> Option<()> {
         let out = self.tx.unbounded_send(vec![diagnostic]).ok();
@@ -415,6 +434,33 @@ impl DiagnosticSender {
 
     pub fn push_all(&self, diagnostics: Vec<SimpleDiagnostic>) -> Option<()> {
         self.tx.unbounded_send(diagnostics).ok()
+    }
+}
+
+#[derive(Resource)]
+pub struct OtherPublisher {
+    tx: mpsc::UnboundedSender<DiagnosticItem>,
+}
+
+impl OtherPublisher {
+    pub fn new() -> (Self, mpsc::UnboundedReceiver<DiagnosticItem>) {
+        let (tx, rx) = mpsc::unbounded();
+        (Self { tx }, rx)
+    }
+
+    pub fn publish(
+        &mut self,
+        params: &TextDocumentItem,
+        diagnostics: Vec<Diagnostic>,
+    ) -> Option<()> {
+        let uri = params.uri.clone();
+        let version = Some(params.version);
+        let item = DiagnosticItem {
+            diagnostics,
+            uri,
+            version,
+        };
+        self.tx.unbounded_send(item).ok()
     }
 }
 

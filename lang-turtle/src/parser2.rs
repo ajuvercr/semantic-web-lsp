@@ -318,14 +318,12 @@ pub mod turtle_tests {
     use std::str::FromStr;
 
     use chumsky::{prelude::Simple, Parser, Stream};
+    use lsp_core::model::Spanned;
 
     use crate::{
-        lang::turtle::{
-            parser2::{blank_node, named_node, prefix, triple, turtle},
-            token::Token,
-            tokenizer, BlankNode,
-        },
-        model::Spanned,
+        parser2::{blank_node, named_node, prefix, triple, turtle},
+        token::Token,
+        tokenizer, BlankNode,
     };
 
     use super::literal;
