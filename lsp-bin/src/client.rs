@@ -1,10 +1,9 @@
 use bevy_ecs::system::Resource;
-use futures::{
-    executor::ThreadPool, future::RemoteHandle, task::SpawnExt, AsyncReadExt as _, FutureExt,
-};
+use futures::FutureExt;
 use lsp_core::client::{Client, ClientSync, Resp};
 use lsp_types::{Diagnostic, MessageType, Url};
 use std::{collections::HashMap, fmt::Display, pin::Pin};
+use tracing::info;
 
 pub mod reqwest {
     pub use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
@@ -16,15 +15,24 @@ pub mod reqwest {
 #[derive(Resource, Clone)]
 pub struct TowerClient {
     client: tower_lsp::Client,
-    pool: ThreadPool,
+}
+impl TowerClient {
+    pub fn new(client: tower_lsp::Client) -> Self {
+        Self { client }
+    }
 }
 
 impl ClientSync for TowerClient {
-    fn spawn<O: Send + 'static, F: std::future::Future<Output = O> + Send + 'static>(
-        &self,
-        fut: F,
-    ) -> RemoteHandle<O> {
-        self.pool.spawn_with_handle(fut).unwrap()
+    fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                info!("Spawn succesful");
+                handle.spawn(fut);
+            }
+            Err(e) => {
+                info!("Spawn failed {}", e);
+            }
+        }
     }
 
     fn fetch(
@@ -32,7 +40,7 @@ impl ClientSync for TowerClient {
         url: &str,
         headers: &HashMap<String, String>,
     ) -> Pin<Box<dyn Send + std::future::Future<Output = Result<Resp, String>>>> {
-        use async_std::fs::File;
+        use tokio::{fs::File, io::AsyncReadExt};
         use tracing::{debug, error, info};
 
         let m_url = reqwest::Url::parse(url);
