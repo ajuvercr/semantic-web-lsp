@@ -2,7 +2,6 @@ use std::{fmt::Display, hash::Hash, ops::Range, sync::Arc};
 
 use crate::model::Spanned;
 use crate::parent::ParentingSystem;
-use bevy_ecs::component::Component;
 use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::FutureExt;
@@ -17,15 +16,6 @@ use tower_lsp::async_trait;
 use tracing::debug;
 
 use crate::{client::Client, utils::offset_to_position};
-
-#[derive(Component)]
-pub struct Source(pub String);
-
-#[derive(Component)]
-pub struct RopeC(pub Rope);
-
-#[derive(Component)]
-pub struct Label(pub String);
 
 #[derive(Debug)]
 pub struct SimpleDiagnostic {
@@ -251,11 +241,11 @@ where
     }
 }
 
-pub trait Lang: Sized {
+pub trait Lang: Sized + 'static {
     type State: Clone;
 
     /// Type of tokens after tokenization
-    type Token: PartialEq + Hash + Clone + Send + Sync;
+    type Token: PartialEq + Hash + Clone + Send + Sync + Token;
     type TokenError: Into<SimpleDiagnostic> + Send + Sync + std::fmt::Debug;
 
     /// Type of Element inside a ParentingSystem

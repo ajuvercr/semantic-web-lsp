@@ -6,19 +6,27 @@ mod node;
 mod utils;
 // mod parser;
 mod parser2;
+use bevy_ecs::component::Component;
+use bevy_ecs::system::Resource;
+use bevy_ecs::world::World;
 use lsp_core::parent::ParentingSystem;
+use lsp_core::Parse;
 use node::new_turtle;
 pub use parser2::parse_turtle;
 pub mod shacl;
+pub mod testing;
 mod token;
 pub mod tokenizer;
-pub mod testing;
 use futures::FutureExt;
 use lsp_types::{
     CodeAction, CodeActionKind, CodeActionOrCommand, CodeActionResponse, CompletionItemKind,
     DiagnosticSeverity, FormattingOptions, Hover, MessageType, Position, SemanticTokenType,
 };
 use std::{collections::HashSet, ops::Range};
+use testing::{
+    derive_triples, fetch_lov_properties, parse_source, parse_turtle_system, publish_diagnostics,
+    subject_completion, turtle_prefix_completion,
+};
 use tracing::info;
 
 use chumsky::{prelude::Simple, Parser};
@@ -28,8 +36,8 @@ pub use parser2::*;
 use ropey::Rope;
 
 use completion::{NextTokenCompletionCtx, NsCompletionCtx};
-use lsp_core::client::Client;
-use lsp_core::lang::head;
+use lsp_core::client::{Client, ClientSync};
+use lsp_core::lang::{head, OtherPublisher};
 use lsp_core::model::{spanned, Spanned};
 use lsp_core::prefix::Prefixes;
 use lsp_core::semantics::semantic_tokens;
@@ -53,6 +61,32 @@ pub mod semantic_token {
     pub const LANG_TAG: STT = STT::new("langTag");
 }
 
+pub type Tokens = lsp_core::components::Tokens<TurtleLang>;
+
+pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
+    use bevy_ecs::schedule::IntoSystemConfigs as _;
+    world.schedule_scope(Parse, |_, schedule| {
+        schedule.add_systems((
+            parse_source,
+            parse_turtle_system.after(parse_source),
+            derive_triples.after(parse_turtle_system),
+            fetch_lov_properties::<C>.after(parse_turtle_system),
+        ));
+    });
+
+    use lsp_core::systems::semantic_tokens as st;
+    world.schedule_scope(st::Label, |_, schedule| {
+        schedule.add_systems(lsp_core::systems::semantic_tokens_system::<TurtleLang>);
+    });
+
+    world.schedule_scope(lsp_core::Completion, |_, schedule| {
+        schedule.add_systems((turtle_prefix_completion, subject_completion));
+    });
+
+    world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
+        schedule.add_systems(publish_diagnostics::<crate::TurtleLang>);
+    });
+}
 
 #[allow(unused)]
 pub struct TurtleLang {

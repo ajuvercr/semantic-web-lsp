@@ -6,30 +6,20 @@ use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use hashbrown::HashSet;
 use lsp_core::{
     client::Client,
-    lang::{Label, Lang, OtherPublisher, RopeC, SimpleCompletion, SimpleDiagnostic, Source},
+    components::*,
+    lang::{Lang, OtherPublisher, SimpleCompletion, SimpleDiagnostic},
     model::Spanned,
     utils::{lsp_range_to_range, offset_to_position},
     Parse,
 };
 use lsp_types::{CompletionItemKind, Diagnostic, TextDocumentItem, Url};
+use tracing::info;
 
-use crate::{
-    formatter::format_turtle, parse_turtle, shacl::MyQuad, token::Token, tokenizer::parse_tokens,
-};
+use crate::TurtleLang;
+use crate::{formatter::format_turtle, parse_turtle, shacl::MyQuad, tokenizer::parse_tokens};
 
 #[derive(Component)]
 pub struct TurtleComponent;
-
-#[derive(Component)]
-pub struct Tokens(pub Vec<Spanned<Token>>);
-#[derive(Component)]
-pub struct Turtle(pub Spanned<crate::Turtle>);
-
-#[derive(Component)]
-pub struct Wrapped<E>(pub E);
-
-#[derive(Component)]
-pub struct Errors<E>(pub Vec<E>);
 
 pub fn parse_source(
     query: Query<(Entity, &Source), (Changed<Source>, With<TurtleComponent>)>,
@@ -38,14 +28,18 @@ pub fn parse_source(
     for (entity, source) in &query {
         let (tok, es) = parse_tokens().parse_recovery(source.0.as_str());
         if let Some(tokens) = tok {
-            commands.entity(entity).insert(Tokens(tokens));
+            let t = Tokens::<TurtleLang>(tokens);
+            commands.entity(entity).insert(t);
         }
         commands.entity(entity).insert(Errors(es));
     }
 }
 
 pub fn parse_turtle_system(
-    query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<TurtleComponent>)>,
+    query: Query<
+        (Entity, &Source, &Tokens<TurtleLang>, &Label),
+        (Changed<Tokens<TurtleLang>>, With<TurtleComponent>),
+    >,
     mut commands: Commands,
 ) {
     for (entity, source, tokens, label) in &query {
@@ -55,8 +49,11 @@ pub fn parse_turtle_system(
             source.0.len(),
         );
         if es.is_empty() {
-            commands.entity(entity).insert((Turtle(turtle), Errors(es)));
+            let element = Element::<TurtleLang>(turtle);
+            info!("Setting specific errors {}", es.len());
+            commands.entity(entity).insert((element, Errors(es)));
         } else {
+            info!("Removing errors {}", es.len());
             commands.entity(entity).insert(Errors(es));
         }
     }
@@ -66,7 +63,10 @@ pub fn parse_turtle_system(
 pub struct Triples(pub Vec<MyQuad<'static>>);
 
 pub fn derive_triples(
-    query: Query<(Entity, &Turtle), (Changed<Turtle>, With<TurtleComponent>)>,
+    query: Query<
+        (Entity, &Element<TurtleLang>),
+        (Changed<Element<TurtleLang>>, With<TurtleComponent>),
+    >,
     mut commands: Commands,
 ) {
     for (entity, turtle) in &query {
@@ -124,15 +124,16 @@ pub fn publish_diagnostics<L: Lang>(
             })
             .collect();
 
-        if !diagnostics.is_empty() {
-            let _ = client.publish(&params.0, diagnostics);
-        }
+        let _ = client.publish(&params.0, diagnostics);
     }
 }
 
 pub fn notify_parsed(
     In(label): In<String>,
-    query: Query<(Entity, &RopeC, &Turtle, &Label), (Changed<Turtle>, With<TurtleComponent>)>,
+    query: Query<
+        (Entity, &RopeC, &Element<TurtleLang>, &Label),
+        (Changed<Element<TurtleLang>>, With<TurtleComponent>),
+    >,
 ) -> Option<String> {
     for (_entity, source, turtle, e_label) in &query {
         if label.as_str() == e_label.0.as_str() {
@@ -154,7 +155,12 @@ pub fn notify_parsed(
 }
 
 pub fn turtle_prefix_completion(
-    mut query: Query<(&CurrentWord, &Turtle, &RopeC, &mut CompletionRequest)>,
+    mut query: Query<(
+        &CurrentWord,
+        &Element<TurtleLang>,
+        &RopeC,
+        &mut CompletionRequest,
+    )>,
 ) {
     for (word, turtle, rope, mut req) in &mut query {
         if let Some(r) = lsp_range_to_range(&word.0, &rope.0) {
@@ -193,7 +199,12 @@ pub fn turtle_prefix_completion(
 }
 
 pub fn subject_completion(
-    mut query: Query<(&CurrentWord, &Turtle, &RopeC, &mut CompletionRequest)>,
+    mut query: Query<(
+        &CurrentWord,
+        &Element<TurtleLang>,
+        &RopeC,
+        &mut CompletionRequest,
+    )>,
     triples: Query<(&Triples, &Label)>,
 ) {
     for (word, turtle, rope, mut req) in &mut query {
@@ -224,15 +235,9 @@ pub fn subject_completion(
     }
 }
 
-#[derive(Resource)]
-pub struct CommandReceiver(UnboundedReceiver<CommandQueue>);
-
-#[derive(Resource, Clone)]
-pub struct CommandSender(pub UnboundedSender<CommandQueue>);
-
 pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
-    query: Query<&Turtle, Changed<Turtle>>,
+    query: Query<&Element<TurtleLang>, Changed<Element<TurtleLang>>>,
     mut handled: Local<HashSet<String>>,
     client: Res<C>,
 ) {
@@ -279,22 +284,6 @@ pub fn fetch_lov_properties<C: Client + Resource>(
     }
 }
 
-/// This system queries for entities that have our Task<Transform> component. It polls the
-/// tasks to see if they're complete. If the task is complete it takes the result, adds a
-/// new [`Mesh3d`] and [`MeshMaterial3d`] to the entity using the result from the task's work, and
-/// removes the task component from the entity.
-pub fn handle_tasks(mut commands: Commands, mut receiver: ResMut<CommandReceiver>) {
-    while let Ok(Some(mut com)) = receiver.0.try_next() {
-        commands.append(&mut com);
-    }
-}
-
-#[derive(Component)]
-pub struct CurrentWord(pub lsp_types::Range);
-
-#[derive(Component)]
-pub struct CompletionRequest(pub Vec<SimpleCompletion>);
-
 #[cfg(test)]
 mod test {
     use std::{
@@ -319,6 +308,7 @@ mod test {
     use lsp_core::{
         client::{ClientSync, Resp},
         lang::DiagnosticItem,
+        systems::handle_tasks,
         Completion, Diagnostics, Parse,
     };
     use lsp_types::MessageType;
@@ -391,10 +381,7 @@ mod test {
     }
 
     impl ClientSync for TestClient {
-        fn spawn<O: Send + 'static, F: std::future::Future<Output = O> + Send + 'static>(
-            &self,
-            fut: F,
-        ) {
+        fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
             self.tasks_running.fetch_add(1, Ordering::AcqRel);
             let tr = self.tasks_running.clone();
             self.executor
@@ -660,4 +647,3 @@ foa
         assert_eq!(world.entities().len(), 2);
     }
 }
-
