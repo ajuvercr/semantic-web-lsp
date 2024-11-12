@@ -1,11 +1,10 @@
 use hashbrown::HashSet;
 use sophia_iri::resolve::{BaseIri, IriParseError};
 
-use super::{
-    shacl::{MyQuad, MyTerm, Triples},
-    token::StringStyle,
-};
+use super::token::StringStyle;
+
 use lsp_core::model::Spanned;
+use lsp_core::triples::{MyQuad, MyTerm, Triples};
 use std::{fmt::Display, ops::Range};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -376,6 +375,22 @@ impl Turtle {
             base.0.fix_spans(len);
         });
     }
+
+    pub fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples<'a> {
+        let base = match &self.base {
+            Some(Spanned(Base(_, Spanned(named_node, _)), _)) => named_node
+                .expand_step(self, HashSet::new())
+                .map(|st| MyTerm::named_node(st)),
+            None => Some(MyTerm::named_node(self.set_base.as_str().to_string())),
+        };
+
+        let base_url = self.set_base.to_string();
+        Triples {
+            triples,
+            base,
+            base_url,
+        }
+    }
 }
 
 enum Item<'a> {
@@ -564,7 +579,7 @@ impl Turtle {
             po.handle(self, &base, &span, handle)?;
         }
 
-        Ok(Triples::new(self, out))
+        Ok(self.into_triples(out))
     }
 }
 
@@ -653,9 +668,12 @@ mod test {
     use std::{collections::HashSet, str::FromStr};
 
     use chumsky::Parser;
-    use lsp_core::model::{spanned, Spanned};
+    use lsp_core::{
+        model::{spanned, Spanned},
+        triples::MyQuad,
+    };
 
-    use crate::{parser2, shacl::MyQuad, tokenizer, Turtle};
+    use crate::{parser2, tokenizer, Turtle};
 
     #[derive(Debug)]
     pub enum Err {

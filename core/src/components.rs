@@ -1,6 +1,7 @@
 use crate::{
     lang::{Lang, SimpleCompletion},
     model::Spanned,
+    triples::MyQuad,
 };
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -44,3 +45,5 @@ pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 #[derive(Component)]
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
+#[derive(Component)]
+pub struct Triples(pub Vec<MyQuad<'static>>);

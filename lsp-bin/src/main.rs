@@ -1,24 +1,14 @@
-use bevy_ecs::schedule::Schedule;
 use bevy_ecs::system::Resource;
-use bevy_ecs::world::CommandQueue;
 use bevy_ecs::world::World;
 use futures::channel::mpsc::unbounded;
-use futures::channel::mpsc::UnboundedReceiver;
-use futures::channel::mpsc::UnboundedSender;
-use futures::lock::Mutex;
 use futures::StreamExt as _;
 use lsp_bin::backend::Backend;
 use lsp_bin::TowerClient;
 use lsp_core::client::Client;
 use lsp_core::client::ClientSync;
-use lsp_core::components::CommandReceiver;
 use lsp_core::components::CommandSender;
 use lsp_core::lang::OtherPublisher;
-use lsp_core::systems::handle_tasks;
-use lsp_core::Completion;
-use lsp_core::Diagnostics;
-use lsp_core::Format;
-use lsp_core::Parse;
+use lsp_core::setup_schedule_labels;
 use std::fs::File;
 use std::io;
 use tower_lsp::LspService;
@@ -30,20 +20,10 @@ use tracing_subscriber::fmt;
 fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandSender {
     let mut world = World::new();
 
-    world.add_schedule(Schedule::new(lsp_core::Tasks));
-    world.add_schedule(Schedule::new(st::Label));
-    world.add_schedule(Schedule::new(Parse));
-    world.add_schedule(Schedule::new(Completion));
-    world.add_schedule(Schedule::new(Diagnostics));
-    world.add_schedule(Schedule::new(Format));
-
-    use lsp_core::systems::semantic_tokens as st;
+    setup_schedule_labels(&mut world);
 
     let (publisher, mut rx) = OtherPublisher::new();
     world.insert_resource(publisher);
-
-    let handle = std::thread::current();
-    info!("Threaad name {:?}", handle.id());
 
     let c = client.clone();
     tokio::spawn(async move {

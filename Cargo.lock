@@ -115,9 +115,9 @@ dependencies = [
 
 [[package]]
 name = "async-io"
-version = "2.3.4"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "444b0228950ee6501b3568d3c93bf1176a1fdbc3b758dcd9475046d30f4dc7e8"
+checksum = "43a2b323ccce0a1d90b449fd71f2a06ca7faa7c54c2751f06c9bd851fc061059"
 dependencies = [
  "async-lock",
  "cfg-if",
@@ -1100,8 +1100,6 @@ dependencies = [
 name = "lang-turtle"
 version = "0.1.0"
 dependencies = [
- "async-executor",
- "async-std",
  "async-trait",
  "bevy_ecs",
  "bevy_tasks",
@@ -1115,6 +1113,7 @@ dependencies = [
  "serde_json",
  "sophia_api",
  "sophia_iri",
+ "test-utils",
  "tower-lsp",
  "tracing",
 ]
@@ -1603,9 +1602,9 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 
 [[package]]
 name = "polling"
-version = "3.7.3"
+version = "3.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc2790cd301dec6cd3b7a025e4815cf825724a51c98dccfe6a3e55f05ffb6511"
+checksum = "a604568c3202727d1507653cb121dbd627a58684eb09a820fd746bee38b4442f"
 dependencies = [
  "cfg-if",
  "concurrent-queue",
@@ -2121,6 +2120,25 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "test-utils"
+version = "0.1.0"
+dependencies = [
+ "async-executor",
+ "async-std",
+ "bevy_ecs",
+ "chumsky",
+ "enum-methods",
+ "futures",
+ "lsp-core",
+ "lsp-types",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "tower-lsp",
+ "tracing",
 ]
 
 [[package]]

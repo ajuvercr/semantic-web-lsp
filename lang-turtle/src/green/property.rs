@@ -1,15 +1,16 @@
 use lsp_types::CompletionItemKind;
 use sophia_api::{
-    prelude::{Any, Dataset},
-    quad::Quad,
-    term::Term,
+    prelude::Dataset as _,
+    quad::Quad as _,
+    term::{matcher::Any, Term},
 };
 
-use crate::{
-    shacl::{MyTerm, Triples},
-    Turtle,
+use crate::Turtle;
+use lsp_core::{
+    lang::SimpleCompletion,
+    ns::*,
+    triples::{MyTerm, Triples},
 };
-use lsp_core::{lang::SimpleCompletion, ns::*};
 
 use super::ClassProvider;
 
