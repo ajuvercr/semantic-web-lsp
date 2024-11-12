@@ -32,7 +32,7 @@ pub struct HighlightRequest(pub Vec<SemanticToken>);
 #[derive(Resource)]
 pub struct CommandReceiver(pub UnboundedReceiver<CommandQueue>);
 
-#[derive(Resource, Clone)]
+#[derive(Resource, Debug, Clone)]
 pub struct CommandSender(pub UnboundedSender<CommandQueue>);
 
 #[derive(Component)]

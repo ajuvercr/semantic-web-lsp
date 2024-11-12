@@ -1,9 +1,12 @@
+use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
-use bevy_ecs::world::World;
+use bevy_ecs::schedule::ScheduleLabel;
+use bevy_ecs::world::{CommandQueue, World};
 use lang_turtle::testing::TurtleComponent;
 use lang_turtle::TurtleLang;
 use lsp_core::components::{
-    CompletionRequest, CurrentWord, FormatRequest, HighlightRequest, Label, RopeC, Source, Wrapped,
+    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, RopeC, Source,
+    Wrapped,
 };
 use lsp_core::lang::Lang;
 use lsp_core::{Completion, Diagnostics, Format, Parse};
@@ -21,15 +24,61 @@ use tower_lsp::LanguageServer;
 #[derive(Debug)]
 pub struct Backend {
     entities: Arc<Mutex<HashMap<String, Entity>>>,
-    world: Arc<Mutex<World>>,
+    sender: CommandSender,
 }
 
 impl Backend {
-    pub fn new(world: Arc<Mutex<World>>) -> Self {
+    pub fn new(sender: CommandSender) -> Self {
         Self {
             entities: Default::default(),
-            world,
+            sender,
         }
+    }
+
+    async fn run<T: Send + Sync + 'static>(
+        &self,
+        f: impl FnOnce(&mut World) -> T + Send + Sync + 'static,
+    ) -> Option<T> {
+        let (tx, rx) = futures::channel::oneshot::channel();
+        let mut commands = CommandQueue::default();
+        commands.push(move |world: &mut World| {
+            let o = f(world);
+            if let Err(_) = tx.send(o) {
+                tracing::error!("Failed to run schedule");
+            };
+        });
+
+        if let Err(e) = self.sender.0.unbounded_send(commands) {
+            tracing::error!("Failed to send commands {}", e);
+            return None;
+        }
+
+        rx.await.ok()
+    }
+
+    async fn run_schedule<S: ScheduleLabel, T: Component>(
+        &self,
+        entity: Entity,
+        schedule: S,
+        param: T,
+    ) -> Option<T> {
+        let (tx, rx) = futures::channel::oneshot::channel();
+
+        let mut commands = CommandQueue::default();
+        commands.push(move |world: &mut World| {
+            world.entity_mut(entity).insert(param);
+            world.run_schedule(schedule);
+            if let Err(_) = tx.send(world.entity_mut(entity).take::<T>()) {
+                tracing::error!("Failed to run schedule");
+            };
+        });
+
+        if let Err(e) = self.sender.0.unbounded_send(commands) {
+            tracing::error!("Failed to send commands {}", e);
+            return None;
+        }
+
+        rx.await.unwrap_or_default()
     }
 }
 
@@ -105,11 +154,14 @@ impl LanguageServer for Backend {
             }
         };
 
-        let mut world = self.world.lock().await;
-
-        world.entity_mut(entity).insert(HighlightRequest(vec![]));
-        world.run_schedule(lsp_core::systems::semantic_tokens::Label);
-        if let Some(res) = world.entity_mut(entity).take::<HighlightRequest>() {
+        if let Some(res) = self
+            .run_schedule(
+                entity,
+                lsp_core::systems::semantic_tokens::Label,
+                HighlightRequest(vec![]),
+            )
+            .await
+        {
             info!("resulitng in {} tokens", res.0.len());
             Ok(Some(SemanticTokensResult::Tokens(
                 lsp_types::SemanticTokens {
@@ -141,11 +193,7 @@ impl LanguageServer for Backend {
             }
         };
 
-        let mut world = self.world.lock().await;
-        world.entity_mut(entity).insert(FormatRequest(None));
-        world.run_schedule(Format);
-        let request: Option<FormatRequest> = world.entity_mut(entity).take();
-
+        let request = self.run_schedule(entity, Format, FormatRequest(None)).await;
         Ok(request.and_then(|x| x.0))
     }
 
@@ -154,27 +202,29 @@ impl LanguageServer for Backend {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
 
-        let entity = {
-            let mut world = self.world.lock().await;
-            let id = world
-                .spawn((
-                    TurtleComponent,
-                    Source(item.text.clone()),
-                    Label(item.uri.clone()),
-                    RopeC(Rope::from_str(&item.text)),
-                    Wrapped(item),
-                ))
-                .id();
+        let entity = self
+            .run(|world| {
+                let id = world
+                    .spawn((
+                        TurtleComponent,
+                        Source(item.text.clone()),
+                        Label(item.uri.clone()),
+                        RopeC(Rope::from_str(&item.text)),
+                        Wrapped(item),
+                    ))
+                    .id();
 
-            world.run_schedule(Parse);
-            world.flush();
-            info!("Running diagnostics");
-            world.run_schedule(Diagnostics);
+                world.run_schedule(Parse);
+                world.flush();
+                info!("Running diagnostics");
+                world.run_schedule(Diagnostics);
+                id
+            })
+            .await;
 
-            id
-        };
-
-        self.entities.lock().await.insert(url, entity);
+        if let Some(entity) = entity {
+            self.entities.lock().await.insert(url, entity);
+        }
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
@@ -197,15 +247,17 @@ impl LanguageServer for Backend {
             }
         };
 
-        let mut world = self.world.lock().await;
-        let rope_c = RopeC(Rope::from_str(&change.text));
-        world
-            .entity_mut(entity)
-            .insert((Source(change.text), rope_c));
-        world.run_schedule(Parse);
-        world.flush();
-        info!("Running diagnostics");
-        world.run_schedule(Diagnostics);
+        self.run(move |world| {
+            let rope_c = RopeC(Rope::from_str(&change.text));
+            world
+                .entity_mut(entity)
+                .insert((Source(change.text), rope_c));
+            world.run_schedule(Parse);
+            world.flush();
+            info!("Running diagnostics");
+            world.run_schedule(Diagnostics);
+        })
+        .await;
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
@@ -220,29 +272,11 @@ impl LanguageServer for Backend {
             }
         };
 
-        let mut world = self.world.lock().await;
-        world.entity_mut(entity).insert((
-            CompletionRequest(vec![]),
-            CurrentWord(lsp_types::Range {
-                start: lsp_types::Position {
-                    line: 3,
-                    character: 0,
-                },
-                end: lsp_types::Position {
-                    line: 3,
-                    character: 0,
-                },
-            }),
-        ));
-        world.run_schedule(Completion);
+        let completions: Option<Vec<lsp_types::CompletionItem>> = self
+            .run_schedule(entity, Completion, CompletionRequest(vec![]))
+            .await
+            .map(|x| x.0.into_iter().map(|x| x.into()).collect());
 
-        let completions: Vec<_> =
-            if let Some(x) = world.entity_mut(entity).take::<CompletionRequest>() {
-                x.0.into_iter().map(|x| x.into()).collect()
-            } else {
-                return Ok(None);
-            };
-
-        Ok(Some(CompletionResponse::Array(completions)))
+        Ok(completions.map(|c| CompletionResponse::Array(c)))
     }
 }
