@@ -8,7 +8,6 @@ use iref::IriBuf;
 use json_ld::{ContextLoader, ExtractContext};
 use json_ld_syntax::context::{AnyValueMut, Value};
 use locspan::Span;
-use lsp_core::semantics::semantic_tokens;
 use lsp_core::{client::Client, model::Spanned, parent::ParentingSystem};
 use lsp_types::{CompletionItemKind, Position, SemanticToken, SemanticTokenType};
 use parent::to_json_vec;
@@ -267,7 +266,9 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
 
     #[tracing::instrument(skip(self, state), fields(id=self.id))]
     async fn do_semantic_tokens(&mut self, state: &CurrentLangState<Self>) -> Vec<SemanticToken> {
-        semantic_tokens(self, &state, &self.rope)
+        // semantic_tokens(self, &state, &self.rope)
+        let _ = state;
+        vec![]
     }
 
     #[tracing::instrument(skip(self, state, client), fields(id=self.id))]

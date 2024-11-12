@@ -2,7 +2,7 @@ use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
-use lang_turtle::testing::TurtleComponent;
+use lang_turtle::TurtleComponent;
 use lang_turtle::TurtleLang;
 use lsp_core::components::{
     CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, RopeC, Source,
@@ -157,7 +157,7 @@ impl LanguageServer for Backend {
         if let Some(res) = self
             .run_schedule(
                 entity,
-                lsp_core::systems::semantic_tokens::Label,
+                lsp_core::systems::SemanticTokensSchedule,
                 HighlightRequest(vec![]),
             )
             .await

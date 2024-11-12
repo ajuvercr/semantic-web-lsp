@@ -9,6 +9,9 @@ pub mod shacl {
         path,
         name,
         class,
+        node,
+        targetSubjectsOf,
+        targetObjectsOf,
         datatype,
         minCount,
         maxCount

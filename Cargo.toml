@@ -23,5 +23,5 @@ debug = true
 
 [workspace]
 default-members = ["core", "lang-turtle", "lang-jsonld", "lsp-bin"]
-members         = ["core", "lsp-web", "lang-turtle", "lang-jsonld", "lsp-bin"]
+members         = ["core", "lsp-web", "lang-turtle", "lang-jsonld", "lsp-bin", "test-utils"]
 resolver        = "2"

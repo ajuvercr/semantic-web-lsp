@@ -190,7 +190,7 @@ pub enum ParseError<M> {
 impl<M> fmt::Display for ParseError<M> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::InvalidEncoding(_) => write!(f, "invalid encoding"),
+            Self::InvalidEncoding(e) => write!(f, "invalid encoding {}", e),
             Self::Json(e) => e.fmt(f),
         }
     }

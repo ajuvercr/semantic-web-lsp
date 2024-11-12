@@ -3,6 +3,7 @@ mod formatter;
 mod green;
 mod model;
 mod node;
+mod systems;
 mod utils;
 // mod parser;
 mod parser2;
@@ -10,11 +11,10 @@ use bevy_ecs::component::Component;
 use bevy_ecs::system::Resource;
 use bevy_ecs::world::World;
 use lsp_core::parent::ParentingSystem;
-use lsp_core::Parse;
+use lsp_core::systems::{publish_diagnostics, SemanticTokensSchedule};
 use node::new_turtle;
 pub use parser2::parse_turtle;
 pub mod shacl;
-pub mod testing;
 mod token;
 pub mod tokenizer;
 use futures::FutureExt;
@@ -23,10 +23,7 @@ use lsp_types::{
     DiagnosticSeverity, FormattingOptions, Hover, MessageType, Position, SemanticTokenType,
 };
 use std::{collections::HashSet, ops::Range};
-use testing::{
-    derive_triples, fetch_lov_properties, format_turtle_system, parse_source, parse_turtle_system,
-    publish_diagnostics, subject_completion, turtle_prefix_completion,
-};
+use systems::{setup_completion, setup_formatting, setup_parsing};
 use tracing::info;
 
 use chumsky::{prelude::Simple, Parser};
@@ -37,10 +34,9 @@ use ropey::Rope;
 
 use completion::{NextTokenCompletionCtx, NsCompletionCtx};
 use lsp_core::client::{Client, ClientSync};
-use lsp_core::lang::{head, OtherPublisher};
+use lsp_core::lang::head;
 use lsp_core::model::{spanned, Spanned};
 use lsp_core::prefix::Prefixes;
-use lsp_core::semantics::semantic_tokens;
 use lsp_core::utils::{position_to_offset, range_to_range};
 
 use self::{
@@ -63,33 +59,21 @@ pub mod semantic_token {
 
 pub type Tokens = lsp_core::components::Tokens<TurtleLang>;
 
+#[derive(Component)]
+pub struct TurtleComponent;
+
 pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
-    use bevy_ecs::schedule::IntoSystemConfigs as _;
-    world.schedule_scope(Parse, |_, schedule| {
-        schedule.add_systems((
-            parse_source,
-            parse_turtle_system.after(parse_source),
-            derive_triples.after(parse_turtle_system),
-            fetch_lov_properties::<C>.after(parse_turtle_system),
-        ));
-    });
-
-    use lsp_core::systems::semantic_tokens as st;
-    world.schedule_scope(st::Label, |_, schedule| {
+    world.schedule_scope(SemanticTokensSchedule, |_, schedule| {
         schedule.add_systems(lsp_core::systems::semantic_tokens_system::<TurtleLang>);
-    });
-
-    world.schedule_scope(lsp_core::Completion, |_, schedule| {
-        schedule.add_systems((turtle_prefix_completion, subject_completion));
     });
 
     world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
         schedule.add_systems(publish_diagnostics::<crate::TurtleLang>);
     });
 
-    world.schedule_scope(lsp_core::Format, |_, schedule| {
-        schedule.add_systems(format_turtle_system);
-    });
+    setup_parsing::<C>(world);
+    setup_completion(world);
+    setup_formatting(world);
 }
 
 #[allow(unused)]
@@ -458,7 +442,9 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for TurtleLang {
         &mut self,
         state: &CurrentLangState<Self>,
     ) -> Vec<lsp_types::SemanticToken> {
-        semantic_tokens(self, state, &self.rope)
+        // semantic_tokens(self, state, &self.rope)
+        let _ = state;
+        vec![]
     }
 
     async fn do_completion(

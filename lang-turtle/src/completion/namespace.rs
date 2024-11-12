@@ -2,9 +2,9 @@ use futures::lock::Mutex;
 use futures::FutureExt;
 use lsp_types::{CompletionItemKind, Range};
 use sophia_api::{
-    dataset::Dataset,
-    quad::Quad,
-    term::{matcher::Any, Term},
+    prelude::Dataset as _,
+    quad::Quad as _,
+    term::{matcher::Any, Term as _},
 };
 use std::{ops::DerefMut, sync::Arc};
 use tracing::info;
@@ -14,11 +14,15 @@ use crate::{
         BasicClassProvider, Class, ClassProvider, NsPropertyProvider, Property, PropertyProvider,
         Range as R,
     },
-    shacl::{MyTerm, Triples},
     token::Token,
     utils::*,
 };
-use lsp_core::{client::Client, lang::SimpleCompletion, ns::rdf};
+use lsp_core::{
+    client::Client,
+    lang::SimpleCompletion,
+    ns::rdf,
+    triples::{MyTerm, Triples},
+};
 
 use super::{CompletionProvider, ShapeCompletionProvider, Turtle};
 use hashbrown::{HashMap, HashSet};
