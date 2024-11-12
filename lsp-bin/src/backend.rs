@@ -3,10 +3,10 @@ use bevy_ecs::world::World;
 use lang_turtle::testing::TurtleComponent;
 use lang_turtle::TurtleLang;
 use lsp_core::components::{
-    CompletionRequest, CurrentWord, HighlightRequest, Label, RopeC, Source, Wrapped,
+    CompletionRequest, CurrentWord, FormatRequest, HighlightRequest, Label, RopeC, Source, Wrapped,
 };
 use lsp_core::lang::Lang;
-use lsp_core::{Completion, Diagnostics, Parse};
+use lsp_core::{Completion, Diagnostics, Format, Parse};
 use lsp_types::*;
 
 use futures::lock::Mutex;
@@ -25,10 +25,10 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn new(world: World) -> Self {
+    pub fn new(world: Arc<Mutex<World>>) -> Self {
         Self {
             entities: Default::default(),
-            world: Arc::new(Mutex::new(world)),
+            world,
         }
     }
 }
@@ -128,6 +128,27 @@ impl LanguageServer for Backend {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
+        let uri = params.text_document.uri.as_str();
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(uri) {
+                entity.clone()
+            } else {
+                info!("Didn't find entity {}", uri);
+                return Ok(None);
+            }
+        };
+
+        let mut world = self.world.lock().await;
+        world.entity_mut(entity).insert(FormatRequest(None));
+        world.run_schedule(Format);
+        let request: Option<FormatRequest> = world.entity_mut(entity).take();
+
+        Ok(request.and_then(|x| x.0))
+    }
+
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let item = params.text_document;
@@ -139,7 +160,7 @@ impl LanguageServer for Backend {
                 .spawn((
                     TurtleComponent,
                     Source(item.text.clone()),
-                    Label(url.clone()),
+                    Label(item.uri.clone()),
                     RopeC(Rope::from_str(&item.text)),
                     Wrapped(item),
                 ))

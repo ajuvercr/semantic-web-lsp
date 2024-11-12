@@ -22,3 +22,6 @@ pub struct Diagnostics;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Tasks;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Format;

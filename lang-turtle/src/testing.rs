@@ -12,8 +12,8 @@ use lsp_core::{
     utils::{lsp_range_to_range, offset_to_position},
     Parse,
 };
-use lsp_types::{CompletionItemKind, Diagnostic, TextDocumentItem, Url};
-use tracing::info;
+use lsp_types::{CompletionItemKind, Diagnostic, Position, Range, TextDocumentItem, Url};
+use tracing::{debug, info};
 
 use crate::TurtleLang;
 use crate::{formatter::format_turtle, parse_turtle, shacl::MyQuad, tokenizer::parse_tokens};
@@ -43,14 +43,10 @@ pub fn parse_turtle_system(
     mut commands: Commands,
 ) {
     for (entity, source, tokens, label) in &query {
-        let (turtle, es) = parse_turtle(
-            &Url::parse(&label.0).unwrap(),
-            tokens.0.clone(),
-            source.0.len(),
-        );
+        let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len());
         if es.is_empty() {
             let element = Element::<TurtleLang>(turtle);
-            info!("Setting specific errors {}", es.len());
+            info!("Setting specific errors {} -> valid turtle!", es.len());
             commands.entity(entity).insert((element, Errors(es)));
         } else {
             info!("Removing errors {}", es.len());
@@ -128,30 +124,36 @@ pub fn publish_diagnostics<L: Lang>(
     }
 }
 
-pub fn notify_parsed(
-    In(label): In<String>,
-    query: Query<
-        (Entity, &RopeC, &Element<TurtleLang>, &Label),
-        (Changed<Element<TurtleLang>>, With<TurtleComponent>),
-    >,
-) -> Option<String> {
-    for (_entity, source, turtle, e_label) in &query {
-        if label.as_str() == e_label.0.as_str() {
-            let formatted = format_turtle(
-                &turtle.0,
-                lsp_types::FormattingOptions {
-                    tab_size: 2,
-                    ..Default::default()
-                },
-                &vec![],
-                &source.0,
-            )
-            .expect("formatting");
-            return Some(formatted);
-        }
-    }
+pub fn format_turtle_system(mut query: Query<(&RopeC, &Element<TurtleLang>, &mut FormatRequest)>) {
+    info!("Format turtle system");
 
-    None
+    for (source, turtle, mut request) in &mut query {
+        if request.0.is_some() {
+            info!("Didn't format with the turtle format system, already formatted");
+            continue;
+        }
+        info!("Formatting with turtle format system");
+
+        let formatted = format_turtle(
+            &turtle.0,
+            lsp_types::FormattingOptions {
+                tab_size: 2,
+                ..Default::default()
+            },
+            &vec![],
+            &source.0,
+        );
+
+        request.0 = formatted.map(|x| {
+            vec![lsp_types::TextEdit::new(
+                Range::new(
+                    Position::new(0, 0),
+                    Position::new(source.0.len_lines() as u32 + 1, 0),
+                ),
+                x,
+            )]
+        });
+    }
 }
 
 pub fn turtle_prefix_completion(
@@ -262,18 +264,26 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                                 text: String::new(),
                             };
 
+                            info!(
+                                "Adding new text document for {}, body {}",
+                                label,
+                                content.len()
+                            );
+
                             command_queue.push(move |world: &mut World| {
                                 world.spawn((
                                     TurtleComponent,
                                     Source(content.to_string()),
                                     RopeC(rope),
-                                    Label(label),
+                                    Label(lsp_types::Url::from_str(&label).unwrap()), // this might
+                                    // crash
                                     Wrapped(item),
                                 ));
                                 world.run_schedule(Parse);
                             });
                         }
 
+                        info!("Sending command queue!");
                         let _ = sender.start_send(command_queue);
                     };
 
@@ -309,7 +319,7 @@ mod test {
         client::{ClientSync, Resp},
         lang::DiagnosticItem,
         systems::handle_tasks,
-        Completion, Diagnostics, Parse,
+        Completion, Diagnostics, Format, Parse,
     };
     use lsp_types::MessageType;
     use ropey::Rope;
@@ -448,6 +458,11 @@ mod test {
             schedule.add_systems(publish_diagnostics::<crate::TurtleLang>);
         });
 
+        world.add_schedule(Schedule::new(lsp_core::Format));
+        world.schedule_scope(lsp_core::Format, |_, schedule| {
+            schedule.add_systems(format_turtle_system);
+        });
+
         let (publisher, rx) = OtherPublisher::new();
         world.insert_resource(publisher);
 
@@ -481,13 +496,15 @@ mod test {
     fn format_does_it() {
         let (mut world, _) = setup_world(TestClient::new());
 
-        create_file(&mut world, "@prefix foaf: <>.", "http://example.com/ns#");
+        let entity = create_file(&mut world, "@prefix foaf: <>.", "http://example.com/ns#");
 
-        let m_formatted =
-            world.run_system_once_with("http://example.com/ns#".to_string(), notify_parsed);
+        world.entity_mut(entity).insert(FormatRequest(None));
+        world.run_schedule(Format);
+        let m_formatted: Option<FormatRequest> = world.entity_mut(entity).take();
+        let m_formatted = m_formatted.and_then(|x| x.0);
 
         assert!(m_formatted.is_some());
-        let formatted = m_formatted.unwrap();
+        let formatted = &m_formatted.unwrap()[0].new_text;
         assert_eq!(formatted, "@prefix foaf: <>.\n\n");
     }
 
@@ -598,6 +615,7 @@ foa
             ";
 
         let entity = create_file(&mut world, t1, "http://example.com/ns#");
+        world.run_schedule(Parse);
         world.run_schedule(Diagnostics);
 
         let mut get_diagnostics = move || {
