@@ -24,7 +24,7 @@ pub struct Source(pub String);
 pub struct RopeC(pub ropey::Rope);
 
 #[derive(Component)]
-pub struct Label(pub String);
+pub struct Label(pub lsp_types::Url);
 
 #[derive(Component)]
 pub struct HighlightRequest(pub Vec<SemanticToken>);
@@ -40,3 +40,7 @@ pub struct CurrentWord(pub lsp_types::Range);
 
 #[derive(Component)]
 pub struct CompletionRequest(pub Vec<SimpleCompletion>);
+
+#[derive(Component)]
+pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
+

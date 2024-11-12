@@ -15,24 +15,23 @@ pub mod reqwest {
 #[derive(Resource, Clone)]
 pub struct TowerClient {
     client: tower_lsp::Client,
+    handle: tokio::runtime::Handle,
 }
 impl TowerClient {
     pub fn new(client: tower_lsp::Client) -> Self {
-        Self { client }
+        Self {
+            client,
+            handle: tokio::runtime::Handle::current(),
+        }
     }
 }
 
 impl ClientSync for TowerClient {
     fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
-        match tokio::runtime::Handle::try_current() {
-            Ok(handle) => {
-                info!("Spawn succesful");
-                handle.spawn(fut);
-            }
-            Err(e) => {
-                info!("Spawn failed {}", e);
-            }
-        }
+        let handle = std::thread::current();
+        info!("Spawn threaad name {:?}", handle.id());
+        info!("Spawn succesful");
+        self.handle.spawn(fut);
     }
 
     fn fetch(

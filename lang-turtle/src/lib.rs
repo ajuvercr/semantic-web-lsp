@@ -24,8 +24,8 @@ use lsp_types::{
 };
 use std::{collections::HashSet, ops::Range};
 use testing::{
-    derive_triples, fetch_lov_properties, parse_source, parse_turtle_system, publish_diagnostics,
-    subject_completion, turtle_prefix_completion,
+    derive_triples, fetch_lov_properties, format_turtle_system, parse_source, parse_turtle_system,
+    publish_diagnostics, subject_completion, turtle_prefix_completion,
 };
 use tracing::info;
 
@@ -85,6 +85,10 @@ pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
 
     world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
         schedule.add_systems(publish_diagnostics::<crate::TurtleLang>);
+    });
+
+    world.schedule_scope(lsp_core::Format, |_, schedule| {
+        schedule.add_systems(format_turtle_system);
     });
 }
 
