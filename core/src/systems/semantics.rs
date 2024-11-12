@@ -89,4 +89,3 @@ pub fn semantic_tokens_system<L: Lang>(
             .collect();
     }
 }
-
