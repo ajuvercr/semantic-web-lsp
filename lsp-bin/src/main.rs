@@ -1,7 +1,10 @@
 use bevy_ecs::schedule::Schedule;
 use bevy_ecs::system::Resource;
+use bevy_ecs::world::CommandQueue;
 use bevy_ecs::world::World;
 use futures::channel::mpsc::unbounded;
+use futures::channel::mpsc::UnboundedReceiver;
+use futures::channel::mpsc::UnboundedSender;
 use futures::lock::Mutex;
 use futures::StreamExt as _;
 use lsp_bin::backend::Backend;
@@ -18,14 +21,13 @@ use lsp_core::Format;
 use lsp_core::Parse;
 use std::fs::File;
 use std::io;
-use std::sync::Arc;
 use tower_lsp::LspService;
 use tower_lsp::Server;
 use tracing::info;
 use tracing::Level;
 use tracing_subscriber::fmt;
 
-fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> Arc<Mutex<World>> {
+fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandSender {
     let mut world = World::new();
 
     world.add_schedule(Schedule::new(lsp_core::Tasks));
@@ -53,24 +55,18 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> Arc<Mute
     lang_turtle::setup_world::<C>(&mut world);
 
     let (tx, mut rx) = unbounded();
-    world.insert_resource(CommandSender(tx));
-    // world.insert_resource(CommandReceiver(rx));
+    let sender = CommandSender(tx);
+    world.insert_resource(sender.clone());
     world.insert_resource(client.clone());
-    // world.schedule_scope(lsp_core::Tasks, |_, schedule| {
-    //     schedule.add_systems(handle_tasks);
-    // });
 
-    let out = Arc::new(Mutex::new(world));
-    let w = out.clone();
     tokio::spawn(async move {
         while let Some(mut x) = rx.next().await {
-            let mut world = w.lock().await;
             world.commands().append(&mut x);
             world.flush_commands();
         }
     });
 
-    out
+    sender
 }
 
 #[tokio::main]
@@ -101,4 +97,3 @@ async fn main() {
 
     Server::new(stdin, stdout, socket).serve(service).await;
 }
-
