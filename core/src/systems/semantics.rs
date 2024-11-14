@@ -16,12 +16,7 @@ struct T {
 }
 
 pub fn semantic_tokens_system<L: Lang>(
-    mut query: Query<(
-        &RopeC,
-        &Tokens<L>,
-        Option<&Element<L>>,
-        &mut HighlightRequest,
-    )>,
+    mut query: Query<(&RopeC, &Tokens, Option<&Element<L>>, &mut HighlightRequest)>,
 ) {
     for (rope, tokens, element, mut req) in &mut query {
         let rope = &rope.0;

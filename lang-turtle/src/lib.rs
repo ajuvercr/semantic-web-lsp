@@ -12,10 +12,11 @@ use bevy_ecs::system::Resource;
 use bevy_ecs::world::World;
 use lsp_core::parent::ParentingSystem;
 use lsp_core::systems::{publish_diagnostics, SemanticTokensSchedule};
+use lsp_core::token::semantic_token;
 use node::new_turtle;
 pub use parser2::parse_turtle;
 pub mod shacl;
-mod token;
+pub use lsp_core::token;
 pub mod tokenizer;
 use futures::FutureExt;
 use lsp_types::{
@@ -50,14 +51,6 @@ use lsp_core::lang::{
     CurrentLangState, CurrentLangStatePart, DiagnosticSender, Lang, LangState, SimpleCompletion,
     SimpleDiagnostic,
 };
-
-pub mod semantic_token {
-    use lsp_types::SemanticTokenType as STT;
-    pub const BOOLEAN: STT = STT::new("boolean");
-    pub const LANG_TAG: STT = STT::new("langTag");
-}
-
-pub type Tokens = lsp_core::components::Tokens<TurtleLang>;
 
 #[derive(Component)]
 pub struct TurtleComponent;

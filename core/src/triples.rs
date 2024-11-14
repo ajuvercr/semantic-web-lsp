@@ -4,7 +4,7 @@ use sophia_api::{
     term::{BnodeId, GraphName, IriRef, Term, TermKind},
     MownStr,
 };
-use std::{borrow::Cow, ops::Deref, usize};
+use std::{borrow::Cow, hash::Hash, ops::Deref, usize};
 
 use crate::ns::{owl, rdfs};
 
@@ -61,10 +61,26 @@ impl<'a> Quad for MyQuad<'a> {
 }
 // pub type MyQuad<'a> = ([MyTerm<'a>; 3], GraphName<MyTerm<'a>>);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct MyTerm<'a> {
     value: Cow<'a, str>,
-    ty: TermKind,
+    ty: Option<TermKind>,
+    pub span: std::ops::Range<usize>,
+}
+
+impl Hash for MyTerm<'_> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Ignore span
+        self.value.hash(state);
+        self.ty.hash(state);
+    }
+}
+
+impl PartialEq for MyTerm<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        // Ignore span
+        other.value == self.value && other.ty == self.ty
+    }
 }
 
 impl<'a> std::fmt::Display for MyTerm<'a> {
@@ -79,24 +95,36 @@ impl<'a> MyTerm<'a> {
         MyTerm {
             value,
             ty: self.ty.clone(),
+            span: self.span.clone(),
         }
     }
-    pub fn named_node<T: Into<Cow<'a, str>>>(value: T) -> Self {
+    pub fn named_node<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
         Self {
             value: value.into(),
-            ty: TermKind::Iri,
+            ty: TermKind::Iri.into(),
+            span,
         }
     }
-    pub fn blank_node<T: Into<Cow<'a, str>>>(value: T) -> Self {
+    pub fn blank_node<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
         Self {
             value: value.into(),
-            ty: TermKind::BlankNode,
+            ty: TermKind::BlankNode.into(),
+            span,
         }
     }
-    pub fn literal<T: Into<Cow<'a, str>>>(value: T) -> Self {
+    pub fn literal<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
         Self {
             value: value.into(),
-            ty: TermKind::Literal,
+            ty: TermKind::Literal.into(),
+            span,
+        }
+    }
+
+    pub fn invalid(span: std::ops::Range<usize>) -> Self {
+        Self {
+            value: Cow::default(),
+            ty: None,
+            span,
         }
     }
 
@@ -111,7 +139,7 @@ impl<'a> Term for MyTerm<'a> {
         Self: 'x;
 
     fn kind(&self) -> sophia_api::term::TermKind {
-        self.ty
+        self.ty.unwrap_or(TermKind::Triple)
     }
 
     fn borrow_term(&self) -> Self::BorrowTerm<'_> {

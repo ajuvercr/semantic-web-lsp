@@ -152,7 +152,7 @@ impl Shape {
                 green::Property {
                     range,
                     domain,
-                    property: MyTerm::named_node(&prop.path).to_owned(),
+                    property: MyTerm::named_node(&prop.path, 0..0).to_owned(),
                     required: prop.min_count.clone().unwrap_or(0) > 0,
                 }
             })
@@ -162,7 +162,7 @@ impl Shape {
             let prop = green::Property {
                 range: green::Range::Class(domain),
                 domain: provider.unnamed(None, "target_objects_of"),
-                property: MyTerm::named_node(target_objects_of).to_owned(),
+                property: MyTerm::named_node(target_objects_of, 0..0).to_owned(),
                 required: false,
             };
             props.push(prop);
@@ -172,7 +172,7 @@ impl Shape {
             let prop = green::Property {
                 range: green::Range::Class(provider.unnamed(None, "target_subjects_of")),
                 domain,
-                property: MyTerm::named_node(target_subjects_of).to_owned(),
+                property: MyTerm::named_node(target_subjects_of, 0..0).to_owned(),
                 required: false,
             };
             props.push(prop);

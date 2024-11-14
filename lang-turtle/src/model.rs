@@ -1,5 +1,6 @@
 use hashbrown::HashSet;
 use sophia_iri::resolve::{BaseIri, IriParseError};
+use tracing::info;
 
 use super::token::StringStyle;
 
@@ -378,10 +379,10 @@ impl Turtle {
 
     pub fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples<'a> {
         let base = match &self.base {
-            Some(Spanned(Base(_, Spanned(named_node, _)), _)) => named_node
+            Some(Spanned(Base(_, Spanned(named_node, span)), _)) => named_node
                 .expand_step(self, HashSet::new())
-                .map(|st| MyTerm::named_node(st)),
-            None => Some(MyTerm::named_node(self.set_base.as_str().to_string())),
+                .map(|st| MyTerm::named_node(st, span.clone())),
+            None => Some(MyTerm::named_node(self.set_base.as_str().to_string(), 0..0)),
         };
 
         let base_url = self.set_base.to_string();
@@ -404,7 +405,11 @@ impl<'a> From<&'a Vec<Spanned<PO>>> for Item<'a> {
 }
 impl<'a> Item<'a> {
     fn from_pred(pred: &'a str, term: Result<Spanned<&'a Term>, MyTerm<'a>>) -> Self {
-        Self::This(MyTerm::named_node(pred), term)
+        let span = match term.as_ref() {
+            Ok(x) => x.span().clone(),
+            Err(term) => term.span.clone(),
+        };
+        Self::This(MyTerm::named_node(pred, span), term)
     }
 
     /// Applies the callback function on all internal nodes
@@ -432,25 +437,28 @@ impl<'a> Item<'a> {
             Item::PO(pos) => {
                 if pos.is_empty() {
                     cb(
-                        &MyTerm::named_node("TestPredicate"),
-                        Err(MyTerm::named_node("TestObject")),
+                        &MyTerm::named_node("TestPredicate", 0..0),
+                        Err(MyTerm::named_node("TestObject", 0..0)),
                         span,
                     )?;
                 }
                 for Spanned(PO { predicate, object }, _) in pos.iter() {
-                    let predicate = MyTerm::named_node(
-                        predicate
-                            .value()
-                            .expand_step(turtle, HashSet::new())
-                            .ok_or(TurtleSimpleError::UnexpectedBase(
-                                "Expected valid named node for object",
-                            ))
-                            .and_then(|n| {
-                                base.resolve(n.as_str())
-                                    .map_err(|e| TurtleSimpleError::Parse(e))
-                            })
-                            .map(|x| x.unwrap())?,
-                    );
+                    let predicate = if let Ok(node) = predicate
+                        .value()
+                        .expand_step(turtle, HashSet::new())
+                        .ok_or(TurtleSimpleError::UnexpectedBase(
+                            "Expected valid named node for object",
+                        ))
+                        .and_then(|n| {
+                            base.resolve(n.as_str())
+                                .map_err(|e| TurtleSimpleError::Parse(e))
+                        })
+                        .map(|x| x.unwrap())
+                    {
+                        MyTerm::named_node(node, predicate.span().clone())
+                    } else {
+                        MyTerm::invalid(predicate.span().clone())
+                    };
                     for o in object.iter() {
                         cb(&predicate, Ok(o.as_ref()), span)?;
                     }
@@ -470,11 +478,12 @@ impl Turtle {
     }
 
     pub fn get_simple_triples<'a>(&'a self) -> Result<Triples<'a>, TurtleSimpleError> {
+        info!("GETTING SIMPLE TRIPLES");
         let mut blank_nodes = 0;
 
-        let mut blank_node = move || {
+        let mut blank_node = move |span: std::ops::Range<usize>| {
             blank_nodes += 1;
-            MyTerm::blank_node(format!("internal_bnode_{}", blank_nodes))
+            MyTerm::blank_node(format!("internal_bnode_{}", blank_nodes), span)
         };
         let mut out = Vec::new();
 
@@ -491,14 +500,19 @@ impl Turtle {
 
         let mut todo = Vec::new();
         for Spanned(ref triple, span) in &self.triples {
+            info!("Adding triples {:?}", triple);
             let sub = match triple.subject.value() {
-                Term::BlankNode(BlankNode::Named(vs)) => MyTerm::blank_node(vs),
+                Term::BlankNode(BlankNode::Named(vs)) => {
+                    MyTerm::blank_node(vs, triple.subject.span().clone())
+                }
                 Term::BlankNode(BlankNode::Unnamed(vs)) => {
-                    let out = blank_node();
+                    let out = blank_node(triple.subject.span().clone());
                     todo.push((out.clone(), Item::from(vs), triple.subject.span().clone()));
                     out
                 }
-
+                Term::NamedNode(NamedNode::Invalid) => {
+                    MyTerm::invalid(triple.subject.span().clone())
+                }
                 Term::NamedNode(nn) => MyTerm::named_node(
                     nn.expand_step(self, HashSet::new())
                         .ok_or(TurtleSimpleError::UnexpectedBase(
@@ -509,13 +523,16 @@ impl Turtle {
                                 .map_err(|e| TurtleSimpleError::Parse(e))
                         })
                         .map(|x| x.unwrap())?,
+                    triple.subject.span().clone(),
                 ),
+                Term::Invalid => MyTerm::invalid(triple.subject.span().clone()),
 
                 x => {
+                    info!("Failed, unexpected {}", x.ty());
                     return Err(TurtleSimpleError::UnexpectedBaseString(format!(
                         "Unexpected {}",
                         x.ty()
-                    )))
+                    )));
                 }
             };
             todo.push((sub.clone(), Item::from(&triple.po), span.clone()));
@@ -528,7 +545,8 @@ impl Turtle {
                           term: Result<Spanned<&'a Term>, MyTerm<'a>>,
                           span: &std::ops::Range<usize>| {
                 let object = match term {
-                    Ok(Spanned(Term::NamedNode(nn), _)) => MyTerm::named_node(
+                    Ok(Spanned(Term::NamedNode(NamedNode::Invalid), span)) => MyTerm::invalid(span),
+                    Ok(Spanned(Term::NamedNode(nn), span)) => MyTerm::named_node(
                         nn.expand_step(self, HashSet::new())
                             .ok_or(TurtleSimpleError::UnexpectedBase(
                                 "Expected valid named node for object",
@@ -538,14 +556,15 @@ impl Turtle {
                                     .map_err(|e| TurtleSimpleError::Parse(e))
                             })
                             .map(|x| x.unwrap())?,
+                        span,
                     ),
-                    Ok(Spanned(Term::Literal(literal), _)) => {
-                        MyTerm::literal(literal.plain_string())
+                    Ok(Spanned(Term::Literal(literal), span)) => {
+                        MyTerm::literal(literal.plain_string(), span)
                     }
                     Ok(Spanned(Term::BlankNode(bn), span)) => match bn {
-                        BlankNode::Named(v) => MyTerm::blank_node(v),
+                        BlankNode::Named(v) => MyTerm::blank_node(v, span),
                         BlankNode::Unnamed(v) => {
-                            let out = blank_node();
+                            let out = blank_node(span.clone());
                             todo.push((out.clone(), Item::from(v), span));
                             out
                         }
@@ -556,15 +575,19 @@ impl Turtle {
                         }
                     },
                     Ok(Spanned(Term::Collection(terms), span)) => {
-                        queue_collection(terms, blank_node, span, &mut todo)
+                        let span2 = span.clone();
+                        queue_collection(terms, move || blank_node(span2.clone()), span, &mut todo)
                     }
-                    Ok(Spanned(Term::Invalid, _)) => {
-                        return Err(TurtleSimpleError::UnexpectedBase(
-                            "Unexpected invalid object",
-                        ))
+                    Ok(Spanned(Term::Invalid, span)) => {
+                        MyTerm::invalid(span)
+                        // return Err(TurtleSimpleError::UnexpectedBase(
+                        //     "Unexpected invalid object",
+                        // ))
                     }
                     Err(x) => x,
                 };
+
+                info!("Got object {:?}", object);
 
                 let quad = MyQuad {
                     subject: sub.clone(),
@@ -589,7 +612,7 @@ fn queue_collection<'a>(
     span: std::ops::Range<usize>,
     todo: &mut Vec<(MyTerm<'a>, Item<'a>, Range<usize>)>,
 ) -> MyTerm<'a> {
-    let mut prev = MyTerm::named_node("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil");
+    let mut prev = MyTerm::named_node("http://www.w3.org/1999/02/22-rdf-syntax-ns#nil", 0..0);
     for Spanned(term, s) in terms.iter().rev() {
         let next = blank_node();
 

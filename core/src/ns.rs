@@ -47,6 +47,7 @@ pub mod rdfs {
 
     namespace! {
      "http://www.w3.org/2000/01/rdf-schema#",
+        Class,
         subClassOf,
         label,
         comment,

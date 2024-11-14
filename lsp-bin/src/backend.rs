@@ -1,12 +1,14 @@
+use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
-use bevy_ecs::schedule::ScheduleLabel;
+use bevy_ecs::schedule::{Schedule, ScheduleLabel};
 use bevy_ecs::world::{CommandQueue, World};
+use chumsky::primitive::Container;
 use lang_turtle::TurtleComponent;
 use lang_turtle::TurtleLang;
 use lsp_core::components::{
-    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, RopeC, Source,
-    Wrapped,
+    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, Open,
+    PositionComponent, RopeC, Source, Wrapped,
 };
 use lsp_core::lang::Lang;
 use lsp_core::{Completion, Diagnostics, Format, Parse};
@@ -25,13 +27,15 @@ use tower_lsp::LanguageServer;
 pub struct Backend {
     entities: Arc<Mutex<HashMap<String, Entity>>>,
     sender: CommandSender,
+    client: tower_lsp::Client,
 }
 
 impl Backend {
-    pub fn new(sender: CommandSender) -> Self {
+    pub fn new(sender: CommandSender, client: tower_lsp::Client) -> Self {
         Self {
             entities: Default::default(),
             sender,
+            client,
         }
     }
 
@@ -56,11 +60,11 @@ impl Backend {
         rx.await.ok()
     }
 
-    async fn run_schedule<S: ScheduleLabel, T: Component>(
+    async fn run_schedule<T: Component>(
         &self,
         entity: Entity,
-        schedule: S,
-        param: T,
+        schedule: impl ScheduleLabel,
+        param: impl Bundle,
     ) -> Option<T> {
         let (tx, rx) = futures::channel::oneshot::channel();
 
@@ -102,6 +106,7 @@ impl LanguageServer for Backend {
                     all_commit_characters: None,
                     completion_item: None,
                 }),
+                definition_provider: Some(OneOf::Left(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensRegistrationOptions(
@@ -109,8 +114,9 @@ impl LanguageServer for Backend {
                             text_document_registration_options: {
                                 TextDocumentRegistrationOptions {
                                     document_selector: Some(vec![DocumentFilter {
-                                        language: Some(String::from("turtle")),
-                                        scheme: Some("file".to_string()),
+                                        language: None,
+                                        // language: Some(String::from("turtle")),
+                                        scheme: None,
                                         pattern: Some(String::from("*.ttl")),
                                     }]),
                                 }
@@ -155,7 +161,7 @@ impl LanguageServer for Backend {
         };
 
         if let Some(res) = self
-            .run_schedule(
+            .run_schedule::<HighlightRequest>(
                 entity,
                 lsp_core::systems::SemanticTokensSchedule,
                 HighlightRequest(vec![]),
@@ -181,6 +187,42 @@ impl LanguageServer for Backend {
     }
 
     #[tracing::instrument(skip(self))]
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let _ = params;
+        info!("Goto definition");
+        let url = params
+            .text_document_position_params
+            .text_document
+            .uri
+            .join("pipeline.ttl")
+            .unwrap();
+        // let url = Url::parse("untitled://cdn.jsdelivr.net/gh/treecg/specification@master/tree.ttl")
+        //     .unwrap();
+        // let mut map = HashMap::new();
+        // map.insert(
+        //     url.clone(),
+        //     vec![TextEdit {
+        //         range: lsp_types::Range::new(
+        //             lsp_types::Position::new(0, 0),
+        //             lsp_types::Position::new(0, 0),
+        //         ),
+        //         new_text: String::from("@prefix foaf: <>."),
+        //     }],
+        // );
+        // let res = self.client.apply_edit(WorkspaceEdit::new(map)).await;
+        // info!("result {:?}", res);
+        Ok(Some(GotoDefinitionResponse::Array(vec![Location {
+            uri: url,
+            range: Range::new(Position::new(0, 0), Position::new(0, 5)),
+            // target_selection_range: Range::new(Position::new(0, 0), Position::new(0, 5)),
+            // origin_selection_range: None,
+        }])))
+    }
+
+    #[tracing::instrument(skip(self))]
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.as_str();
         let entity = {
@@ -193,7 +235,9 @@ impl LanguageServer for Backend {
             }
         };
 
-        let request = self.run_schedule(entity, Format, FormatRequest(None)).await;
+        let request = self
+            .run_schedule::<FormatRequest>(entity, Format, FormatRequest(None))
+            .await;
         Ok(request.and_then(|x| x.0))
     }
 
@@ -204,15 +248,33 @@ impl LanguageServer for Backend {
 
         let entity = self
             .run(|world| {
-                let id = world
-                    .spawn((
+                let id = if let Some(entity) = world
+                    .query::<(Entity, &Label)>()
+                    .iter(&world)
+                    .find(|x| x.1 .0.as_str() == item.uri.as_str())
+                    .map(|x| x.0)
+                {
+                    world.entity_mut(entity).insert((
                         TurtleComponent,
                         Source(item.text.clone()),
                         Label(item.uri.clone()),
                         RopeC(Rope::from_str(&item.text)),
                         Wrapped(item),
-                    ))
-                    .id();
+                        Open,
+                    ));
+                    entity
+                } else {
+                    world
+                        .spawn((
+                            TurtleComponent,
+                            Source(item.text.clone()),
+                            Label(item.uri.clone()),
+                            RopeC(Rope::from_str(&item.text)),
+                            Wrapped(item),
+                            Open,
+                        ))
+                        .id()
+                };
 
                 world.run_schedule(Parse);
                 world.flush();
@@ -273,7 +335,14 @@ impl LanguageServer for Backend {
         };
 
         let completions: Option<Vec<lsp_types::CompletionItem>> = self
-            .run_schedule(entity, Completion, CompletionRequest(vec![]))
+            .run_schedule::<CompletionRequest>(
+                entity,
+                Completion,
+                (
+                    CompletionRequest(vec![]),
+                    PositionComponent(params.text_document_position.position),
+                ),
+            )
             .await
             .map(|x| x.0.into_iter().map(|x| x.into()).collect());
 
