@@ -1,7 +1,8 @@
 use bevy_ecs::{
-    schedule::{Schedule, ScheduleLabel},
+    schedule::{IntoSystemConfigs as _, Schedule, ScheduleLabel},
     world::World,
 };
+use systems::{get_current_token, get_current_triple};
 
 pub mod client;
 pub mod components;
@@ -11,12 +12,20 @@ pub mod ns;
 pub mod parent;
 pub mod prefix;
 pub mod systems;
+pub mod token;
 pub mod triples;
 pub mod utils;
 
 pub fn setup_schedule_labels(world: &mut World) {
     world.add_schedule(Schedule::new(Parse));
-    world.add_schedule(Schedule::new(Completion));
+
+    let mut completion = Schedule::new(Completion);
+    completion.add_systems((
+        get_current_token,
+        get_current_triple.after(get_current_token),
+    ));
+    world.add_schedule(completion);
+
     world.add_schedule(Schedule::new(Diagnostics));
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));

@@ -3,6 +3,7 @@ use completion::{subject_completion, turtle_prefix_completion};
 use formatting::format_turtle_system;
 use lsp_core::{
     client::{Client, ClientSync},
+    systems::{derive_classes, get_current_token},
     Parse,
 };
 use parsing::{derive_triples, parse_source, parse_turtle_system};
@@ -21,6 +22,7 @@ pub fn setup_parsing<C: Client + ClientSync + Resource>(world: &mut World) {
             parse_turtle_system.after(parse_source),
             derive_triples.after(parse_turtle_system),
             fetch_lov_properties::<C>.after(parse_turtle_system),
+            derive_classes.after(derive_triples),
         ));
     });
 }
@@ -33,7 +35,10 @@ pub fn setup_formatting(world: &mut World) {
 
 pub fn setup_completion(world: &mut World) {
     world.schedule_scope(lsp_core::Completion, |_, schedule| {
-        schedule.add_systems((turtle_prefix_completion, subject_completion));
+        schedule.add_systems((
+            turtle_prefix_completion.after(get_current_token),
+            subject_completion.after(get_current_token),
+        ));
     });
 }
 

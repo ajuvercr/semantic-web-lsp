@@ -64,11 +64,22 @@ fn literal() -> impl Parser<Token, Literal, Error = Simple<Token, S>> + Clone {
 }
 
 fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> + Clone {
+    let invalid = select! {
+        Token::Invalid(_) => NamedNode::Invalid,
+    }
+    .validate(move |x, span: S, emit| {
+        emit(Simple::custom(
+            span.end..span.end,
+            format!("Expected a named node."),
+        ));
+        x
+    });
     select! {
         Token::PredType => NamedNode::A,
         Token::IRIRef(x) => NamedNode::Full(x),
         Token::PNameLN(x, b) => NamedNode::Prefixed { prefix: x.unwrap_or_default(), value: b },
     }
+    .or(invalid)
 }
 
 fn expect_token(token: Token) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
@@ -181,10 +192,27 @@ fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
                 .map_with_span(spanned)
                 .separated_by(just(Token::PredicateSplit))
                 .allow_leading()
-                .at_least(1)
+                // .at_least(1)
                 .map(|mut x| {
                     x.reverse();
                     x
+                })
+                .validate(|po, span: S, emit| {
+                    if po.is_empty() {
+                        emit(Simple::custom(
+                            span.clone(),
+                            format!("Expected at least one predicate object."),
+                        ));
+                        vec![spanned(
+                            PO {
+                                predicate: spanned(Term::Invalid, span.clone()),
+                                object: vec![spanned(Term::Invalid, span.clone())],
+                            },
+                            span,
+                        )]
+                    } else {
+                        po
+                    }
                 }),
         )
         .then_with(move |po| {
@@ -306,6 +334,7 @@ pub fn parse_turtle(
             info!("Error {:?}", e);
         }
     }
+    info!("Turtle {:?}", json);
 
     (
         json.unwrap_or(Spanned(Turtle::empty(location), 0..len)),
@@ -337,6 +366,25 @@ pub mod turtle_tests {
         let stream = Stream::from_iter(
             end,
             tokens
+                .into_iter()
+                .map(|Spanned(x, y)| (x, y))
+                .rev()
+                .filter(|x| !x.0.is_comment()),
+        );
+
+        parser.parse_recovery(stream)
+    }
+
+    pub fn parse_it_recovery<T, P: Parser<Token, T, Error = Simple<Token>>>(
+        turtle: &str,
+        parser: P,
+    ) -> (Option<T>, Vec<Simple<Token>>) {
+        let (tokens, _) = tokenizer::parse_tokens().parse_recovery(turtle);
+        let end = turtle.len()..turtle.len();
+        let stream = Stream::from_iter(
+            end,
+            tokens
+                .unwrap_or_default()
                 .into_iter()
                 .map(|Spanned(x, y)| (x, y))
                 .rev()
@@ -477,6 +525,43 @@ pub mod turtle_tests {
 
         assert_eq!(errors.len(), 1);
         assert_eq!(output.unwrap().to_string(), "<a> <b> <c>; <d> invalid.\n");
+    }
+
+    #[test]
+    fn parse_triple_with_invalid_token_predicate() {
+        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let txt = "<a> foa";
+        let (output, errors) = parse_it_recovery(txt, turtle(&url));
+
+        println!("output {:?}", output);
+        println!(
+            "output {:?}",
+            output.as_ref().map(|x| x.to_string()).unwrap_or_default()
+        );
+        println!("errors {:?}", errors);
+
+        assert_eq!(errors.len(), 3);
+        assert_eq!(output.unwrap().to_string(), "<a> invalid invalid.\n");
+    }
+
+    #[test]
+    fn parse_triple_with_invalid_token_subject() {
+        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let txt = "foa";
+        let (output, errors) = parse_it_recovery(txt, turtle(&url));
+
+        println!("output {:?}", output);
+        println!(
+            "output {:?}",
+            output.as_ref().map(|x| x.to_string()).unwrap_or_default()
+        );
+        println!("errors {:?}", errors);
+        for error in &errors {
+            println!("  {:?}", error);
+        }
+
+        assert_eq!(errors.len(), 4);
+        assert_eq!(output.unwrap().to_string(), "invalid invalid invalid.\n");
     }
 
     #[test]

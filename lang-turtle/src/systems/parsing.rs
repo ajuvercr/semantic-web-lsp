@@ -2,41 +2,47 @@ use bevy_ecs::prelude::*;
 use chumsky::Parser;
 use lsp_core::components::*;
 use tracing::info;
+use tracing::instrument;
 
 use crate::TurtleComponent;
 use crate::TurtleLang;
 use crate::{parse_turtle, tokenizer::parse_tokens};
 
+#[instrument(skip(query, commands))]
 pub fn parse_source(
     query: Query<(Entity, &Source), (Changed<Source>, With<TurtleComponent>)>,
     mut commands: Commands,
 ) {
     for (entity, source) in &query {
         let (tok, es) = parse_tokens().parse_recovery(source.0.as_str());
+        info!("Found tokens {:?}", tok);
         if let Some(tokens) = tok {
-            let t = Tokens::<TurtleLang>(tokens);
+            let t = Tokens(tokens);
             commands.entity(entity).insert(t);
         }
         commands.entity(entity).insert(Errors(es));
     }
 }
 
+#[instrument(skip(query, commands))]
 pub fn parse_turtle_system(
-    query: Query<
-        (Entity, &Source, &Tokens<TurtleLang>, &Label),
-        (Changed<Tokens<TurtleLang>>, With<TurtleComponent>),
-    >,
+    query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<TurtleComponent>)>,
     mut commands: Commands,
 ) {
     for (entity, source, tokens, label) in &query {
         let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len());
+        info!("{} triples", turtle.value().triples.len());
         if es.is_empty() {
             let element = Element::<TurtleLang>(turtle);
             info!("Setting specific errors {} -> valid turtle!", es.len());
-            commands.entity(entity).insert((element, Errors(es)));
+            commands
+                .entity(entity)
+                .insert((element, Errors(es)))
+                .remove::<Dirty>();
         } else {
-            info!("Removing errors {}", es.len());
-            commands.entity(entity).insert(Errors(es));
+            let element = Element::<TurtleLang>(turtle);
+            info!("Adding {} errors", es.len());
+            commands.entity(entity).insert((Errors(es), element, Dirty));
         }
     }
 }

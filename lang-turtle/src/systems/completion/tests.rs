@@ -1,6 +1,8 @@
 use lsp_core::{components::*, Completion, Parse};
 use ropey::Rope;
+use test_log::test;
 use test_utils::{create_file, setup_world, TestClient};
+use tracing::info;
 
 use crate::TurtleComponent;
 
@@ -11,6 +13,7 @@ use crate::TurtleComponent;
 // content
 #[test]
 fn completion_event_works() {
+    println!("completion_event_works");
     let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
     let t1 = "
@@ -32,15 +35,9 @@ foa
     // start call completion
     world.entity_mut(entity).insert((
         CompletionRequest(vec![]),
-        CurrentWord(lsp_types::Range {
-            start: lsp_types::Position {
-                line: 2,
-                character: 0,
-            },
-            end: lsp_types::Position {
-                line: 2,
-                character: 3,
-            },
+        PositionComponent(lsp_types::Position {
+            line: 2,
+            character: 0,
         }),
     ));
     world.run_schedule(Completion);
@@ -48,16 +45,21 @@ foa
 
     assert!(m_completions.is_some());
     let completions = m_completions.unwrap().0;
+    println!("completions {:?}\n\n", completions);
     assert_eq!(completions.len(), 1);
 }
 
-#[test]
+#[test_log::test]
 fn completion_event_works_multiple_files() {
+    info!("Testing multiple files");
     let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
-
-    let t1 = "
+    let t1_1 = "
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+            ";
 
+    let t1_2 = "
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+foaf:
             ";
 
     let t2 = "
@@ -68,10 +70,11 @@ foaf:me foaf:friend <#me>.
 
     let entity = create_file(
         &mut world,
-        t1,
+        t1_1,
         "http://example.com/first_file#",
         TurtleComponent,
     );
+
     create_file(
         &mut world,
         t2,
@@ -79,25 +82,28 @@ foaf:me foaf:friend <#me>.
         TurtleComponent,
     );
 
+    world
+        .entity_mut(entity)
+        .insert((Source(t1_2.to_string()), RopeC(Rope::from_str(t1_2))));
+    world.run_schedule(Parse);
+
     // start call completion
     world.entity_mut(entity).insert((
         CompletionRequest(vec![]),
-        CurrentWord(lsp_types::Range {
-            start: lsp_types::Position {
-                line: 3,
-                character: 0,
-            },
-            end: lsp_types::Position {
-                line: 3,
-                character: 0,
-            },
+        PositionComponent(lsp_types::Position {
+            line: 2,
+            character: 0,
         }),
     ));
-
     world.run_schedule(Completion);
-    let m_completions = world.entity_mut(entity).take::<CompletionRequest>();
 
-    assert!(m_completions.is_some());
-    let completions = m_completions.unwrap().0;
-    assert_eq!(completions.len(), 2);
+    let completions = world
+        .entity_mut(entity)
+        .take::<CompletionRequest>()
+        .expect("Completions exists")
+        .0;
+
+    println!("completions {:?}\n\n", completions);
+
+    assert_eq!(completions.len(), 1);
 }

@@ -160,6 +160,7 @@ pub fn create_file(world: &mut World, content: &str, url: &str, extra: impl Bund
             RopeC(rope),
             Label(item.uri.clone()),
             Wrapped(item),
+            Open
         ))
         .insert(extra)
         .id();

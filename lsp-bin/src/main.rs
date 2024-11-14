@@ -49,6 +49,18 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandS
     sender
 }
 
+fn get_level() -> Level {
+    match std::env::var_os("LOG")
+        .and_then(|x| x.into_string().ok())
+        .map(|x| x.to_lowercase())
+    {
+        Some(x) if &x == "info" => Level::INFO,
+        Some(x) if &x == "debug" => Level::DEBUG,
+        Some(x) if &x == "trace" => Level::TRACE,
+        _ => Level::INFO,
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let target: Box<dyn io::Write + Send + Sync> = match File::create("/tmp/turtle-lsp.txt") {
@@ -64,7 +76,7 @@ async fn main() {
     fmt()
         .with_file(true)
         .with_line_number(true)
-        .with_max_level(Level::INFO)
+        .with_max_level(get_level())
         .with_writer(std::sync::Mutex::new(target))
         .init();
 
@@ -72,8 +84,10 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let (service, socket) =
-        LspService::build(|client| Backend::new(setup_world(TowerClient::new(client)))).finish();
+    let (service, socket) = LspService::build(|client| {
+        Backend::new(setup_world(TowerClient::new(client.clone())), client)
+    })
+    .finish();
 
     Server::new(stdin, stdout, socket).serve(service).await;
 }

@@ -2,8 +2,13 @@ use std::ops::Range;
 
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use super::semantic_token;
-use lsp_core::model::Spanned;
+use crate::model::Spanned;
+
+pub mod semantic_token {
+    use lsp_types::SemanticTokenType as STT;
+    pub const BOOLEAN: STT = STT::new("boolean");
+    pub const LANG_TAG: STT = STT::new("langTag");
+}
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
 pub enum Token {
@@ -62,7 +67,7 @@ pub enum Token {
     Invalid(String),
 }
 
-impl lsp_core::lang::Token for Token {
+impl crate::lang::Token for Token {
     fn token(&self) -> Option<lsp_types::SemanticTokenType> {
         match self {
             Token::PrefixTag
