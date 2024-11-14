@@ -23,8 +23,9 @@ sophia_iri.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
 
+lov      = { path = "../lov/" }
 lsp-core = { path = "../core/" }
 
 [dev-dependencies]
+test-log   = { version = "0.2.16", features = ["trace"] }
 test-utils = { path = "../test-utils/" }
-test-log = { version = "0.2.16", features = ["trace"]}
