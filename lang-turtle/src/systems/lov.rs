@@ -15,12 +15,6 @@ struct LocalPrefix {
     name: &'static str,
 }
 
-const LOCAL_PREFIXES: &'static [LocalPrefix] = &[LocalPrefix {
-    location: "memory://prefix/rdfs.ttl",
-    content: include_str!("../../../prefixes/rdfs.ttl"),
-    name: "rdfs",
-}];
-
 #[derive(Deserialize, Debug)]
 struct Version {
     #[serde(rename = "fileURL")]
@@ -92,7 +86,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                 prefixes.insert(prefix.prefix.0.clone());
 
                 let prefix = prefix.prefix.0.clone();
-                if let Some(local) = LOCAL_PREFIXES.iter().find(|x| x.name == &prefix) {
+                if let Some(local) = lov::LOCAL_PREFIXES.iter().find(|x| x.name == &prefix) {
                     info!("Using local {}", local.name);
                     let mut command_queue = CommandQueue::default();
 

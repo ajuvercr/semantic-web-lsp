@@ -1,5 +1,5 @@
 use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Resource, world::World};
-use completion::{subject_completion, turtle_prefix_completion};
+use completion::{subject_completion, turtle_lov_prefix_completion, turtle_prefix_completion};
 use formatting::format_turtle_system;
 use lsp_core::{
     client::{Client, ClientSync},
@@ -36,6 +36,7 @@ pub fn setup_formatting(world: &mut World) {
 pub fn setup_completion(world: &mut World) {
     world.schedule_scope(lsp_core::Completion, |_, schedule| {
         schedule.add_systems((
+            turtle_lov_prefix_completion.after(get_current_token),
             turtle_prefix_completion.after(get_current_token),
             subject_completion.after(get_current_token),
         ));

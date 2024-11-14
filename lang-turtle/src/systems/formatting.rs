@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::*;
 
 use lsp_core::components::*;
+use lsp_core::model::Spanned;
 use lsp_types::{Position, Range};
 use tracing::info;
 
@@ -8,16 +9,22 @@ use crate::formatter::format_turtle;
 use crate::TurtleLang;
 
 pub fn format_turtle_system(
-    mut query: Query<(&RopeC, &Element<TurtleLang>, &mut FormatRequest), Without<Dirty>>,
+    mut query: Query<(&RopeC, &Element<TurtleLang>, &Tokens, &mut FormatRequest), Without<Dirty>>,
 ) {
     info!("Format turtle system");
 
-    for (source, turtle, mut request) in &mut query {
+    for (source, turtle, tokens, mut request) in &mut query {
         if request.0.is_some() {
             info!("Didn't format with the turtle format system, already formatted");
             continue;
         }
         info!("Formatting with turtle format system");
+        let comments: Vec<_> = tokens
+            .iter()
+            .filter(|x| x.is_comment())
+            .cloned()
+            .map(|Spanned(x, span)| Spanned(x.into_comment(), span))
+            .collect();
 
         let formatted = format_turtle(
             &turtle.0,
@@ -25,7 +32,7 @@ pub fn format_turtle_system(
                 tab_size: 2,
                 ..Default::default()
             },
-            &vec![],
+            &comments,
             &source.0,
         );
 
