@@ -9,6 +9,7 @@ version = "0.1.0"
 [dependencies]
 bevy_ecs.workspace     = true
 chumsky.workspace      = true
+derive_more.workspace  = true
 enum-methods.workspace = true
 futures.workspace      = true
 lsp-types.workspace    = true
@@ -17,4 +18,3 @@ serde_json.workspace   = true
 sophia_api.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
-

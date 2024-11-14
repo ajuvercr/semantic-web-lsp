@@ -12,4 +12,3 @@ pub use subject::subject_completion;
 mod tests;
 
 use bevy_ecs::prelude::*;
-

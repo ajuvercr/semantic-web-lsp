@@ -334,14 +334,19 @@ impl LanguageServer for Backend {
             }
         };
 
+        // Problem: whne the cursor is at the end of en ident, that ident is not in range of the
+        // cursor
+        let mut pos = params.text_document_position.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
         let completions: Option<Vec<lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(
                 entity,
                 Completion,
-                (
-                    CompletionRequest(vec![]),
-                    PositionComponent(params.text_document_position.position),
-                ),
+                (CompletionRequest(vec![]), PositionComponent(pos)),
             )
             .await
             .map(|x| x.0.into_iter().map(|x| x.into()).collect());

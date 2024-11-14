@@ -4,65 +4,66 @@ use crate::{
     triples::{MyQuad, MyTerm},
 };
 use bevy_ecs::{prelude::*, world::CommandQueue};
+use derive_more::{AsMut, AsRef};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use lsp_types::{Position, SemanticToken};
 use sophia_api::{prelude::Dataset, quad::Quad as _, term::matcher::TermMatcher};
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Tokens(pub Vec<Spanned<crate::token::Token>>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Element<L: Lang>(pub Spanned<L::Element>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Wrapped<E>(pub E);
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Errors<E>(pub Vec<E>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Source(pub String);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct RopeC(pub ropey::Rope);
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Open;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Dirty;
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Label(pub lsp_types::Url);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct HighlightRequest(pub Vec<SemanticToken>);
 
-#[derive(Resource)]
+#[derive(Resource, AsRef, AsMut, Debug)]
 pub struct CommandReceiver(pub UnboundedReceiver<CommandQueue>);
 
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, AsRef, AsMut, Debug, Clone)]
 pub struct CommandSender(pub UnboundedSender<CommandQueue>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct PositionComponent(pub Position);
 
 #[derive(Component, Debug)]
 pub struct TokenComponent {
     pub token: Spanned<crate::token::Token>,
-    pub range:  lsp_types::Range,
+    pub range: lsp_types::Range,
     pub text: String,
 }
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct Triples(pub Vec<MyQuad<'static>>);
 
-#[derive(Component)]
+#[derive(Component, AsRef, AsMut, Debug)]
 pub struct DefinedProperties(pub Vec<DefinedProperties>);
 
 impl Triples {
