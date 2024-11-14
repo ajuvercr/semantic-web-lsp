@@ -7,7 +7,9 @@ use tracing::info;
 use crate::formatter::format_turtle;
 use crate::TurtleLang;
 
-pub fn format_turtle_system(mut query: Query<(&RopeC, &Element<TurtleLang>, &mut FormatRequest)>) {
+pub fn format_turtle_system(
+    mut query: Query<(&RopeC, &Element<TurtleLang>, &mut FormatRequest), Without<Dirty>>,
+) {
     info!("Format turtle system");
 
     for (source, turtle, mut request) in &mut query {

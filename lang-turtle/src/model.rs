@@ -478,7 +478,6 @@ impl Turtle {
     }
 
     pub fn get_simple_triples<'a>(&'a self) -> Result<Triples<'a>, TurtleSimpleError> {
-        info!("GETTING SIMPLE TRIPLES");
         let mut blank_nodes = 0;
 
         let mut blank_node = move |span: std::ops::Range<usize>| {
@@ -500,7 +499,6 @@ impl Turtle {
 
         let mut todo = Vec::new();
         for Spanned(ref triple, span) in &self.triples {
-            info!("Adding triples {:?}", triple);
             let sub = match triple.subject.value() {
                 Term::BlankNode(BlankNode::Named(vs)) => {
                     MyTerm::blank_node(vs, triple.subject.span().clone())
@@ -586,8 +584,6 @@ impl Turtle {
                     }
                     Err(x) => x,
                 };
-
-                info!("Got object {:?}", object);
 
                 let quad = MyQuad {
                     subject: sub.clone(),

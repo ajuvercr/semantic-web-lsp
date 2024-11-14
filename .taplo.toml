@@ -4,4 +4,3 @@ align_entries = true
 align_comments = true
 array_auto_expand   = true
 inline_table_expand = true
-

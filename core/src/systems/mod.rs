@@ -35,7 +35,29 @@ pub fn get_current_token(
             .filter(|x| x.span().contains(&offset))
             .min_by_key(|x| x.span().end - x.span().start)
         else {
-            debug!("Failed to find a token");
+            let closest = tokens.0.iter().min_by_key(|x| {
+                let start = if offset > x.span().start {
+                    offset - x.span().start
+                } else {
+                    x.span().start - offset
+                };
+
+                let end = if offset > x.span().end {
+                    offset - x.span().end
+                } else {
+                    x.span().end - offset
+                };
+
+                if start > end {
+                    end
+                } else {
+                    start
+                }
+            });
+            debug!(
+                "Failed to find a token, offset {} closest {:?}",
+                offset, closest
+            );
             continue;
         };
 
