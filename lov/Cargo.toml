@@ -1,0 +1,9 @@
+
+[package]
+name = "lov"
+
+authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
+edition = "2021"
+version = "0.1.0"
+
+
