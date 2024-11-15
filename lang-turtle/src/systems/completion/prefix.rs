@@ -40,25 +40,25 @@ pub fn turtle_lov_prefix_completion(
                 .filter(|x| !defined.contains(&x.name))
                 .flat_map(|lov| {
                     let new_text = format!("{}:", lov.name);
+                    let sort_text = format!("2 {}", new_text);
+                    let filter_text = new_text.clone();
                     if new_text != word.text {
-                        let edits = vec![
-                            lsp_types::TextEdit {
-                                new_text,
-                                range: word.range.clone(),
-                            },
-                            lsp_types::TextEdit {
+                        Some(
+                            SimpleCompletion::new(
+                                CompletionItemKind::MODULE,
+                                format!("{}", lov.name),
+                                lsp_types::TextEdit {
+                                    new_text,
+                                    range: word.range.clone(),
+                                },
+                            )
+                            .text_edit(lsp_types::TextEdit {
                                 range: Range::new(start.clone(), start),
                                 new_text: format!("@prefix {}: <{}>.\n", lov.name, lov.location),
-                            },
-                        ];
-                        Some(SimpleCompletion {
-                            kind: CompletionItemKind::MODULE,
-                            label: format!("{}", lov.name),
-                            documentation: lov.title.to_string().into(),
-                            sort_text: None,
-                            filter_text: None,
-                            edits,
-                        })
+                            })
+                            .sort_text(sort_text)
+                            .filter_text(filter_text),
+                        )
                     } else {
                         None
                     }
@@ -92,18 +92,17 @@ pub fn turtle_prefix_completion(
                 let url = x.value.expand(&turtle.0);
                 let new_text = format!("{}:", x.prefix.as_str());
                 if new_text != word.text {
-                    let edits = vec![lsp_types::TextEdit {
-                        new_text,
-                        range: word.range.clone(),
-                    }];
-                    Some(SimpleCompletion {
-                        kind: CompletionItemKind::MODULE,
-                        label: format!("{}", x.prefix.as_str()),
-                        documentation: url,
-                        sort_text: None,
-                        filter_text: None,
-                        edits,
-                    })
+                    Some(
+                        SimpleCompletion::new(
+                            CompletionItemKind::MODULE,
+                            format!("{}", x.prefix.as_str()),
+                            lsp_types::TextEdit {
+                                new_text,
+                                range: word.range.clone(),
+                            },
+                        )
+                        .m_documentation(url),
+                    )
                 } else {
                     None
                 }

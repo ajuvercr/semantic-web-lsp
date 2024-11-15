@@ -1,20 +1,19 @@
-use std::collections::{HashMap, HashSet};
-
 use crate::{
     components::{
-        CommandReceiver, DocumentLinkEvent, DocumentLinks, Label, PositionComponent, RopeC,
-        TokenComponent, Tokens, Triples,
+        CommandReceiver, Label, PositionComponent, RopeC, TokenComponent, Tokens, TripleComponent,
+        TripleTarget, Triples,
     },
     utils::{position_to_offset, range_to_range},
 };
 use bevy_ecs::prelude::*;
 
 mod diagnostics;
+use chumsky::Span;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
 pub use semantics::{semantic_tokens_system, SemanticTokensSchedule};
 mod properties;
-pub use properties::derive_classes;
+pub use properties::{derive_classes, DefinedClass};
 use tracing::{debug, info};
 
 pub fn spawn_or_insert(
@@ -152,17 +151,38 @@ pub fn get_current_token(
     }
 }
 
-pub fn get_current_triple(query: Query<(&PositionComponent, &Triples, &RopeC)>) {
-    for (position, triples, rope) in &query {
+pub fn get_current_triple(
+    query: Query<(Entity, &PositionComponent, &Triples, &RopeC)>,
+    mut commands: Commands,
+) {
+    for (e, position, triples, rope) in &query {
+        commands.entity(e).remove::<TripleComponent>();
+
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             debug!("Couldn't transform to an offset");
             continue;
         };
-        let current_triples: Vec<_> = triples
+
+        if let Some(t) = triples
             .0
             .iter()
             .filter(|triple| triple.span.contains(&offset))
-            .collect();
-        info!("Current triples {:?} {:?}", current_triples, triples.0);
+            .next()
+        {
+            info!("Current triples {:?} {:?}", t, triples.0);
+
+            let mut target = TripleTarget::Subject;
+            if offset > t.subject.span.end() {
+                target = TripleTarget::Predicate;
+            }
+            if offset > t.predicate.span.end() {
+                target = TripleTarget::Object;
+            }
+
+            commands.entity(e).insert(TripleComponent {
+                triple: t.clone(),
+                target,
+            });
+        }
     }
 }

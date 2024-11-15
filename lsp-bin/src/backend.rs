@@ -102,7 +102,7 @@ impl LanguageServer for Backend {
                 code_action_provider: None,
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(false),
-                    trigger_characters: None,
+                    trigger_characters: Some(vec![String::from(":")]),
                     work_done_progress_options: Default::default(),
                     all_commit_characters: None,
                     completion_item: None,

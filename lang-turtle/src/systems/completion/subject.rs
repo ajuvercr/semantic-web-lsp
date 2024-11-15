@@ -32,19 +32,17 @@ pub fn subject_completion(
                     let new_text = turtle.0.shorten(subj).unwrap_or_else(|| String::from(subj));
 
                     if new_text != word.text {
-                        let edits = vec![lsp_types::TextEdit {
-                            new_text,
-                            range: word.range.clone(),
-                        }];
-
-                        req.0.push(SimpleCompletion {
-                            kind: CompletionItemKind::MODULE,
-                            label: format!("{}", subj),
-                            documentation: format!("Subject from {}", label.0).into(),
-                            sort_text: None,
-                            filter_text: None,
-                            edits,
-                        });
+                        req.push(
+                            SimpleCompletion::new(
+                                CompletionItemKind::MODULE,
+                                subj.to_string(),
+                                lsp_types::TextEdit {
+                                    new_text,
+                                    range: word.range.clone(),
+                                },
+                            )
+                            .documentation(format!("Subject from {}", label.0)),
+                        );
                     }
                 }
             }
