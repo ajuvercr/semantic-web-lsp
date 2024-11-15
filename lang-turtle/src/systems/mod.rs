@@ -4,12 +4,13 @@ use bevy_ecs::{
     world::World,
 };
 use completion::{
-    complete_class, subject_completion, turtle_lov_prefix_completion, turtle_prefix_completion,
+    complete_class, complete_properties, subject_completion, turtle_lov_prefix_completion,
+    turtle_prefix_completion,
 };
 use formatting::format_turtle_system;
 use lsp_core::{
     client::{Client, ClientSync},
-    systems::{derive_classes, get_current_token, get_current_triple},
+    systems::{derive_classes, derive_properties, get_current_token, get_current_triple},
     Parse,
 };
 use parsing::{derive_triples, parse_source, parse_turtle_system};
@@ -30,6 +31,7 @@ pub fn setup_parsing<C: Client + ClientSync + Resource>(world: &mut World) {
             derive_triples.after(parse_turtle_system),
             fetch_lov_properties::<C>.after(parse_turtle_system),
             derive_classes.after(derive_triples),
+            derive_properties.after(derive_triples),
         ));
     });
 }
@@ -47,6 +49,7 @@ pub fn setup_completion(world: &mut World) {
             turtle_prefix_completion.after(get_current_token),
             subject_completion.after(get_current_token),
             complete_class.after(get_current_triple),
+            complete_properties.after(get_current_triple),
         ));
     });
 }

@@ -20,4 +20,3 @@ impl Into<CompletionItemKind> for PropertyType {
         }
     }
 }
-

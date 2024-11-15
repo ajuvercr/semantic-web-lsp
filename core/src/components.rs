@@ -78,9 +78,6 @@ pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct DefinedProperties(pub Vec<DefinedProperties>);
-
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Triples(pub Vec<MyQuad<'static>>);
 
 impl Triples {
@@ -98,6 +95,22 @@ impl Triples {
             )
             .flatten()
             .next()
+            .map(|x| x.o())
+    }
+
+    pub fn objects<'s, S, P>(&'s self, subj: S, pred: P) -> impl Iterator<Item = &MyTerm<'_>>
+    where
+        S: TermMatcher + 's,
+        P: TermMatcher + 's,
+    {
+        self.0
+            .quads_matching(
+                subj,
+                pred,
+                sophia_api::prelude::Any,
+                sophia_api::prelude::Any,
+            )
+            .flatten()
             .map(|x| x.o())
     }
 }

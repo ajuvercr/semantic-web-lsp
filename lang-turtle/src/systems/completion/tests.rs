@@ -1,8 +1,9 @@
+use futures::executor::block_on;
 use lsp_core::{components::*, Completion, Parse};
 use ropey::Rope;
 use test_log::test;
 use test_utils::{create_file, setup_world, TestClient};
-use tracing::info;
+use tracing::{debug, info};
 
 use crate::TurtleLang;
 
@@ -40,6 +41,7 @@ foa
             character: 0,
         }),
     ));
+
     world.run_schedule(Completion);
     let m_completions = world.entity_mut(entity).take::<CompletionRequest>();
 
@@ -106,4 +108,47 @@ foaf:me foaf:friend <#me>.
     println!("completions {:?}\n\n", completions);
 
     assert_eq!(completions.len(), 1);
+}
+
+#[test_log::test]
+fn test_autocomplete_classes() {
+    println!("completion_event_works");
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+
+    let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.";
+
+    let t2 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+<> a foa";
+
+    let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
+
+    let c = world.resource::<TestClient>().clone();
+    block_on(c.await_futures(|| world.run_schedule(lsp_core::Tasks)));
+
+    world
+        .entity_mut(entity)
+        .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2))));
+    world.run_schedule(Parse);
+
+    block_on(c.await_futures(|| world.run_schedule(lsp_core::Tasks)));
+
+    // start call completion
+    world.entity_mut(entity).insert((
+        CompletionRequest(vec![]),
+        PositionComponent(lsp_types::Position {
+            line: 1,
+            character: 6,
+        }),
+    ));
+    world.run_schedule(Completion);
+    let completions = world
+        .entity_mut(entity)
+        .take::<CompletionRequest>()
+        .expect("competion request")
+        .0;
+
+    for com in completions.iter() {
+        debug!("Comp {}", com.edits[0].new_text);
+    }
+    assert_eq!(completions.len(), 14);
 }

@@ -13,7 +13,7 @@ pub use diagnostics::publish_diagnostics;
 mod semantics;
 pub use semantics::{semantic_tokens_system, SemanticTokensSchedule};
 mod properties;
-pub use properties::{derive_classes, DefinedClass};
+pub use properties::{derive_classes, derive_properties, DefinedClass, DefinedProperty};
 use tracing::{debug, info};
 
 pub fn spawn_or_insert(
