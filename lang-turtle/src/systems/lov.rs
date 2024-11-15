@@ -7,7 +7,7 @@ use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use tracing::info;
 
-use crate::{TurtleComponent, TurtleLang};
+use crate::TurtleLang;
 
 struct LocalPrefix {
     location: &'static str,
@@ -100,7 +100,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                     let spawn = spawn_or_insert(
                         url.clone(),
                         (
-                            TurtleComponent,
+                            TurtleLang,
                             Source(local.content.to_string()),
                             RopeC(ropey::Rope::from_str(local.content)),
                             Label(url), // this might
@@ -148,7 +148,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                                 let spawn = spawn_or_insert(
                                     url.clone(),
                                     (
-                                        TurtleComponent,
+                                        TurtleLang,
                                         Source(resp.body),
                                         RopeC(rope),
                                         Label(url), // this might

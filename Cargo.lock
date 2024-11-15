@@ -1386,7 +1386,6 @@ dependencies = [
  "enum-methods",
  "futures",
  "hashbrown 0.13.2",
- "lang-jsonld",
  "lang-turtle",
  "lsp-core",
  "lsp-types",

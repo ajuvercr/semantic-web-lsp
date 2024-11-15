@@ -94,7 +94,7 @@ mod tests {
     use ropey::Rope;
     use test_utils::{create_file, setup_world, TestClient};
 
-    use crate::TurtleComponent;
+    use crate::TurtleLang;
 
     #[test]
     fn diagnostics_work() {
@@ -114,7 +114,7 @@ foa:foaf
 foa
             ";
 
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleComponent);
+        let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
         world.run_schedule(Parse);
         world.run_schedule(Diagnostics);
 
@@ -160,7 +160,7 @@ foa
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
-        create_file(&mut world, t1, "http://example.com/ns#", TurtleComponent);
+        create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
 
         assert_eq!(world.entities().len(), 1);
         let c = world.resource::<TestClient>().clone();
@@ -174,7 +174,7 @@ foa
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleComponent);
+        let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
 
         let links: &DocumentLinks = world.entity(entity).get().expect("document links exists");
         assert_eq!(links.len(), 1);

@@ -1,10 +1,8 @@
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
-use bevy_ecs::schedule::{Schedule, ScheduleLabel};
+use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
-use chumsky::primitive::Container;
-use lang_turtle::TurtleComponent;
 use lang_turtle::TurtleLang;
 use lsp_core::components::{
     CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, Open,
@@ -250,7 +248,7 @@ impl LanguageServer for Backend {
         let spawn = spawn_or_insert(
             item.uri.clone(),
             (
-                TurtleComponent,
+                TurtleLang,
                 Source(item.text.clone()),
                 Label(item.uri.clone()),
                 RopeC(Rope::from_str(&item.text)),

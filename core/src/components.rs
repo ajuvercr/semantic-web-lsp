@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     lang::{Lang, SimpleCompletion},
     model::Spanned,
