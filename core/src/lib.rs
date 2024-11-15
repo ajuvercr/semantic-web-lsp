@@ -17,6 +17,7 @@ pub mod triples;
 pub mod utils;
 
 pub fn setup_schedule_labels(world: &mut World) {
+    // world.observe(handle_document_link);
     world.add_schedule(Schedule::new(Parse));
 
     let mut completion = Schedule::new(Completion);

@@ -2,7 +2,7 @@ use std::str::FromStr as _;
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
-use lsp_core::{client::Client, components::*, Parse};
+use lsp_core::{client::Client, components::*, systems::spawn_or_insert, Parse};
 use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use tracing::info;
@@ -90,22 +90,27 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                     info!("Using local {}", local.name);
                     let mut command_queue = CommandQueue::default();
 
-                    command_queue.push(move |world: &mut World| {
-                        let url_url = lsp_types::Url::from_str(local.location).unwrap();
-                        let item = TextDocumentItem {
-                            version: 1,
-                            uri: url_url.clone(),
-                            language_id: String::from("turtle"),
-                            text: String::new(),
-                        };
-                        world.spawn((
+                    let url = lsp_types::Url::from_str(local.location).unwrap();
+                    let item = TextDocumentItem {
+                        version: 1,
+                        uri: url.clone(),
+                        language_id: String::from("turtle"),
+                        text: String::new(),
+                    };
+                    let spawn = spawn_or_insert(
+                        url.clone(),
+                        (
                             TurtleComponent,
                             Source(local.content.to_string()),
                             RopeC(ropey::Rope::from_str(local.content)),
-                            Label(url_url), // this might
+                            Label(url), // this might
                             // crash
                             Wrapped(item),
-                        ));
+                        ),
+                    );
+
+                    command_queue.push(move |world: &mut World| {
+                        spawn(world);
                         world.run_schedule(Parse);
                     });
 
@@ -139,15 +144,21 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                                     resp.body.len()
                                 );
 
-                                command_queue.push(move |world: &mut World| {
-                                    world.spawn((
+                                let url = lsp_types::Url::from_str(&url).unwrap();
+                                let spawn = spawn_or_insert(
+                                    url.clone(),
+                                    (
                                         TurtleComponent,
                                         Source(resp.body),
                                         RopeC(rope),
-                                        Label(lsp_types::Url::from_str(&url).unwrap()), // this might
+                                        Label(url), // this might
                                         // crash
                                         Wrapped(item),
-                                    ));
+                                    ),
+                                );
+
+                                command_queue.push(move |world: &mut World| {
+                                    spawn(world);
                                     world.run_schedule(Parse);
                                 });
 
