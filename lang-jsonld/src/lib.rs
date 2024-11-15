@@ -300,21 +300,15 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
             self.get_ids(&state)
                 .into_iter()
                 .map(|x| {
-                    let w = Some(format!("@{x}"));
-
-                    let edits = vec![lsp_types::TextEdit {
-                        new_text: format!("{{\"@id\": \"{x}\"}}"),
-                        range: range.clone(),
-                    }];
-
-                    SimpleCompletion {
-                        documentation: Some(format!("Subject: {x}")),
-                        kind: CompletionItemKind::VARIABLE,
-                        label: x,
-                        sort_text: w.clone(),
-                        filter_text: w,
-                        edits,
-                    }
+                    SimpleCompletion::new(
+                        CompletionItemKind::VARIABLE,
+                        x.clone(),
+                        lsp_types::TextEdit {
+                            new_text: format!("{{\"@id\": \"{x}\"}}"),
+                            range: range.clone(),
+                        },
+                    )
+                    .sort_text(format!("@{x}"))
                 })
                 .collect()
         } else {
@@ -365,16 +359,17 @@ impl<C: Client + Send + Sync + 'static> LangState<C> for JsonLd {
 
             x.traverse()
                 .filter_map(filter_definition)
-                .map(|v| SimpleCompletion {
-                    kind: CompletionItemKind::PROPERTY,
-                    label: v.key.to_string(),
-                    documentation: Some(format!("{} -> \"{}\"", v.key, v.value)),
-                    sort_text: None,
-                    filter_text: format!("\"{}", v.key).into(),
-                    edits: vec![lsp_types::TextEdit {
-                        new_text: format!("\"{}", v.key),
-                        range: range.clone(),
-                    }],
+                .map(|v| {
+                    SimpleCompletion::new(
+                        CompletionItemKind::PROPERTY,
+                        v.key.to_string(),
+                        lsp_types::TextEdit {
+                            new_text: format!("\"{}", v.key),
+                            range: range.clone(),
+                        },
+                    )
+                    .documentation(format!("{} -> \"{}\"", v.key, v.value))
+                    .filter_text(format!("\"{}", v.key))
                 })
                 .collect()
         }

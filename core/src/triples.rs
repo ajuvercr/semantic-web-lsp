@@ -63,7 +63,7 @@ impl<'a> Quad for MyQuad<'a> {
 
 #[derive(Debug, Clone, Eq)]
 pub struct MyTerm<'a> {
-    value: Cow<'a, str>,
+    pub value: Cow<'a, str>,
     ty: Option<TermKind>,
     pub span: std::ops::Range<usize>,
 }

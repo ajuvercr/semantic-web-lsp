@@ -50,13 +50,6 @@ pub struct CommandSender(pub UnboundedSender<CommandQueue>);
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Clone)]
 pub struct DocumentLinks(pub Vec<(lsp_types::Url, &'static str)>);
 
-#[derive(Event, Debug)]
-pub struct DocumentLinkEvent {
-    pub source: Result<lsp_types::Url, Entity>,
-    pub target: Result<lsp_types::Url, Entity>,
-    pub reason: &'static str,
-}
-
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct PositionComponent(pub Position);
 
@@ -65,6 +58,19 @@ pub struct TokenComponent {
     pub token: Spanned<crate::token::Token>,
     pub range: lsp_types::Range,
     pub text: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TripleTarget {
+    Subject,
+    Predicate,
+    Object,
+    Graph,
+}
+#[derive(Component, Debug)]
+pub struct TripleComponent {
+    pub triple: MyQuad<'static>,
+    pub target: TripleTarget,
 }
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
