@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use bevy_ecs::prelude::*;
 
-use lsp_core::{components::*, lang::SimpleCompletion, token::Token, utils::offset_to_position};
+use lsp_core::{components::*, lang::SimpleCompletion, token::Token};
 use lsp_types::CompletionItemKind;
 
 use crate::TurtleLang;

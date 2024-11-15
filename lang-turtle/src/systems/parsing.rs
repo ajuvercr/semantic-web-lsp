@@ -4,13 +4,12 @@ use lsp_core::components::*;
 use tracing::info;
 use tracing::instrument;
 
-use crate::TurtleComponent;
 use crate::TurtleLang;
 use crate::{parse_turtle, tokenizer::parse_tokens};
 
 #[instrument(skip(query, commands))]
 pub fn parse_source(
-    query: Query<(Entity, &Source), (Changed<Source>, With<TurtleComponent>)>,
+    query: Query<(Entity, &Source), (Changed<Source>, With<TurtleLang>)>,
     mut commands: Commands,
 ) {
     for (entity, source) in &query {
@@ -25,7 +24,7 @@ pub fn parse_source(
 
 #[instrument(skip(query, commands))]
 pub fn parse_turtle_system(
-    query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<TurtleComponent>)>,
+    query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<TurtleLang>)>,
     mut commands: Commands,
 ) {
     for (entity, source, tokens, label) in &query {
@@ -49,10 +48,7 @@ pub fn parse_turtle_system(
 }
 
 pub fn derive_triples(
-    query: Query<
-        (Entity, &Element<TurtleLang>),
-        (Changed<Element<TurtleLang>>, With<TurtleComponent>),
-    >,
+    query: Query<(Entity, &Element<TurtleLang>), (Changed<Element<TurtleLang>>, With<TurtleLang>)>,
     mut commands: Commands,
 ) {
     for (entity, turtle) in &query {

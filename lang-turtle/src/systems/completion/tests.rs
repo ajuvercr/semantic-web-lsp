@@ -4,7 +4,7 @@ use test_log::test;
 use test_utils::{create_file, setup_world, TestClient};
 use tracing::info;
 
-use crate::TurtleComponent;
+use crate::TurtleLang;
 
 // Note:
 // - I had to change how the paring worked and only update the turtle component when it was
@@ -25,7 +25,7 @@ fn completion_event_works() {
 foa
             ";
 
-    let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleComponent);
+    let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
 
     world
         .entity_mut(entity)
@@ -72,14 +72,14 @@ foaf:me foaf:friend <#me>.
         &mut world,
         t1_1,
         "http://example.com/first_file#",
-        TurtleComponent,
+        TurtleLang,
     );
 
     create_file(
         &mut world,
         t2,
         "http://example.com/second_file#",
-        TurtleComponent,
+        TurtleLang,
     );
 
     world

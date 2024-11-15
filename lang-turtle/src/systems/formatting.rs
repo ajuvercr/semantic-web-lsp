@@ -50,7 +50,7 @@ pub fn format_turtle_system(
 
 #[cfg(test)]
 mod test {
-    use crate::TurtleComponent;
+    use crate::TurtleLang;
 
     use super::*;
     use lsp_core::Format;
@@ -65,7 +65,7 @@ mod test {
             &mut world,
             "@prefix foaf: <>.",
             "http://example.com/ns#",
-            TurtleComponent,
+            TurtleLang,
         );
 
         world.entity_mut(entity).insert(FormatRequest(None));

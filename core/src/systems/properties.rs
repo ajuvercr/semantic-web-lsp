@@ -7,7 +7,6 @@ use sophia_api::prelude::{Any, Dataset};
 use sophia_api::quad::Quad as _;
 use sophia_api::term::Term;
 use tracing::info;
-use tracing::instrument;
 
 pub struct DefinedClass {
     pub term: MyTerm<'static>,
