@@ -12,7 +12,7 @@ pub struct DefinedClass {
     pub term: MyTerm<'static>,
     pub label: String,
     pub comment: String,
-    pub source: &'static str,
+    pub reason: &'static str,
 }
 
 fn derive_class(
@@ -35,7 +35,7 @@ fn derive_class(
         label,
         comment,
         term: subject.to_owned(),
-        source,
+        reason: source,
     })
 }
 
@@ -54,6 +54,74 @@ pub fn derive_classes(
 
         info!(
             "Found {} classes for {} ({} triples)",
+            classes.len(),
+            label.0,
+            triples.0.len()
+        );
+        commands.entity(e).insert(Wrapped(classes));
+    }
+}
+
+pub struct DefinedProperty {
+    pub predicate: MyTerm<'static>,
+    pub comment: String,
+    pub label: String,
+    pub range: Vec<String>,
+    pub domain: Vec<String>,
+    pub reason: &'static str,
+}
+
+fn derive_property(
+    subject: <MyTerm<'_> as Term>::BorrowTerm<'_>,
+    triples: &Triples,
+    source: &'static str,
+) -> Option<DefinedProperty> {
+    info!("Derive class for {}", subject);
+    let label = triples
+        .object([subject], [rdfs::label])?
+        .to_owned()
+        .as_str()
+        .to_string();
+    let comment = triples
+        .object([subject], [rdfs::comment])?
+        .to_owned()
+        .as_str()
+        .to_string();
+    let domain: Vec<_> = triples
+        .objects([subject], [rdfs::domain])
+        .map(|x| x.as_str().to_string())
+        .collect();
+
+    let range: Vec<_> = triples
+        .objects([subject], [rdfs::range])
+        .map(|x| x.as_str().to_string())
+        .collect();
+
+    Some(DefinedProperty {
+        predicate: subject.to_owned(),
+        range,
+        domain,
+        label,
+        comment,
+        reason: source,
+    })
+}
+
+pub fn derive_properties(
+    query: Query<(Entity, &Triples, &Label), (Changed<Triples>, Without<Dirty>)>,
+    mut commands: Commands,
+) {
+    info!("Running derive_properties");
+    for (e, triples, label) in &query {
+        let classes: Vec<_> = triples
+            .0
+            .quads_matching(Any, [rdf::type_], [rdf::Property], Any)
+            .flatten()
+            .flat_map(|x| derive_property(x.s(), &triples, "owl_property"))
+            .collect();
+
+        info!(
+            "Found {} properties for {} ({} triples)",
             classes.len(),
             label.0,
             triples.0.len()

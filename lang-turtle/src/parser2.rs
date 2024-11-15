@@ -74,6 +74,7 @@ fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> + Clo
         ));
         x
     });
+
     select! {
         Token::PredType => NamedNode::A,
         Token::IRIRef(x) => NamedNode::Full(x),
@@ -192,7 +193,6 @@ fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
                 .map_with_span(spanned)
                 .separated_by(just(Token::PredicateSplit))
                 .allow_leading()
-                // .at_least(1)
                 .map(|mut x| {
                     x.reverse();
                     x
@@ -203,26 +203,34 @@ fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
                             span.clone(),
                             format!("Expected at least one predicate object."),
                         ));
-                        vec![spanned(
-                            PO {
-                                predicate: spanned(Term::Invalid, span.clone()),
-                                object: vec![spanned(Term::Invalid, span.clone())],
-                            },
-                            span,
-                        )]
+                        (
+                            vec![spanned(
+                                PO {
+                                    predicate: spanned(Term::Invalid, span.clone()),
+                                    object: vec![spanned(Term::Invalid, span.clone())],
+                                },
+                                span,
+                            )],
+                            false,
+                        )
                     } else {
-                        po
+                        (po, true)
                     }
                 }),
         )
-        .then_with(move |po| {
+        .then_with(move |(po, succesful)| {
             let po2 = po.clone();
             let basic_subj = subject()
                 .map_with_span(spanned)
                 .map(move |subj| (po2.clone(), subj));
 
             let end = po[0].span().end;
-            let alt_subj = empty().validate(move |_, _: S, emit| {
+            let start = if succesful {
+                empty().boxed()
+            } else {
+                any().map(|_| ()).boxed()
+            };
+            let alt_subj = start.validate(move |_, _: S, emit| {
                 emit(Simple::custom(end..end, format!("Expected a predicate.")));
 
                 let mut po = po.clone();
@@ -323,6 +331,7 @@ pub fn parse_turtle(
         .map_with_span(spanned)
         .then_ignore(end().recover_with(skip_then_retry_until([])));
 
+    info!("Parsing {}", location.as_str());
     let (mut json, json_errors) = parser.parse_recovery(stream);
 
     json.iter_mut().for_each(|turtle| turtle.0.fix_spans(len));
@@ -334,7 +343,6 @@ pub fn parse_turtle(
             info!("Error {:?}", e);
         }
     }
-    info!("Turtle {:?}", json);
 
     (
         json.unwrap_or(Spanned(Turtle::empty(location), 0..len)),
@@ -578,5 +586,19 @@ pub mod turtle_tests {
         assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
         assert_eq!(output.triples.len(), 1, "triples are parsed");
         assert!(output.base.is_some(), "base is parsed");
+    }
+
+    #[test]
+    fn turtle_shouldnt_panic() {
+        let txt = r#"
+[
+            "#;
+
+        let url =
+            lsp_types::Url::from_str("file:///home/silvius/Projects/jsonld-lsp/examples/test.ttl")
+                .unwrap();
+        let output = parse_it_recovery(txt, turtle(&url)).0.expect("simple");
+        // assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
+        assert_eq!(output.triples.len(), 1, "triples are parsed");
     }
 }
