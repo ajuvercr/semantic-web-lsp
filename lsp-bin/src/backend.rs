@@ -11,6 +11,7 @@ use lsp_core::components::{
     PositionComponent, RopeC, Source, Wrapped,
 };
 use lsp_core::lang::Lang;
+use lsp_core::systems::spawn_or_insert;
 use lsp_core::{Completion, Diagnostics, Format, Parse};
 use lsp_types::*;
 
@@ -246,36 +247,21 @@ impl LanguageServer for Backend {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
 
+        let spawn = spawn_or_insert(
+            item.uri.clone(),
+            (
+                TurtleComponent,
+                Source(item.text.clone()),
+                Label(item.uri.clone()),
+                RopeC(Rope::from_str(&item.text)),
+                Wrapped(item),
+                Open,
+            ),
+        );
+
         let entity = self
             .run(|world| {
-                let id = if let Some(entity) = world
-                    .query::<(Entity, &Label)>()
-                    .iter(&world)
-                    .find(|x| x.1 .0.as_str() == item.uri.as_str())
-                    .map(|x| x.0)
-                {
-                    world.entity_mut(entity).insert((
-                        TurtleComponent,
-                        Source(item.text.clone()),
-                        Label(item.uri.clone()),
-                        RopeC(Rope::from_str(&item.text)),
-                        Wrapped(item),
-                        Open,
-                    ));
-                    entity
-                } else {
-                    world
-                        .spawn((
-                            TurtleComponent,
-                            Source(item.text.clone()),
-                            Label(item.uri.clone()),
-                            RopeC(Rope::from_str(&item.text)),
-                            Wrapped(item),
-                            Open,
-                        ))
-                        .id()
-                };
-
+                let id = spawn(world);
                 world.run_schedule(Parse);
                 world.flush();
                 info!("Running diagnostics");

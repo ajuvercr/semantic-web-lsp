@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     lang::{Lang, SimpleCompletion},
     model::Spanned,
@@ -17,6 +19,7 @@ pub struct Element<L: Lang>(pub Spanned<L::Element>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Wrapped<E>(pub E);
+
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Errors<E>(pub Vec<E>);
 
@@ -44,6 +47,16 @@ pub struct CommandReceiver(pub UnboundedReceiver<CommandQueue>);
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Clone)]
 pub struct CommandSender(pub UnboundedSender<CommandQueue>);
 
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Clone)]
+pub struct DocumentLinks(pub Vec<(lsp_types::Url, &'static str)>);
+
+#[derive(Event, Debug)]
+pub struct DocumentLinkEvent {
+    pub source: Result<lsp_types::Url, Entity>,
+    pub target: Result<lsp_types::Url, Entity>,
+    pub reason: &'static str,
+}
+
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct PositionComponent(pub Position);
 
@@ -61,10 +74,10 @@ pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Triples(pub Vec<MyQuad<'static>>);
+pub struct DefinedProperties(pub Vec<DefinedProperties>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct DefinedProperties(pub Vec<DefinedProperties>);
+pub struct Triples(pub Vec<MyQuad<'static>>);
 
 impl Triples {
     pub fn object<'s, S, P>(&'s self, subj: S, pred: P) -> Option<&MyTerm<'_>>

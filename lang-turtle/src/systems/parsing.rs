@@ -30,7 +30,11 @@ pub fn parse_turtle_system(
 ) {
     for (entity, source, tokens, label) in &query {
         let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len());
-        info!("{} triples ({} errors)", turtle.value().triples.len(), es.len());
+        info!(
+            "{} triples ({} errors)",
+            turtle.value().triples.len(),
+            es.len()
+        );
         if es.is_empty() {
             let element = Element::<TurtleLang>(turtle);
             commands
