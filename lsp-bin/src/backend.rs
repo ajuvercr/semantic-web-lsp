@@ -248,13 +248,14 @@ impl LanguageServer for Backend {
         let spawn = spawn_or_insert(
             item.uri.clone(),
             (
-                TurtleLang,
                 Source(item.text.clone()),
                 Label(item.uri.clone()),
                 RopeC(Rope::from_str(&item.text)),
                 Wrapped(item),
                 Open,
             ),
+            None,
+            (),
         );
 
         let entity = self

@@ -1,10 +1,14 @@
 use bevy_ecs::{
+    event::Event,
     schedule::{IntoSystemConfigs as _, Schedule, ScheduleLabel},
+    system::Resource,
     world::World,
 };
+use client::Client;
 use systems::{
     complete_class, complete_properties, defined_prefix_completion, derive_classes,
-    derive_prefix_links, derive_properties, get_current_token, get_current_triple,
+    derive_prefix_links, derive_properties, fetch_lov_properties, get_current_token,
+    get_current_triple,
 };
 
 pub mod client;
@@ -19,9 +23,14 @@ pub mod token;
 pub mod triples;
 pub mod utils;
 
-pub fn setup_schedule_labels(world: &mut World) {
+pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     let mut parse = Schedule::new(Parse);
-    parse.add_systems((derive_prefix_links, derive_classes, derive_properties));
+    parse.add_systems((
+        derive_prefix_links,
+        derive_classes,
+        derive_properties,
+        fetch_lov_properties::<C>,
+    ));
     world.add_schedule(parse);
 
     let mut completion = Schedule::new(Completion);
@@ -38,6 +47,12 @@ pub fn setup_schedule_labels(world: &mut World) {
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
     world.add_schedule(Schedule::new(systems::SemanticTokensSchedule));
+}
+
+#[derive(Event)]
+pub struct CreateEvent {
+    pub url: lsp_types::Url,
+    pub language_id: Option<String>,
 }
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

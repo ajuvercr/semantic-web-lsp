@@ -1,4 +1,3 @@
-use hashbrown::HashSet;
 use sophia_iri::resolve::{BaseIri, IriParseError};
 use tracing::info;
 
@@ -6,6 +5,7 @@ use super::token::StringStyle;
 
 use lsp_core::model::Spanned;
 use lsp_core::triples::{MyQuad, MyTerm, Triples};
+use std::collections::HashSet;
 use std::{fmt::Display, ops::Range};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

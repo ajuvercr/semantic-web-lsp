@@ -20,7 +20,7 @@ use tracing_subscriber::fmt;
 fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandSender {
     let mut world = World::new();
 
-    setup_schedule_labels(&mut world);
+    setup_schedule_labels::<C>(&mut world);
 
     let (publisher, mut rx) = OtherPublisher::new();
     world.insert_resource(publisher);

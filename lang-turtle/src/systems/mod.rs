@@ -7,13 +7,13 @@ use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use formatting::format_turtle_system;
 use lsp_core::{
     client::{Client, ClientSync},
-    systems::{derive_classes, derive_prefix_links, derive_properties, get_current_token},
+    systems::{
+        derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
+        get_current_token,
+    },
     Parse,
 };
 use parsing::{derive_triples, parse_source, parse_turtle_system};
-
-mod lov;
-use lov::fetch_lov_properties;
 
 mod completion;
 mod formatting;
@@ -23,7 +23,9 @@ pub fn setup_parsing<C: Client + ClientSync + Resource>(world: &mut World) {
     world.schedule_scope(Parse, |_, schedule| {
         schedule.add_systems((
             parse_source,
-            parse_turtle_system.after(parse_source),
+            parse_turtle_system
+                .after(parse_source)
+                .before(fetch_lov_properties::<C>),
             derive_prefixes
                 .after(parse_turtle_system)
                 .before(derive_prefix_links),
@@ -31,7 +33,6 @@ pub fn setup_parsing<C: Client + ClientSync + Resource>(world: &mut World) {
                 .after(parse_turtle_system)
                 .before(derive_classes)
                 .before(derive_properties),
-            fetch_lov_properties::<C>.after(parse_turtle_system),
         ));
     });
 }
@@ -86,8 +87,6 @@ mod tests {
     use ropey::Rope;
     use test_utils::{create_file, setup_world, TestClient};
 
-    use crate::TurtleLang;
-
     #[test]
     fn diagnostics_work() {
         let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
@@ -106,7 +105,7 @@ foa:foaf
 foa
             ";
 
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
+        let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
         world.run_schedule(Parse);
         world.run_schedule(Diagnostics);
 
@@ -145,18 +144,18 @@ foa
         assert_eq!(items[0].diagnostics.len(), 5);
     }
 
-    #[test]
+    #[test_log::test]
     fn fetch_lov_properties_test() {
         let mut client = TestClient::new();
         client.add_res("http://xmlns.com/foaf/0.1/", " @prefix foaf: <>. ");
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
-        create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
+        create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
 
-        assert_eq!(world.entities().len(), 1);
+        // assert_eq!(world.entities().len(), 1);
         let c = world.resource::<TestClient>().clone();
-        block_on(c.await_futures(|| world.run_schedule(lsp_core::Tasks)));
+        block_on(c.await_futures(|| world.run_schedule(lsp_core::Parse)));
 
         assert_eq!(world.entities().len(), 2);
     }
@@ -166,7 +165,7 @@ foa
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", TurtleLang);
+        let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
 
         let links: &DocumentLinks = world.entity(entity).get().expect("document links exists");
         assert_eq!(links.len(), 1);

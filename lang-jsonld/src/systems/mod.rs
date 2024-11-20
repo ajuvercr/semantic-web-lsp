@@ -1,23 +1,24 @@
 mod parse;
-use bevy_ecs::{schedule::IntoSystemConfigs as _, world::World};
+use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Resource, world::World};
 use lsp_core::{
-    systems::{derive_classes, derive_prefix_links, derive_properties},
+    client::Client,
+    systems::{derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties},
     Parse,
 };
 use parse::derive_triples;
 pub use parse::{parse_jsonld_system, parse_source};
 
-pub fn setup_parse(world: &mut World) {
+pub fn setup_parse<C: Client + Resource>(world: &mut World) {
     world.schedule_scope(Parse, |_, schedule| {
         schedule.add_systems((
             parse_source,
             parse_jsonld_system.after(parse_source),
             derive_triples
                 .after(parse_jsonld_system)
+                .before(fetch_lov_properties::<C>)
                 .before(derive_classes)
                 .before(derive_prefix_links)
                 .before(derive_properties),
-            // fetch_lov_properties::<C>.after(parse_turtle_system),
         ));
     });
 }
@@ -31,7 +32,7 @@ mod tests {
 
     #[test]
     fn parse_workds() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
         let t1 = r#"
 {
@@ -39,7 +40,7 @@ mod tests {
     "@id": "http://example.com/ns#me",
     "foaf:friend": "http://example.com/ns#you"
 }"#;
-        let entity = create_file(&mut world, t1, "http://example.com/ns#", JsonLd);
+        let entity = create_file(&mut world, t1, "http://example.com/ns#", "jsonld", Open);
 
         let tokens = world.entity(entity).get::<Tokens>().expect("tokens exists");
         let jsonld = world
