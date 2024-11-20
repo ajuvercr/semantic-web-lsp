@@ -1,7 +1,11 @@
 use crate::{
     components::{
-        CommandReceiver, CompletionRequest, DocumentLinks, Label, PositionComponent, Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget, Triples
-    }, lang::SimpleCompletion, utils::{position_to_offset, range_to_range}
+        CommandReceiver, CompletionRequest, DocumentLinks, Label, PositionComponent, Prefixes,
+        RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget, Triples,
+    },
+    lang::SimpleCompletion,
+    utils::{position_to_offset, range_to_range},
+    CreateEvent, Parse,
 };
 use bevy_ecs::prelude::*;
 
@@ -16,24 +20,39 @@ pub use properties::{
     complete_class, complete_properties, derive_classes, derive_properties, DefinedClass,
     DefinedProperty,
 };
+mod lov;
+pub use lov::fetch_lov_properties;
+
 use tracing::{debug, info};
 
 pub fn spawn_or_insert(
     url: lsp_types::Url,
     bundle: impl Bundle,
+    language_id: Option<String>,
+    extra: impl Bundle,
 ) -> impl (FnOnce(&mut World) -> Entity) + 'static + Send + Sync {
+    println!("Creating spawn or insert cb");
     move |world: &mut World| {
-        if let Some(entity) = world
+        println!("Spawn or create cb callbacked");
+        let out = if let Some(entity) = world
             .query::<(Entity, &Label)>()
             .iter(&world)
             .find(|x| x.1 .0 == url)
             .map(|x| x.0)
         {
-            world.entity_mut(entity).insert(bundle);
+            println!("Entity already exists!");
+            world.entity_mut(entity).insert(bundle).insert(extra);
             entity
         } else {
-            world.spawn(bundle).id()
-        }
+            println!("Spawning entity!");
+            let entity = world.spawn(bundle).insert(extra).id();
+            world.trigger_targets(CreateEvent { url, language_id }, entity);
+            entity
+        };
+
+        world.flush_commands();
+        world.run_schedule(Parse);
+        out
     }
 }
 

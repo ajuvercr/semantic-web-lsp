@@ -9,11 +9,9 @@ version = "0.1.0"
 async-trait.workspace  = true
 bevy_ecs.workspace     = true
 bevy_tasks.workspace   = true
-chrono                 = { version = "0.4.38", default-features = false, features = ["serde"] }
 chumsky.workspace      = true
 enum-methods.workspace = true
 futures.workspace      = true
-hashbrown.workspace    = true
 lsp-types.workspace    = true
 ropey.workspace        = true
 serde.workspace        = true

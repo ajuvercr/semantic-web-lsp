@@ -1,13 +1,11 @@
 use std::str::FromStr as _;
 
+use crate::{client::Client, components::*, systems::spawn_or_insert, Parse};
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
-use lsp_core::{client::Client, components::*, systems::spawn_or_insert, Parse};
 use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use tracing::info;
-
-use crate::TurtleLang;
 
 struct LocalPrefix {
     location: &'static str,
@@ -70,24 +68,27 @@ async fn extract_file_url(prefix: &str, client: &impl Client) -> Option<String> 
 pub fn fetch_lov_properties<C: Client + Resource>(
     sender: Res<CommandSender>,
     query: Query<
-        &Element<TurtleLang>,
+        &Prefixes,
         (
-            Or<((Changed<Element<TurtleLang>>, With<Open>), Changed<Open>)>,
-            Without<Dirty>,
+            Or<((Changed<Prefixes>, With<Open>), Changed<Open>)>,
+            // Without<Dirty>,
         ),
     >,
     // mut handled: Local<HashSet<String>>,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,
 ) {
-    for turtle in &query {
-        for prefix in &turtle.0.prefixes {
-            if !prefixes.contains(&prefix.prefix.0) {
-                prefixes.insert(prefix.prefix.0.clone());
+    println!("fetch lov properties");
+    for prefs in &query {
+        println!("Found some turtle!");
+        for prefix in prefs.iter() {
+            if !prefixes.contains(&prefix.prefix) {
+                prefixes.insert(prefix.prefix.clone());
 
-                let prefix = prefix.prefix.0.clone();
-                if let Some(local) = lov::LOCAL_PREFIXES.iter().find(|x| x.name == &prefix) {
+                // let prefix = prefix.prefix.0.clone();
+                if let Some(local) = lov::LOCAL_PREFIXES.iter().find(|x| x.name == prefix.prefix) {
                     info!("Using local {}", local.name);
+                    println!("Using local {}", local.name);
                     let mut command_queue = CommandQueue::default();
 
                     let url = lsp_types::Url::from_str(local.location).unwrap();
@@ -100,12 +101,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                     let spawn = spawn_or_insert(
                         url.clone(),
                         (
-                            TurtleLang,
                             Source(local.content.to_string()),
                             RopeC(ropey::Rope::from_str(local.content)),
                             Label(url), // this might crash
                             Wrapped(item),
                         ),
+                        Some("turtle".into()),
+                        (),
                     );
 
                     command_queue.push(move |world: &mut World| {
@@ -120,14 +122,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                 let mut sender = sender.0.clone();
                 let c = client.as_ref().clone();
 
-                let base = turtle.0.get_base().to_string();
+                let prefix_ = prefix.prefix.clone();
                 let fut = async move {
                     let mut command_queue = CommandQueue::default();
 
-                    if let Some(url) = extract_file_url(&prefix, &c).await {
+                    if let Some(url) = extract_file_url(&prefix_, &c).await {
                         match c.fetch(&url, &std::collections::HashMap::new()).await {
                             Ok(resp) if resp.status == 200 => {
-                                info!("Prefix {} from base {} succesful", prefix, base);
                                 let url_url = Url::from_str(&url).unwrap();
                                 let rope = ropey::Rope::from_str(&resp.body);
                                 let item = TextDocumentItem {
@@ -147,12 +148,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                                 let spawn = spawn_or_insert(
                                     url.clone(),
                                     (
-                                        TurtleLang,
                                         Source(resp.body),
                                         RopeC(rope),
                                         Label(url), // this might crash
                                         Wrapped(item),
                                     ),
+                                    Some("turtle".into()),
+                                    (),
                                 );
 
                                 command_queue.push(move |world: &mut World| {

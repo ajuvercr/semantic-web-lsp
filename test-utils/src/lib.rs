@@ -20,11 +20,9 @@ use lsp_core::{
     components::*,
     lang::{DiagnosticItem, OtherPublisher},
     setup_schedule_labels,
-    systems::handle_tasks,
-    Parse,
+    systems::{handle_tasks, spawn_or_insert},
 };
 use lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url};
-use ropey::Rope;
 
 #[derive(Resource, Debug, Clone)]
 pub struct TestClient {
@@ -127,7 +125,7 @@ pub fn setup_world(
     f: impl FnOnce(&mut World) -> (),
 ) -> (World, UnboundedReceiver<DiagnosticItem>) {
     let mut world = World::new();
-    setup_schedule_labels(&mut world);
+    setup_schedule_labels::<TestClient>(&mut world);
 
     let (tx, rx) = unbounded();
     world.insert_resource(CommandSender(tx));
@@ -146,26 +144,46 @@ pub fn setup_world(
     (world, rx)
 }
 
-pub fn create_file(world: &mut World, content: &str, url: &str, extra: impl Bundle) -> Entity {
-    let rope = Rope::from_str(content);
+pub fn create_file(
+    world: &mut World,
+    content: &str,
+    url: &str,
+    lang: &str,
+    bundle: impl Bundle,
+) -> Entity {
+    let url = Url::from_str(url).unwrap();
     let item = TextDocumentItem {
         version: 1,
-        uri: Url::from_str(url).unwrap(),
-        language_id: String::from("turtle"),
+        uri: url.clone(),
+        language_id: String::from(lang),
         text: String::new(),
     };
-    let entity = world
-        .spawn((
+
+    spawn_or_insert(
+        url.clone(),
+        (
             Source(content.to_string()),
-            RopeC(rope),
-            Label(item.uri.clone()),
+            RopeC(ropey::Rope::from_str(content)),
+            Label(url), // this might crash
             Wrapped(item),
-            Open,
-        ))
-        .insert(extra)
-        .id();
+        ),
+        Some(lang.into()),
+        bundle,
+    )(world)
+}
 
-    world.run_schedule(Parse);
-
-    entity
+pub fn debug_world(world: &mut World) {
+    for e in world.query::<Entity>().iter(&world) {
+        let e = world.entity(e);
+        if let Some(l) = e.get::<Label>() {
+            println!("-- Entity {} -- ", l.as_str());
+        } else {
+            println!("-- Nameless entity --");
+        }
+        for c in world.components().iter() {
+            if e.contains_id(c.id()) {
+                println!("c {}", c.name(),);
+            }
+        }
+    }
 }

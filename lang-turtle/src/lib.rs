@@ -7,10 +7,12 @@ mod utils;
 // mod parser;
 mod parser2;
 use bevy_ecs::component::Component;
-use bevy_ecs::system::Resource;
+use bevy_ecs::observer::Trigger;
+use bevy_ecs::system::{Commands, Resource};
 use bevy_ecs::world::World;
 use lsp_core::systems::{publish_diagnostics, SemanticTokensSchedule};
 use lsp_core::token::semantic_token;
+use lsp_core::CreateEvent;
 pub use parser2::parse_turtle;
 // pub mod shacl;
 pub use lsp_core::token;
@@ -32,6 +34,23 @@ use lsp_core::lang::Lang;
 pub struct TurtleLang;
 
 pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
+    world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
+        println!("Turtle got create event");
+        match &trigger.event().language_id {
+            Some(x) if x == "turtle" => {
+                println!(" --> its turtle");
+                commands.entity(trigger.entity()).insert(TurtleLang);
+                return;
+            }
+            _ => {}
+        }
+        // pass
+        if trigger.event().url.as_str().ends_with(".ttl") {
+            println!(" --> its turtle");
+            commands.entity(trigger.entity()).insert(TurtleLang);
+            return;
+        }
+    });
     world.schedule_scope(SemanticTokensSchedule, |_, schedule| {
         schedule.add_systems(lsp_core::systems::semantic_tokens_system::<TurtleLang>);
     });
