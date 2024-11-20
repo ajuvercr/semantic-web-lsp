@@ -1,12 +1,17 @@
+use std::borrow::Cow;
+
 use crate::components::*;
 use crate::ns::*;
 use crate::triples::MyTerm;
 use bevy_ecs::prelude::*;
+use lsp_types::CompletionItemKind;
+use lsp_types::TextEdit;
 use sophia_api::ns::rdfs;
 use sophia_api::prelude::{Any, Dataset};
 use sophia_api::quad::Quad as _;
 use sophia_api::term::Term;
 use tracing::info;
+use tracing::instrument;
 
 pub struct DefinedClass {
     pub term: MyTerm<'static>,
@@ -59,6 +64,52 @@ pub fn derive_classes(
             triples.0.len()
         );
         commands.entity(e).insert(Wrapped(classes));
+    }
+}
+
+#[instrument(skip(query, other))]
+pub fn complete_class(
+    mut query: Query<(
+        &TokenComponent,
+        &TripleComponent,
+        &Prefixes,
+        &DocumentLinks,
+        &mut CompletionRequest,
+    )>,
+    other: Query<(&Label, &Wrapped<Vec<DefinedClass>>)>,
+) {
+    for (token, triple, prefixes, links, mut request) in &mut query {
+        if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+            && triple.target == TripleTarget::Object
+        {
+            for (label, classes) in &other {
+                // Check if this thing is actually linked
+                if links.iter().find(|link| link.0 == label.0).is_none() {
+                    continue;
+                }
+
+                for class in classes.0.iter() {
+                    let to_beat = prefixes
+                        .shorten(&class.term.value)
+                        .map(|x| Cow::Owned(x))
+                        .unwrap_or(class.term.value.clone());
+
+                    if to_beat.starts_with(&token.text) {
+                        request.push(
+                            crate::lang::SimpleCompletion::new(
+                                CompletionItemKind::CLASS,
+                                format!("{}", to_beat),
+                                TextEdit {
+                                    range: token.range.clone(),
+                                    new_text: to_beat.to_string(),
+                                },
+                            )
+                            .documentation(&class.comment),
+                        );
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -127,5 +178,49 @@ pub fn derive_properties(
             triples.0.len()
         );
         commands.entity(e).insert(Wrapped(classes));
+    }
+}
+
+#[instrument(skip(query))]
+pub fn complete_properties(
+    mut query: Query<(
+        &TokenComponent,
+        &TripleComponent,
+        &Prefixes,
+        &DocumentLinks,
+        &mut CompletionRequest,
+    )>,
+    other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
+) {
+    for (token, triple, prefixes, links, mut request) in &mut query {
+        if triple.target == TripleTarget::Predicate {
+            for (label, properties) in &other {
+                // Check if this thing is actually linked
+                if links.iter().find(|link| link.0 == label.0).is_none() {
+                    continue;
+                }
+
+                for class in properties.0.iter() {
+                    let to_beat = prefixes
+                        .shorten(&class.predicate.value)
+                        .map(|x| Cow::Owned(x))
+                        .unwrap_or(class.predicate.value.clone());
+
+                    if to_beat.starts_with(&token.text) {
+                        request.push(
+                            crate::lang::SimpleCompletion::new(
+                                CompletionItemKind::PROPERTY,
+                                format!("{}", to_beat),
+                                TextEdit {
+                                    range: token.range.clone(),
+                                    new_text: to_beat.to_string(),
+                                },
+                            )
+                            .documentation(&class.comment),
+                        );
+                    }
+                }
+            }
+        }
     }
 }

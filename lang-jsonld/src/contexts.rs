@@ -1,13 +1,17 @@
-use json_ld::syntax::context::{definition, FragmentRef, Value};
+use json_ld::Nullable;
 
-fn get_definition_ref<M: Send + Sync + Clone>(
-    re: &definition::FragmentRef<M, Value<M>>,
-) -> Option<Definition> {
+use json_ld_syntax::context::term_definition::TermDefinition;
+use json_ld_syntax::context::{definition, FragmentRef};
+
+fn get_definition_ref<'a>(re: &definition::FragmentRef<'a>) -> Option<Definition> {
     match re {
-        definition::FragmentRef::Entry(definition::EntryRef::Definition(key, value)) => {
-            let binding = match value.definition.value().as_ref().unwrap() {
-                json_ld::syntax::context::TermDefinitionRef::Simple(s) => s.as_str().to_string(),
-                json_ld::syntax::context::TermDefinitionRef::Expanded(e) => {
+        definition::FragmentRef::Entry(definition::EntryRef::Definition(
+            key,
+            Nullable::Some(value),
+        )) => {
+            let binding = match value {
+                TermDefinition::Simple(s) => s.as_str().to_string(),
+                TermDefinition::Expanded(e) => {
                     e.id.as_ref()
                         .unwrap()
                         .as_ref()
@@ -25,11 +29,9 @@ fn get_definition_ref<M: Send + Sync + Clone>(
     }
 }
 
-pub fn filter_definition<M: Sync + Send + Clone>(
-    frag: FragmentRef<M, Value<M>>,
-) -> Option<Definition> {
+pub fn filter_definition<'a>(frag: FragmentRef<'a>) -> Option<Definition> {
     match frag {
-        FragmentRef::DefinitionFragment(x) => get_definition_ref(&x),
+        json_ld_syntax::context::FragmentRef::DefinitionFragment(x) => get_definition_ref(&x),
         _ => None,
     }
 }

@@ -12,6 +12,8 @@ pub mod semantic_token {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
 pub enum Token {
+    // Turtle Tokens
+    
     /// @prefix
     PrefixTag,
     /// @base
@@ -24,13 +26,17 @@ pub enum Token {
     PredType,
 
     /// [
-    BNodeStart,
+    SqOpen,
     /// ]
-    BNodeEnd,
+    SqClose,
+    /// {
+    CurlOpen,
+    /// }
+    CurlClose,
     /// (
-    ColStart,
+    BracketOpen,
     /// )
-    ColEnd,
+    BracketClose,
 
     /// ^^
     DataTypeDelim,
@@ -40,7 +46,7 @@ pub enum Token {
     /// ;
     PredicateSplit,
     /// ,
-    ObjectSplit,
+    Comma,
 
     /// true
     True,
@@ -63,6 +69,13 @@ pub enum Token {
     /// [ ]
     ANON,
     Comment(String),
+
+
+    /// :
+    Colon,
+    /// null
+    Null,
+
 
     Invalid(String),
 }
@@ -155,14 +168,14 @@ impl std::fmt::Display for Token {
             Token::SparqlPrefix => write!(f, "'PREFIX'"),
             Token::SparqlBase => write!(f, "'BASE'"),
             Token::PredType => write!(f, "'a'"),
-            Token::BNodeStart => write!(f, "'['"),
-            Token::BNodeEnd => write!(f, "']'"),
-            Token::ColStart => write!(f, "'('"),
-            Token::ColEnd => write!(f, "')'"),
+            Token::SqOpen => write!(f, "'['"),
+            Token::SqClose => write!(f, "']'"),
+            Token::BracketOpen => write!(f, "'('"),
+            Token::BracketClose => write!(f, "')'"),
             Token::DataTypeDelim => write!(f, "'^^'"),
             Token::Stop => write!(f, "'.'"),
             Token::PredicateSplit => write!(f, "';'"),
-            Token::ObjectSplit => write!(f, "','"),
+            Token::Comma => write!(f, "','"),
             Token::True => write!(f, "'true'"),
             Token::False => write!(f, "'false'"),
             Token::IRIRef(_) => write!(f, "a named node"),
@@ -174,6 +187,10 @@ impl std::fmt::Display for Token {
             Token::ANON => write!(f, "an inline blank node"),
             Token::Comment(_) => write!(f, "a comment"),
             Token::Invalid(_) => write!(f, "invalid token"),
+            Token::CurlOpen => write!(f, "'{{'"),
+            Token::CurlClose => write!(f, "'}}'"),
+            Token::Colon => write!(f, "':'"),
+            Token::Null => write!(f, "'null'"),
         }
     }
 }

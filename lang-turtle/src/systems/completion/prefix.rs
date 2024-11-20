@@ -7,7 +7,7 @@ use lsp_types::CompletionItemKind;
 
 use crate::TurtleLang;
 
-pub fn turtle_lov_prefix_completion(
+pub fn turtle_lov_undefined_prefix_completion(
     mut query: Query<(
         &TokenComponent,
         Option<&Element<TurtleLang>>,
@@ -67,47 +67,3 @@ pub fn turtle_lov_prefix_completion(
     }
 }
 
-pub fn turtle_prefix_completion(
-    mut query: Query<(
-        &TokenComponent,
-        &Element<TurtleLang>,
-        &mut CompletionRequest,
-    )>,
-) {
-    for (word, turtle, mut req) in &mut query {
-        println!("Current token {:?}", word);
-        let st = &word.text;
-        let pref = if let Some(idx) = st.find(':') {
-            &st[..idx]
-        } else {
-            &st
-        };
-
-        let completions = turtle
-            .0
-            .prefixes
-            .iter()
-            .filter(|p| p.prefix.as_str().starts_with(pref))
-            .flat_map(|x| {
-                let url = x.value.expand(&turtle.0);
-                let new_text = format!("{}:", x.prefix.as_str());
-                if new_text != word.text {
-                    Some(
-                        SimpleCompletion::new(
-                            CompletionItemKind::MODULE,
-                            format!("{}", x.prefix.as_str()),
-                            lsp_types::TextEdit {
-                                new_text,
-                                range: word.range.clone(),
-                            },
-                        )
-                        .m_documentation(url),
-                    )
-                } else {
-                    None
-                }
-            });
-
-        req.0.extend(completions);
-    }
-}

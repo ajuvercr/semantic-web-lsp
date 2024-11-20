@@ -1,90 +1,24 @@
-use std::{fmt::Display, num::ParseIntError, str::FromStr};
-
+use chumsky::chain::Chain as _;
 use chumsky::prelude::*;
 
-use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
-use lsp_core::lang::Token;
 use lsp_core::model::{spanned, Spanned};
+use lsp_core::token::{StringStyle, Token};
 
-#[derive(
-    Clone, Debug, PartialEq, PartialOrd, Eq, Hash, EnumIntoGetters, EnumIsA, EnumToGetters,
-)]
-pub enum JsonToken {
-    /// ,
-    Comma,
-    /// :
-    Colon,
-    /// [
-    SqOpen,
-    /// ]
-    SqClose,
-    /// {
-    CuOpen,
-    /// }
-    CuClose,
-    /// true
-    True,
-    /// false
-    False,
-    /// null
-    Null,
-    /// "String"
-    String(String),
-    /// 42
-    Num(u32, Option<u32>),
-}
+// impl Token for Token {
+//     fn token(&self) -> Option<lsp_types::SemanticTokenType> {
+//         use lsp_types::SemanticTokenType;
+//         match self {
+//             Token::True => Some(SemanticTokenType::ENUM_MEMBER),
+//             Token::False => Some(SemanticTokenType::ENUM_MEMBER),
+//             Token::Null => Some(SemanticTokenType::ENUM_MEMBER),
+//             Token::String(_) => Some(SemanticTokenType::STRING),
+//             Token::Num(_, _) => Some(SemanticTokenType::NUMBER),
+//             _ => None,
+//         }
+//     }
+// }
 
-#[allow(unused)]
-impl JsonToken {
-    pub fn as_string(&self) -> Option<&String> {
-        match self {
-            Self::String(x) => Some(x),
-            _ => None,
-        }
-    }
-
-    pub fn as_num(&self) -> Option<(&u32, &Option<u32>)> {
-        match self {
-            Self::Num(ref x, ref y) => Some((x, y)),
-            _ => None,
-        }
-    }
-}
-
-impl Token for JsonToken {
-    fn token(&self) -> Option<lsp_types::SemanticTokenType> {
-        use lsp_types::SemanticTokenType;
-        match self {
-            JsonToken::True => Some(SemanticTokenType::ENUM_MEMBER),
-            JsonToken::False => Some(SemanticTokenType::ENUM_MEMBER),
-            JsonToken::Null => Some(SemanticTokenType::ENUM_MEMBER),
-            JsonToken::String(_) => Some(SemanticTokenType::STRING),
-            JsonToken::Num(_, _) => Some(SemanticTokenType::NUMBER),
-            _ => None,
-        }
-    }
-}
-
-impl Display for JsonToken {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            JsonToken::Comma => write!(f, ","),
-            JsonToken::Colon => write!(f, ":"),
-            JsonToken::SqOpen => write!(f, "["),
-            JsonToken::SqClose => write!(f, "]"),
-            JsonToken::CuOpen => write!(f, "{{"),
-            JsonToken::CuClose => write!(f, "}}"),
-            JsonToken::True => write!(f, "true"),
-            JsonToken::False => write!(f, "false"),
-            JsonToken::Null => write!(f, "null"),
-            JsonToken::String(x) => write!(f, "\"{}\"", x),
-            JsonToken::Num(a, Some(b)) => write!(f, "{}.{}", a, b),
-            JsonToken::Num(a, None) => write!(f, "{}", a),
-        }
-    }
-}
-
-pub fn tokenize(st: &str) -> (Vec<Spanned<JsonToken>>, Vec<Simple<char>>) {
+pub fn tokenize(st: &str) -> (Vec<Spanned<Token>>, Vec<Simple<char>>) {
     let parser = parser()
         .then_ignore(end().recover_with(skip_then_retry_until([])))
         .padded();
@@ -94,51 +28,80 @@ pub fn tokenize(st: &str) -> (Vec<Spanned<JsonToken>>, Vec<Simple<char>>) {
     (json.unwrap_or_default(), errs)
 }
 
-fn parser() -> impl Parser<char, Vec<Spanned<JsonToken>>, Error = Simple<char>> {
+fn parser() -> impl Parser<char, Vec<Spanned<Token>>, Error = Simple<char>> {
     let tok = just("true")
-        .to(JsonToken::True)
-        .or(just("false").to(JsonToken::False))
-        .or(just("null").to(JsonToken::Null))
-        .or(just(']').to(JsonToken::SqClose))
-        .or(just('{').to(JsonToken::CuOpen))
-        .or(just('}').to(JsonToken::CuClose))
-        .or(just(':').to(JsonToken::Colon))
-        .or(just(',').to(JsonToken::Comma))
-        .or(just('[').to(JsonToken::SqOpen));
+        .to(Token::True)
+        .or(just("false").to(Token::False))
+        .or(just("null").to(Token::Null))
+        .or(just(']').to(Token::SqClose))
+        .or(just('{').to(Token::CurlOpen))
+        .or(just('}').to(Token::CurlClose))
+        .or(just(':').to(Token::Colon))
+        .or(just(',').to(Token::Comma))
+        .or(just('[').to(Token::SqOpen));
 
     let items = tok
-        .or(parse_num().map(|(x, y)| JsonToken::Num(x, y)))
-        .or(parse_string().map(JsonToken::String));
+        .or(parse_num())
+        .or(parse_string().map(|st| Token::Str(st, StringStyle::Double)));
 
     items.map_with_span(spanned).padded().repeated()
 }
 
-fn parse_num() -> impl Parser<char, (u32, Option<u32>), Error = Simple<char>> {
-    let frac = just('.').chain(text::digits(10));
-
-    // let exp = just('e')
-    //     .or(just('E'))
-    //     .chain(just('+').or(just('-')).or_not())
-    //     .chain::<char, _, _>(text::digits(10));
-
-    let number = just('-')
-        .or_not()
-        .chain::<char, _, _>(text::int(10))
-        .then(frac.or_not())
-        .map(|(a, b)| {
-            let a = u32::from_str(&a.into_iter().collect::<String>())?;
-            let b = if let Some(b) = b {
-                Some(u32::from_str(&b.into_iter().collect::<String>())?)
-            } else {
-                None
-            };
-
-            Ok::<(u32, Option<u32>), ParseIntError>((a, b))
+fn exponent() -> impl Parser<char, Vec<char>, Error = Simple<char>> {
+    one_of("eE")
+        .then(one_of("+-").or_not())
+        .then(filter(|c: &char| c.is_numeric()).repeated().at_least(1))
+        .map(|((x, y), z)| {
+            let mut o = Vec::with_capacity(1 + y.is_some() as usize + z.len());
+            o.push(x);
+            y.append_to(&mut o);
+            z.append_to(&mut o);
+            o
         })
-        .unwrapped()
-        .labelled("number");
+}
 
-    number
+fn parse_num() -> impl Parser<char, Token, Error = Simple<char>> {
+    let before_dot = || {
+        one_of("+-")
+            .or_not()
+            .then(filter(|c: &char| c.is_numeric()).repeated().at_least(1))
+            .map(|(x, y)| {
+                let mut o: Vec<char> = Vec::with_capacity(x.is_some() as usize + y.len());
+                x.append_to(&mut o);
+                y.append_to(&mut o);
+                o
+            })
+    };
+
+    let no_dot = || {
+        filter(|c: &char| c.is_numeric())
+            .repeated()
+            .at_least(1)
+            .then(exponent())
+            .map(|(mut x, y)| {
+                y.append_to(&mut x);
+                x
+            })
+    };
+
+    let with_dot = || {
+        just('.').then(no_dot()).map(|(x, y)| {
+            let mut o = Vec::with_capacity(1 + y.len());
+            o.push(x);
+            y.append_to(&mut o);
+            o
+        })
+    };
+
+    with_dot()
+        .or(before_dot().then(with_dot()).map(|(mut x, y)| {
+            y.append_to(&mut x);
+            x
+        }))
+        .or(no_dot())
+        .or(before_dot())
+        .collect()
+        .map(|x| Token::Number(x))
 }
 
 fn parse_string() -> impl Parser<char, String, Error = Simple<char>> {
@@ -177,8 +140,7 @@ fn parse_string() -> impl Parser<char, String, Error = Simple<char>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use super::JsonToken::*;
+    use lsp_core::token::Token::*;
 
     #[test]
     fn parse_simple() {
@@ -190,7 +152,7 @@ mod tests {
         let tokens: Vec<_> = tokens.into_iter().map(|x| x.into_value()).collect();
         assert_eq!(
             tokens,
-            vec![Comma, SqOpen, SqClose, CuOpen, CuClose, Null, True, False]
+            vec![Comma, SqOpen, SqClose, CurlOpen, CurlClose, Null, True, False]
         );
         assert!(errs.is_empty());
     }
@@ -199,7 +161,10 @@ mod tests {
     fn parse_string() {
         let (tokens, errs) = tokenize(" \"Epic string!!\"");
         let tokens: Vec<_> = tokens.into_iter().map(|x| x.into_value()).collect();
-        assert_eq!(tokens, vec![String("Epic string!!".into())]);
+        assert_eq!(
+            tokens,
+            vec![Str("Epic string!!".into(), StringStyle::Double)]
+        );
         assert!(errs.is_empty());
 
         let (tokens, errs) = tokenize(" \"Epic string!!");
@@ -212,7 +177,7 @@ mod tests {
     fn parse_num() {
         let (tokens, errs) = tokenize(" 423");
         let tokens: Vec<_> = tokens.into_iter().map(|x| x.into_value()).collect();
-        assert_eq!(tokens, vec![Num(423, None)]);
+        assert_eq!(tokens, vec![Number(String::from("423"))]);
         assert!(errs.is_empty());
     }
 }

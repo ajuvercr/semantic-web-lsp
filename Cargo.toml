@@ -23,7 +23,7 @@ tracing = "0.1.37"
 debug = true
 
 [workspace]
-default-members = ["core", "lang-turtle", "lsp-bin"]
+default-members = ["core", "lang-turtle", "lang-jsonld", "lsp-bin"]
 members = [
   "core",
   "lov",

@@ -103,8 +103,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                             TurtleLang,
                             Source(local.content.to_string()),
                             RopeC(ropey::Rope::from_str(local.content)),
-                            Label(url), // this might
-                            // crash
+                            Label(url), // this might crash
                             Wrapped(item),
                         ),
                     );
@@ -151,8 +150,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                                         TurtleLang,
                                         Source(resp.body),
                                         RopeC(rope),
-                                        Label(url), // this might
-                                        // crash
+                                        Label(url), // this might crash
                                         Wrapped(item),
                                     ),
                                 );

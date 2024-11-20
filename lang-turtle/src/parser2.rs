@@ -106,7 +106,7 @@ fn blank_node() -> impl Parser<Token, BlankNode, Error = Simple<Token>> + Clone 
                 x.reverse();
                 x
             })
-            .delimited_by(just(Token::BNodeEnd), just(Token::BNodeStart))
+            .delimited_by(just(Token::SqClose), just(Token::SqOpen))
             .map(|x| BlankNode::Unnamed(x))
             .or(select! {
                 Token::BlankNodeLabel(x) => BlankNode::Named(x),
@@ -131,7 +131,7 @@ fn term(
                 x.reverse();
                 x
             })
-            .delimited_by(just(Token::ColEnd), just(Token::ColStart))
+            .delimited_by(just(Token::BracketClose), just(Token::BracketOpen))
             .map(|x| Term::Collection(x));
 
         let nn = named_node().map(|x| Term::NamedNode(x));
@@ -147,7 +147,7 @@ fn po(
 ) -> impl Parser<Token, PO, Error = Simple<Token>> + Clone {
     term(bn.clone())
         .map_with_span(spanned)
-        .separated_by(just(Token::ObjectSplit))
+        .separated_by(just(Token::Comma))
         .at_least(1)
         .map(|mut x| {
             x.reverse();
@@ -164,7 +164,7 @@ fn po(
             // let end = os[0].span().end;
             //
 
-            let alt_pred = one_of([Token::BNodeStart, Token::PredicateSplit])
+            let alt_pred = one_of([Token::SqOpen, Token::PredicateSplit])
                 .rewind()
                 .validate(move |_, span: S, emit| {
                     emit(Simple::custom(

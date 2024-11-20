@@ -1,0 +1,57 @@
+use crate::tokenizer::tokenize;
+use crate::triples::{self};
+use crate::{parser::parse, JsonLd};
+use bevy_ecs::prelude::*;
+
+use lsp_core::components::*;
+use tracing::{info, instrument};
+
+#[instrument(skip(query, commands))]
+pub fn parse_source(
+    query: Query<(Entity, &Source), (Changed<Source>, With<JsonLd>)>,
+    mut commands: Commands,
+) {
+    for (entity, source) in &query {
+        let (tok, es) = tokenize(source.0.as_str());
+        info!("tokenized {:?}", tok);
+        commands.entity(entity).insert((Tokens(tok), Errors(es)));
+    }
+}
+
+#[instrument(skip(query, commands))]
+pub fn parse_jsonld_system(
+    query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<JsonLd>)>,
+    mut commands: Commands,
+) {
+    for (entity, source, tokens, label) in &query {
+        let (jsonld, es) = parse(source.as_str(), tokens.0.clone());
+        info!(
+            "{} {:?} triples ({} errors)",
+            label.0,
+            jsonld.value(),
+            es.len()
+        );
+        if es.is_empty() {
+            let element = Element::<JsonLd>(jsonld);
+            commands
+                .entity(entity)
+                .insert((element, Errors(es)))
+                .remove::<Dirty>();
+        } else {
+            let element = Element::<JsonLd>(jsonld);
+            commands.entity(entity).insert((Errors(es), element, Dirty));
+        }
+    }
+}
+
+#[instrument(skip(query, commands))]
+pub fn derive_triples(
+    query: Query<(Entity, &Element<JsonLd>), Changed<Element<JsonLd>>>,
+    mut commands: Commands,
+) {
+    for (e, el) in &query {
+        let prefix = triples::derive_prefixes(&el);
+        let triples = triples::derive_triples(&el, &prefix);
+        commands.entity(e).insert((Triples(triples), prefix));
+    }
+}

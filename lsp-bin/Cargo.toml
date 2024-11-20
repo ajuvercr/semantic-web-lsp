@@ -20,7 +20,7 @@ sophia_iri.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
 
-# lang-jsonld = { path = "../lang-jsonld/" }
+lang-jsonld = { path = "../lang-jsonld/" }
 lang-turtle = { path = "../lang-turtle/" }
 lsp-core    = { path = "../core/" }
 

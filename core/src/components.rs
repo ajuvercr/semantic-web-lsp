@@ -1,6 +1,7 @@
 use crate::{
     lang::{Lang, SimpleCompletion},
     model::Spanned,
+    token::Token,
     triples::{MyQuad, MyTerm},
 };
 use bevy_ecs::{prelude::*, world::CommandQueue};
@@ -14,6 +15,55 @@ pub struct Tokens(pub Vec<Spanned<crate::token::Token>>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Element<L: Lang>(pub Spanned<L::Element>);
+
+#[derive(Debug)]
+pub struct Prefix {
+    pub prefix: String,
+    pub url: lsp_types::Url,
+}
+
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct Prefixes(pub Vec<Prefix>);
+impl Prefixes {
+    pub fn shorten(&self, value: &str) -> Option<String> {
+        let try_shorten = |prefix: &Prefix| {
+            let short = value.strip_prefix(prefix.url.as_str())?;
+            Some(format!("{}:{}", prefix.prefix, short))
+        };
+
+        self.0.iter().flat_map(try_shorten).next()
+    }
+
+    pub fn expand(&self, token: &Token) -> Option<String> {
+        match token {
+            Token::PNameLN(pref, x) => {
+                let pref = pref.as_ref().map(|x| x.as_str()).unwrap_or("");
+                let prefix = self.0.iter().find(|x| &x.prefix == pref)?;
+                Some(format!("{}{}", prefix.url, x))
+            }
+            _ => None,
+        }
+    }
+
+    pub fn expand_json(&self, token: &Token) -> Option<String> {
+        match token {
+            Token::Str(pref, _) => {
+                if let Some(x) = pref.find(':') {
+                    let prefix = &pref[..x];
+                    if let Some(exp) = self.iter().find(|x| &x.prefix == prefix) {
+                        return Some(format!("{}{}", exp.url.as_str(), &pref[x + 1..]));
+                    }
+                } else {
+                    if let Some(exp) = self.iter().find(|x| &x.prefix == pref) {
+                        return Some(exp.url.as_str().to_string());
+                    }
+                }
+                Some(pref.to_string())
+            }
+            _ => None,
+        }
+    }
+}
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Wrapped<E>(pub E);

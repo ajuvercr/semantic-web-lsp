@@ -3,14 +3,11 @@ use bevy_ecs::{
     system::{Query, Resource},
     world::World,
 };
-use completion::{
-    complete_class, complete_properties, subject_completion, turtle_lov_prefix_completion,
-    turtle_prefix_completion,
-};
+use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use formatting::format_turtle_system;
 use lsp_core::{
     client::{Client, ClientSync},
-    systems::{derive_classes, derive_properties, get_current_token, get_current_triple},
+    systems::{derive_classes, derive_prefix_links, derive_properties, get_current_token},
     Parse,
 };
 use parsing::{derive_triples, parse_source, parse_turtle_system};
@@ -27,11 +24,14 @@ pub fn setup_parsing<C: Client + ClientSync + Resource>(world: &mut World) {
         schedule.add_systems((
             parse_source,
             parse_turtle_system.after(parse_source),
-            derive_prefix_links.after(parse_turtle_system),
-            derive_triples.after(parse_turtle_system),
+            derive_prefixes
+                .after(parse_turtle_system)
+                .before(derive_prefix_links),
+            derive_triples
+                .after(parse_turtle_system)
+                .before(derive_classes)
+                .before(derive_properties),
             fetch_lov_properties::<C>.after(parse_turtle_system),
-            derive_classes.after(derive_triples),
-            derive_properties.after(derive_triples),
         ));
     });
 }
@@ -45,11 +45,8 @@ pub fn setup_formatting(world: &mut World) {
 pub fn setup_completion(world: &mut World) {
     world.schedule_scope(lsp_core::Completion, |_, schedule| {
         schedule.add_systems((
-            turtle_lov_prefix_completion.after(get_current_token),
-            turtle_prefix_completion.after(get_current_token),
+            turtle_lov_undefined_prefix_completion.after(get_current_token),
             subject_completion.after(get_current_token),
-            complete_class.after(get_current_triple),
-            complete_properties.after(get_current_triple),
         ));
     });
 }
@@ -58,34 +55,26 @@ use bevy_ecs::prelude::*;
 use lsp_core::components::*;
 
 use crate::TurtleLang;
-fn derive_prefix_links(
-    mut query: Query<
-        (Entity, &Element<TurtleLang>, Option<&mut DocumentLinks>),
-        Changed<Element<TurtleLang>>,
-    >,
+
+fn derive_prefixes(
+    query: Query<(Entity, &Element<TurtleLang>), Changed<Element<TurtleLang>>>,
     mut commands: Commands,
 ) {
-    const SOURCE: &'static str = "prefix import";
-    for (e, turtle, mut links) in &mut query {
-        let new_links: Vec<_> = turtle
+    for (entity, turtle) in &query {
+        let prefixes: Vec<_> = turtle
             .prefixes
             .iter()
-            .flat_map(|p| p.value.expand(&turtle))
-            .flat_map(|n| lsp_types::Url::parse(&n))
-            .map(|u| (u, SOURCE))
+            .flat_map(|prefix| {
+                let url = prefix.value.expand(&turtle)?;
+                let url = lsp_types::Url::parse(&url).ok()?;
+                Some(Prefix {
+                    url,
+                    prefix: prefix.prefix.value().clone(),
+                })
+            })
             .collect();
-        if let Some(links) = links.as_mut() {
-            links.retain(|e| e.1 != SOURCE);
-        }
-        match (new_links.is_empty(), links) {
-            (false, None) => {
-                commands.entity(e).insert(DocumentLinks(new_links));
-            }
-            (false, Some(mut links)) => {
-                links.extend(new_links);
-            }
-            _ => {}
-        }
+
+        commands.entity(entity).insert(Prefixes(prefixes));
     }
 }
 
