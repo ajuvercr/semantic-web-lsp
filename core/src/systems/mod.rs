@@ -1,9 +1,7 @@
 use crate::{
     components::{
-        CommandReceiver, Label, PositionComponent, RopeC, TokenComponent, Tokens, TripleComponent,
-        TripleTarget, Triples,
-    },
-    utils::{position_to_offset, range_to_range},
+        CommandReceiver, CompletionRequest, DocumentLinks, Label, PositionComponent, Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget, Triples
+    }, lang::SimpleCompletion, utils::{position_to_offset, range_to_range}
 };
 use bevy_ecs::prelude::*;
 
@@ -11,9 +9,13 @@ mod diagnostics;
 use chumsky::Span;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
+use lsp_types::CompletionItemKind;
 pub use semantics::{semantic_tokens_system, SemanticTokensSchedule};
 mod properties;
-pub use properties::{derive_classes, derive_properties, DefinedClass, DefinedProperty};
+pub use properties::{
+    complete_class, complete_properties, derive_classes, derive_properties, DefinedClass,
+    DefinedProperty,
+};
 use tracing::{debug, info};
 
 pub fn spawn_or_insert(
@@ -184,5 +186,64 @@ pub fn get_current_triple(
                 target,
             });
         }
+    }
+}
+
+pub fn derive_prefix_links(
+    mut query: Query<(Entity, &Prefixes, Option<&mut DocumentLinks>), Changed<Prefixes>>,
+    mut commands: Commands,
+) {
+    const SOURCE: &'static str = "prefix import";
+    for (e, turtle, mut links) in &mut query {
+        let new_links: Vec<_> = turtle.iter().map(|u| (u.url.clone(), SOURCE)).collect();
+        if let Some(links) = links.as_mut() {
+            links.retain(|e| e.1 != SOURCE);
+        }
+        match (new_links.is_empty(), links) {
+            (false, None) => {
+                commands.entity(e).insert(DocumentLinks(new_links));
+            }
+            (false, Some(mut links)) => {
+                links.extend(new_links);
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn defined_prefix_completion(
+    mut query: Query<(&TokenComponent, &Prefixes, &mut CompletionRequest)>,
+) {
+    for (word, prefixes, mut req) in &mut query {
+        let st = &word.text;
+        let pref = if let Some(idx) = st.find(':') {
+            &st[..idx]
+        } else {
+            &st
+        };
+
+        let completions = prefixes
+            .iter()
+            .filter(|p| p.prefix.as_str().starts_with(pref))
+            .flat_map(|x| {
+                let new_text = format!("{}:", x.prefix.as_str());
+                if new_text != word.text {
+                    Some(
+                        SimpleCompletion::new(
+                            CompletionItemKind::MODULE,
+                            format!("{}", x.prefix.as_str()),
+                            lsp_types::TextEdit {
+                                new_text,
+                                range: word.range.clone(),
+                            },
+                        )
+                        .documentation(x.url.as_str()),
+                    )
+                } else {
+                    None
+                }
+            });
+
+        req.0.extend(completions);
     }
 }

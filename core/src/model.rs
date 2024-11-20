@@ -27,6 +27,21 @@ impl<T> Spanned<T> {
     pub fn as_ref<'a>(&'a self) -> Spanned<&'a T> {
         Spanned(&self.0, self.1.clone())
     }
+
+    pub fn try_map_ref<'a, O>(&'a self, f: impl FnOnce(&'a T) -> Option<O>) -> Option<Spanned<O>> {
+        if let Some(v) = f(&self.0) {
+            Some(Spanned(v, self.1.clone()))
+        } else {
+            None
+        }
+    }
+    pub fn try_map<O>(self, f: impl FnOnce(T) -> Option<O>) -> Option<Spanned<O>> {
+        if let Some(v) = f(self.0) {
+            Some(Spanned(v, self.1))
+        } else {
+            None
+        }
+    }
 }
 impl<T> Spanned<Option<T>> {
     pub fn transpose(self) -> Option<Spanned<T>> {

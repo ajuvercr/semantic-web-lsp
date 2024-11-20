@@ -152,3 +152,18 @@ fn test_autocomplete_classes() {
     }
     assert_eq!(completions.len(), 14);
 }
+
+// 2024-11-19T10:12:38.527252Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:OnlineChatAccount
+// 2024-11-19T10:12:38.527268Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:OnlineEcommerceAccount
+// 2024-11-19T10:12:38.527272Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:OnlineGamingAccount
+// 2024-11-19T10:12:38.527277Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:OnlineAccount
+// 2024-11-19T10:12:38.527281Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:PersonalProfileDocument
+// 2024-11-19T10:12:38.527286Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Image
+// 2024-11-19T10:12:38.527297Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Project
+// 2024-11-19T10:12:38.527301Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Agent
+// 2024-11-19T10:12:38.527306Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Group
+// 2024-11-19T10:12:38.527310Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Organization
+// 2024-11-19T10:12:38.527314Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Document
+// 2024-11-19T10:12:38.527318Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:Person
+// 2024-11-19T10:12:38.527322Z DEBUG lang_turtle::systems::completion::tests: Comp foaf:LabelProperty
+

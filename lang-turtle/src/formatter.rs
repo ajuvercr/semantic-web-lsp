@@ -30,12 +30,12 @@ pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
     let mut last_open_bnode = false;
 
     for token in tokens {
-        if last_open_bnode && token.is_b_node_end() {
+        if last_open_bnode && token.is_sq_close() {
             wants_newline = 0;
         }
 
         let space = match token {
-            Token::Stop | Token::ObjectSplit | Token::PredicateSplit => false,
+            Token::Stop | Token::Comma | Token::PredicateSplit => false,
             Token::DataTypeDelim | Token::LangTag(_) => false,
             _ => true,
         };
@@ -65,7 +65,7 @@ pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
             needs_new_line = false;
         }
 
-        last_open_bnode = token.is_b_node_start();
+        last_open_bnode = token.is_sq_open();
 
         match token {
             Token::PrefixTag => line += "@prefix",
@@ -73,19 +73,19 @@ pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
             Token::SparqlPrefix => line += "PREFIX",
             Token::SparqlBase => line += "BASE",
             Token::PredType => line += "a",
-            Token::BNodeStart => {
+            Token::SqOpen => {
                 line += "[";
                 indent += 1;
                 wants_newline = 1;
                 listings.push(false);
             }
-            Token::BNodeEnd => {
+            Token::SqClose => {
                 line += "]";
                 indent -= 1;
                 listings.pop();
             }
-            Token::ColStart => line += "(",
-            Token::ColEnd => line += ")",
+            Token::BracketOpen => line += "(",
+            Token::BracketClose => line += ")",
             Token::DataTypeDelim => {
                 line += "^^";
             }
@@ -106,7 +106,7 @@ pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
                     *l = true;
                 }
             }
-            Token::ObjectSplit => line += ",",
+            Token::Comma => line += ",",
             Token::True => line += "true",
             Token::False => line += "false",
             Token::IRIRef(x) => {
@@ -142,6 +142,7 @@ pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
                 needs_new_line = true;
             }
             Token::Invalid(x) => line += x,
+            _ => todo!(),
         }
 
         first = false;

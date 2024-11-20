@@ -1,34 +1,44 @@
 use std::sync::Arc;
 
+use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
 use futures::lock::Mutex;
 use hashbrown::HashMap;
-use json_ld_syntax::context::Value;
-use locspan::Span;
-use lsp_core::lang::Lang;
+use json_ld::syntax::Value;
+use lsp_core::{lang::Lang, model::Spanned, systems::publish_diagnostics};
 use lsp_types::SemanticTokenType;
+use systems::setup_parse;
 
-use self::{parser::Json, tokenizer::JsonToken};
+use self::parser::Json;
 
 mod contexts;
-mod loader;
-pub mod parent;
+// mod loader;
+// pub mod parent;
+pub mod triples;
 pub mod parser;
+pub mod systems;
 pub mod tokenizer;
 
-pub type Cache = Arc<Mutex<HashMap<String, Value<Span>>>>;
+pub type Cache = Arc<Mutex<HashMap<String, Spanned<Value>>>>;
 
-#[derive(Debug)]
+pub fn setup_world(world: &mut World) {
+    world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
+        schedule.add_systems(publish_diagnostics::<JsonLd>);
+    });
+    setup_parse(world);
+}
+
+#[derive(Debug, Component)]
 pub struct JsonLd;
 
 impl Lang for JsonLd {
-    type Token = JsonToken;
+    type Token = lsp_core::token::Token;
 
     type TokenError = Simple<char>;
 
     type Element = Json;
 
-    type ElementError = Simple<JsonToken>;
+    type ElementError = Simple<lsp_core::token::Token>;
 
     const PATTERN: Option<&'static str> = None;
 
