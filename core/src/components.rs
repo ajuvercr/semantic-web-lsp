@@ -1,5 +1,7 @@
+use std::fmt::Debug;
+
 use crate::{
-    lang::{Lang, SimpleCompletion},
+    lang::{Lang, LangHelper, SimpleCompletion},
     model::Spanned,
     token::Token,
     triples::{MyQuad, MyTerm},
@@ -76,6 +78,10 @@ pub struct Source(pub String);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct RopeC(pub ropey::Rope);
+
+
+#[derive(Component, Debug, AsRef, Deref)]
+pub struct DynLang(pub Box<dyn LangHelper + 'static + Send + Sync>);
 
 #[derive(Component, Debug)]
 pub struct Open;

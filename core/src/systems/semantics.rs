@@ -5,6 +5,7 @@ use crate::{
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 use lsp_types::{SemanticToken, SemanticTokenType};
+use tracing::info;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct SemanticTokensSchedule;
@@ -19,6 +20,8 @@ pub fn semantic_tokens_system<L: Lang>(
     mut query: Query<(&RopeC, &Tokens, Option<&Element<L>>, &mut HighlightRequest)>,
 ) {
     for (rope, tokens, element, mut req) in &mut query {
+        info!("Found {} tokens", tokens.0.len());
+
         let rope = &rope.0;
         let mut ts: Vec<Option<SemanticTokenType>> = Vec::with_capacity(rope.len_chars());
         ts.resize(rope.len_chars(), None);

@@ -221,7 +221,7 @@ pub trait Token: Sized {
     }
 }
 
-pub trait Lang: Sized + 'static {
+pub trait Lang: 'static {
     /// Type of tokens after tokenization
     type Token: PartialEq + Hash + Clone + Send + Sync + Token;
     type TokenError: Into<SimpleDiagnostic> + Send + Sync + std::fmt::Debug;
@@ -236,6 +236,19 @@ pub trait Lang: Sized + 'static {
     const TRIGGERS: &'static [&'static str];
     const LEGEND_TYPES: &'static [SemanticTokenType];
     const PATTERN: Option<&'static str>;
+}
+
+pub trait LangHelper: std::fmt::Debug {
+    fn _get_relevant_text(&self, token: &Spanned<crate::token::Token>, rope: &Rope) -> String {
+        rope.slice(token.span().clone()).to_string()
+    }
+    fn get_relevant_text(
+        &self,
+        token: &Spanned<crate::token::Token>,
+        rope: &Rope,
+    ) -> (String, std::ops::Range<usize>) {
+        (self._get_relevant_text(token, rope), token.span().clone())
+    }
 }
 
 #[derive(Clone)]

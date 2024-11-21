@@ -10,6 +10,7 @@ use sophia_api::ns::rdfs;
 use sophia_api::prelude::{Any, Dataset};
 use sophia_api::quad::Quad as _;
 use sophia_api::term::Term;
+use tracing::debug;
 use tracing::info;
 use tracing::instrument;
 
@@ -193,6 +194,7 @@ pub fn complete_properties(
     other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
 ) {
     for (token, triple, prefixes, links, mut request) in &mut query {
+        debug!("target {:?}", triple.target);
         if triple.target == TripleTarget::Predicate {
             for (label, properties) in &other {
                 // Check if this thing is actually linked
@@ -207,6 +209,7 @@ pub fn complete_properties(
                         .unwrap_or(class.predicate.value.clone());
 
                     if to_beat.starts_with(&token.text) {
+                        debug!("comp {} -> {}", token.text, to_beat);
                         request.push(
                             crate::lang::SimpleCompletion::new(
                                 CompletionItemKind::PROPERTY,
