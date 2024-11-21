@@ -1,7 +1,7 @@
 use crate::{
     components::{
-        CommandReceiver, CompletionRequest, DocumentLinks, Label, PositionComponent, Prefixes,
-        RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget, Triples,
+        CommandReceiver, CompletionRequest, DocumentLinks, DynLang, Label, PositionComponent,
+        Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget, Triples,
     },
     lang::SimpleCompletion,
     utils::{position_to_offset, range_to_range},
@@ -10,7 +10,6 @@ use crate::{
 use bevy_ecs::prelude::*;
 
 mod diagnostics;
-use chumsky::Span;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
 use lsp_types::CompletionItemKind;
@@ -23,7 +22,7 @@ pub use properties::{
 mod lov;
 pub use lov::fetch_lov_properties;
 
-use tracing::{debug, info};
+use tracing::{debug, instrument};
 
 pub fn spawn_or_insert(
     url: lsp_types::Url,
@@ -31,20 +30,16 @@ pub fn spawn_or_insert(
     language_id: Option<String>,
     extra: impl Bundle,
 ) -> impl (FnOnce(&mut World) -> Entity) + 'static + Send + Sync {
-    println!("Creating spawn or insert cb");
     move |world: &mut World| {
-        println!("Spawn or create cb callbacked");
         let out = if let Some(entity) = world
             .query::<(Entity, &Label)>()
             .iter(&world)
             .find(|x| x.1 .0 == url)
             .map(|x| x.0)
         {
-            println!("Entity already exists!");
             world.entity_mut(entity).insert(bundle).insert(extra);
             entity
         } else {
-            println!("Spawning entity!");
             let entity = world.spawn(bundle).insert(extra).id();
             world.trigger_targets(CreateEvent { url, language_id }, entity);
             entity
@@ -56,69 +51,18 @@ pub fn spawn_or_insert(
     }
 }
 
-// pub fn handle_document_link(
-//     trigger: Trigger<DocumentLinkEvent>,
-//     query: Query<(Entity, &Label)>,
-//     mut commands: Commands,
-//     mut state: Local<HashMap<lsp_types::Url, HashSet<lsp_types::Url>>>,
-// ) {
-//     let mut entity_to_url = |entity: &Result<lsp_types::Url, Entity>| -> (Entity, lsp_types::Url) {
-//         let check = |e: Entity, label: &Label| match entity {
-//             Ok(url) => url == &label.0,
-//             Err(entity) => e == *entity,
-//         };
-//         for (e, l) in &query {
-//             if check(e, l) {
-//                 return (e, l.0.clone());
-//             }
-//         }
-//         if let Ok(url) = entity {
-//             let e = commands.spawn(Label(url.clone())).id();
-//             return (e, url.clone());
-//         }
-//
-//         panic!("This cannot happen, I promise");
-//     };
-//
-//     let (s_e, s_u) = entity_to_url(&trigger.event().source);
-//     let (t_e, t_u) = entity_to_url(&trigger.event().target);
-//
-//     let should_insert = if let Some(set) = state.get_mut(&t_u) {
-//         if !set.contains(&s_u) {
-//             set.insert(s_u);
-//             true
-//         } else {
-//             false
-//         }
-//     } else {
-//         state.insert(t_u, [s_u].into_iter().collect());
-//         true
-//     };
-//
-//     if should_insert {
-//         let reason = trigger.event().reason;
-//         commands.entity(s_e).add(move |mut entity: EntityWorldMut| {
-//             if let Some(mut links) = entity.get_mut::<DocumentLinks>() {
-//                 links.push((t_u, reason));
-//             } else {
-//                 entity.insert(DocumentLinks(vec![(t_u, reason)]));
-//             }
-//         });
-//     }
-// }
-
 pub fn handle_tasks(mut commands: Commands, mut receiver: ResMut<CommandReceiver>) {
     while let Ok(Some(mut com)) = receiver.0.try_next() {
         commands.append(&mut com);
     }
 }
 
+#[instrument(skip(query, commands))]
 pub fn get_current_token(
-    mut query: Query<(Entity, &Tokens, &PositionComponent, &RopeC)>,
+    mut query: Query<(Entity, &Tokens, &PositionComponent, &RopeC, &DynLang)>,
     mut commands: Commands,
 ) {
-    println!("Get current token!");
-    for (entity, tokens, position, rope) in &mut query {
+    for (entity, tokens, position, rope, helper) in &mut query {
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             debug!("Couldn't transform to an offset");
             continue;
@@ -156,14 +100,13 @@ pub fn get_current_token(
             continue;
         };
 
-        let Some(range) = range_to_range(token.span(), &rope.0) else {
+        let (text, range) = helper.get_relevant_text(token, rope);
+        let Some(range) = range_to_range(&range, &rope.0) else {
             debug!("Failed to transform span to range");
             continue;
         };
 
-        info!("Get current found {:?} {:?}", token, range);
-        let text = rope.0.slice(token.span().clone()).to_string();
-
+        debug!("Current token {:?} {}", token, text);
         commands.entity(entity).insert(TokenComponent {
             token: token.clone(),
             range,
@@ -172,6 +115,7 @@ pub fn get_current_token(
     }
 }
 
+#[instrument(skip(query, commands))]
 pub fn get_current_triple(
     query: Query<(Entity, &PositionComponent, &Triples, &RopeC)>,
     mut commands: Commands,
@@ -188,18 +132,20 @@ pub fn get_current_triple(
             .0
             .iter()
             .filter(|triple| triple.span.contains(&offset))
-            .next()
+            .min_by_key(|x| x.span.end - x.span.start)
         {
-            info!("Current triples {:?} {:?}", t, triples.0);
+            let target = [
+                (TripleTarget::Subject, &t.subject.span),
+                (TripleTarget::Predicate, &t.predicate.span),
+                (TripleTarget::Object, &t.object.span),
+            ]
+            .into_iter()
+            .filter(|x| x.1.contains(&offset))
+            .min_by_key(|x| x.1.end - x.1.start)
+            .map(|x| x.0)
+            .unwrap_or(TripleTarget::Subject);
 
-            let mut target = TripleTarget::Subject;
-            if offset > t.subject.span.end() {
-                target = TripleTarget::Predicate;
-            }
-            if offset > t.predicate.span.end() {
-                target = TripleTarget::Object;
-            }
-
+            debug!("Current triple {} {:?}", t, target);
             commands.entity(e).insert(TripleComponent {
                 triple: t.clone(),
                 target,
@@ -230,6 +176,7 @@ pub fn derive_prefix_links(
     }
 }
 
+#[instrument(skip(query))]
 pub fn defined_prefix_completion(
     mut query: Query<(&TokenComponent, &Prefixes, &mut CompletionRequest)>,
 ) {
@@ -240,6 +187,8 @@ pub fn defined_prefix_completion(
         } else {
             &st
         };
+
+        debug!("matching {}", pref);
 
         let completions = prefixes
             .iter()

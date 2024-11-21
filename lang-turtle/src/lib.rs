@@ -10,6 +10,7 @@ use bevy_ecs::component::Component;
 use bevy_ecs::observer::Trigger;
 use bevy_ecs::system::{Commands, Resource};
 use bevy_ecs::world::World;
+use lsp_core::components::DynLang;
 use lsp_core::systems::{publish_diagnostics, SemanticTokensSchedule};
 use lsp_core::token::semantic_token;
 use lsp_core::CreateEvent;
@@ -28,10 +29,14 @@ pub use parser2::*;
 // use completion::{NextTokenCompletionCtx, NsCompletionCtx};
 use lsp_core::client::{Client, ClientSync};
 
-use lsp_core::lang::Lang;
+use lsp_core::lang::{Lang, LangHelper};
 
 #[derive(Component)]
 pub struct TurtleLang;
+
+#[derive(Debug)]
+pub struct TurtleHelper;
+impl LangHelper for TurtleHelper {}
 
 pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
     world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
@@ -39,7 +44,9 @@ pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
         match &trigger.event().language_id {
             Some(x) if x == "turtle" => {
                 println!(" --> its turtle");
-                commands.entity(trigger.entity()).insert(TurtleLang);
+                commands
+                    .entity(trigger.entity())
+                    .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
                 return;
             }
             _ => {}
@@ -47,10 +54,13 @@ pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
         // pass
         if trigger.event().url.as_str().ends_with(".ttl") {
             println!(" --> its turtle");
-            commands.entity(trigger.entity()).insert(TurtleLang);
+            commands
+                .entity(trigger.entity())
+                .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
             return;
         }
     });
+
     world.schedule_scope(SemanticTokensSchedule, |_, schedule| {
         schedule.add_systems(lsp_core::systems::semantic_tokens_system::<TurtleLang>);
     });

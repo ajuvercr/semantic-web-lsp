@@ -112,12 +112,18 @@ impl LanguageServer for Backend {
                         SemanticTokensRegistrationOptions {
                             text_document_registration_options: {
                                 TextDocumentRegistrationOptions {
-                                    document_selector: Some(vec![DocumentFilter {
-                                        language: None,
-                                        // language: Some(String::from("turtle")),
-                                        scheme: None,
-                                        pattern: Some(String::from("*.ttl")),
-                                    }]),
+                                    document_selector: Some(vec![
+                                        DocumentFilter {
+                                            language: Some(String::from("turtle")),
+                                            scheme: None,
+                                            pattern: Some(String::from("*.ttl")),
+                                        },
+                                        DocumentFilter {
+                                            language: Some(String::from("jsonld")),
+                                            scheme: None,
+                                            pattern: Some(String::from("*.jsonld")),
+                                        },
+                                    ]),
                                 }
                             },
                             semantic_tokens_options: SemanticTokensOptions {
@@ -245,6 +251,7 @@ impl LanguageServer for Backend {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
 
+        let lang_id = Some(item.language_id.clone());
         let spawn = spawn_or_insert(
             item.uri.clone(),
             (
@@ -254,7 +261,7 @@ impl LanguageServer for Backend {
                 Wrapped(item),
                 Open,
             ),
-            None,
+            lang_id,
             (),
         );
 

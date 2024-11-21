@@ -13,7 +13,7 @@ pub fn parse_source(
 ) {
     for (entity, source) in &query {
         let (tok, es) = tokenize(source.0.as_str());
-        info!("tokenized {:?}", tok);
+        info!("tokenized  {} tokens ({} errors)", tok.len(), es.len());
         commands.entity(entity).insert((Tokens(tok), Errors(es)));
     }
 }
@@ -25,12 +25,7 @@ pub fn parse_jsonld_system(
 ) {
     for (entity, source, tokens, label) in &query {
         let (jsonld, es) = parse(source.as_str(), tokens.0.clone());
-        info!(
-            "{} {:?} triples ({} errors)",
-            label.0,
-            jsonld.value(),
-            es.len()
-        );
+        info!("{} triples ({} errors)", label.0, es.len());
         if es.is_empty() {
             let element = Element::<JsonLd>(jsonld);
             commands

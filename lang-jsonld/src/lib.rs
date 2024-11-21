@@ -6,9 +6,16 @@ use futures::lock::Mutex;
 use hashbrown::HashMap;
 use json_ld::syntax::Value;
 use lsp_core::{
-    client::Client, lang::Lang, model::Spanned, systems::publish_diagnostics, CreateEvent,
+    client::Client,
+    components::DynLang,
+    lang::{Lang, LangHelper},
+    model::Spanned,
+    systems::{publish_diagnostics, SemanticTokensSchedule},
+    token::Token,
+    CreateEvent,
 };
 use lsp_types::SemanticTokenType;
+use ropey::Rope;
 use systems::setup_parse;
 
 use self::parser::Json;
@@ -29,7 +36,10 @@ pub fn setup_world<C: Client + Resource>(world: &mut World) {
         match &trigger.event().language_id {
             Some(x) if x == "jsonld" => {
                 println!(" --> its jsonld");
-                commands.entity(trigger.entity()).insert(JsonLd);
+                commands
+                    .entity(trigger.entity())
+                    .insert(JsonLd)
+                    .insert(DynLang(Box::new(JsonLdHelper)));
                 return;
             }
             _ => {}
@@ -37,13 +47,22 @@ pub fn setup_world<C: Client + Resource>(world: &mut World) {
         // pass
         if trigger.event().url.as_str().ends_with(".jsonld") {
             println!(" --> its jsonld");
-            commands.entity(trigger.entity()).insert(JsonLd);
+            commands
+                .entity(trigger.entity())
+                .insert(JsonLd)
+                .insert(DynLang(Box::new(JsonLdHelper)));
             return;
         }
     });
+
+    world.schedule_scope(SemanticTokensSchedule, |_, schedule| {
+        schedule.add_systems(lsp_core::systems::semantic_tokens_system::<JsonLd>);
+    });
+
     world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
         schedule.add_systems(publish_diagnostics::<JsonLd>);
     });
+
     setup_parse::<C>(world);
 }
 
@@ -74,6 +93,22 @@ impl Lang for JsonLd {
         SemanticTokenType::PROPERTY,
         SemanticTokenType::ENUM_MEMBER,
     ];
+}
+
+#[derive(Debug)]
+pub struct JsonLdHelper;
+impl LangHelper for JsonLdHelper {
+    fn get_relevant_text(
+        &self,
+        token: &Spanned<Token>,
+        rope: &Rope,
+    ) -> (String, std::ops::Range<usize>) {
+        let r = token.span();
+        match token.value() {
+            Token::Str(st, _) => (st.clone(), r.start + 1..r.end - 1),
+            _ => (self._get_relevant_text(token, rope), r.clone()),
+        }
+    }
 }
 
 #[cfg(test)]

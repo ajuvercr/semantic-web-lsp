@@ -1640,6 +1640,7 @@ dependencies = [
  "json-ld",
  "json-ld-syntax",
  "json-syntax 0.9.4",
+ "lang-turtle",
  "locspan 0.7.13",
  "lsp-core",
  "lsp-types",

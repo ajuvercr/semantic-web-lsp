@@ -34,6 +34,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(parse);
 
     let mut completion = Schedule::new(Completion);
+    println!("Setting completion systems");
     completion.add_systems((
         get_current_token,
         get_current_triple.after(get_current_token),

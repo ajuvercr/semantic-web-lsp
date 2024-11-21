@@ -1,12 +1,6 @@
 {
-  "@context": "https://raw.githubusercontent.com/json-ld/json-ld.org/main/contexts/person.jsonld",
-  "died": {
-    "@id": "testing"
+  "@context": {
+    "foaf": "http://xmlns.com/foaf/0.1/"
   },
-  "test": "",
-  "xsd:test": "Hallo",
-  "knows": {
-    "@id": "testing",
-    "Address": 42
-  }
+  "@type": "foaf:Group"
 }

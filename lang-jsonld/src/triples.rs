@@ -36,10 +36,13 @@ fn correct_field(obj: &ObjectMember, field: &str) -> bool {
     }
 }
 
-fn find_field<'a>(mem: &'a [Spanned<ObjectMember>], field: &str) -> Option<&'a Spanned<Json>> {
+fn find_field<'a>(
+    mem: &'a [Spanned<ObjectMember>],
+    field: &str,
+) -> Option<(&'a Spanned<Json>, &'a Range<usize>)> {
     mem.iter()
         .find(|x| correct_field(x, field))
-        .and_then(|x| x.json_value())
+        .and_then(|x| x.json_value().map(|y| (y, x.field().span())))
 }
 
 pub fn derive_prefixes(json: &Spanned<Json>) -> Prefixes {
@@ -47,7 +50,7 @@ pub fn derive_prefixes(json: &Spanned<Json>) -> Prefixes {
 
     // Extract prefixes
     visit_obj(json, &mut |mem, _| {
-        let Some(ctx) = find_field(mem, "@context") else {
+        let Some((ctx, _)) = find_field(mem, "@context") else {
             return;
         };
 
@@ -104,6 +107,10 @@ pub fn derive_prefixes(json: &Spanned<Json>) -> Prefixes {
     Prefixes(out)
 }
 
+fn shorten_span(span: &Range<usize>) -> Range<usize> {
+    span.start + 1..span.end - 1
+}
+
 fn derive_triples_sub(
     json: &Spanned<Json>,
     prefixes: &Prefixes,
@@ -112,55 +119,77 @@ fn derive_triples_sub(
 ) -> Option<MyTerm<'static>> {
     let mut subj_out = None;
     visit_obj(json, &mut |mems, span| {
-        if let Some(ctx) = find_field(mems, "@graph") {
+        let subj = find_field(mems, "@id")
+            .and_then(|x| x.0.as_ref().try_map(|x| x.token()))
+            .and_then(|x| x.try_map(|x| prefixes.expand_json(x)))
+            .map(|Spanned(v, r)| MyTerm::named_node(v, shorten_span(&r)))
+            .unwrap_or_else(|| bn_f(span.clone()));
+
+        if let Some((ctx, _)) = find_field(mems, "@graph") {
             derive_triples_sub(ctx, prefixes, out, bn_f);
-        } else {
-            let subj = find_field(mems, "@id")
-                .and_then(|x| x.as_ref().try_map(|x| x.token()))
-                .and_then(|x| x.try_map(|x| prefixes.expand_json(x)))
-                .map(|Spanned(v, r)| MyTerm::named_node(v, r))
-                .unwrap_or_else(|| bn_f(span.clone()));
-
-            for mem in mems {
-                let field = mem.field();
-                let st = get_str(&field);
-                if st.map(|x| x.starts_with("@")).unwrap_or(false) {
-                    continue;
-                }
-
-                let Some(pred) = prefixes
-                    .expand_json(&field)
-                    .or_else(|| st.map(|x| x.to_string()))
-                else {
-                    continue;
-                };
-                let pred = MyTerm::named_node(pred, field.span().clone());
-
-                // get value
-                let object = match mem.json_value() {
-                    None => MyTerm::invalid(0..0),
-                    Some(Spanned(Json::Token(tok), span)) => {
-                        if let Some(st) = prefixes.expand_json(&tok) {
-                            // TODO: this might not be a literal, should look it up in the context
-                            MyTerm::literal(st, span.clone())
-                        } else {
-                            MyTerm::invalid(span.clone())
-                        }
+        }
+        if let Some((mem, span)) = find_field(mems, "@type") {
+            let object = match mem {
+                Spanned(Json::Token(tok), span) => {
+                    if let Some(st) = prefixes.expand_json(&tok) {
+                        MyTerm::named_node(st, span.clone())
+                    } else {
+                        MyTerm::invalid(span.clone())
                     }
-                    Some(json) => derive_triples_sub(json, prefixes, out, bn_f)
-                        .unwrap_or_else(|| MyTerm::invalid(json.span().clone())),
-                };
+                }
+                json => derive_triples_sub(json, prefixes, out, bn_f)
+                    .unwrap_or_else(|| MyTerm::invalid(json.span().clone())),
+            };
 
-                out.push(MyQuad {
-                    subject: subj.clone(),
-                    predicate: pred,
-                    object,
-                    span: mem.span().clone(),
-                });
+            out.push(MyQuad {
+                subject: subj.clone(),
+                predicate: MyTerm::named_node(
+                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+                    span.clone(),
+                ),
+                object,
+                span: mem.span().clone(),
+            });
+        }
+        for mem in mems {
+            let field = mem.field();
+            let st = get_str(&field);
+            if st.map(|x| x.starts_with("@")).unwrap_or(false) {
+                continue;
             }
 
-            subj_out = Some(subj);
+            let Some(pred) = prefixes
+                .expand_json(&field)
+                .or_else(|| st.map(|x| x.to_string()))
+            else {
+                continue;
+            };
+            let pred = MyTerm::named_node(pred, shorten_span(field.span()));
+
+            // get value
+            let object = match mem.json_value() {
+                None => MyTerm::invalid(0..0),
+                Some(Spanned(Json::Token(tok), span)) => {
+                    if let Some(st) = prefixes.expand_json(&tok) {
+                        // TODO: this might not be a literal, should look it up in the context
+                        MyTerm::literal(st, span.clone())
+                    } else {
+                        MyTerm::invalid(span.clone())
+                    }
+                }
+                Some(json) => derive_triples_sub(json, prefixes, out, bn_f)
+                    .unwrap_or_else(|| MyTerm::invalid(json.span().clone())),
+            };
+
+            out.push(MyQuad {
+                subject: subj.clone(),
+                predicate: pred,
+                object,
+                span: mem.span().clone(),
+            });
         }
+
+        subj_out = Some(subj);
     });
     subj_out
 }
@@ -314,6 +343,37 @@ mod tests {
     }
 
     #[test]
+    fn derive_simple_triples_type() {
+        let st = r#" { 
+            "@context": {"foaf": "http://xmlns.com/foaf/0.1/"} ,
+            "@id": "http://example.com/ns#me",
+            "@type": "http://example.com/ns#my_type"
+        } "#;
+
+        let json = parse_json(st).expect("valid json");
+        let prefixes = derive_prefixes(&json);
+        let triples = derive_triples(&json, &prefixes);
+
+        assert_eq!(triples.len(), 1);
+        let MyQuad {
+            subject,
+            predicate,
+            object,
+            ..
+        } = &triples[0];
+
+        assert_eq!(subject.as_str(), "http://example.com/ns#me");
+        assert_eq!(subject.kind(), TermKind::Iri);
+        assert_eq!(
+            predicate.as_str(),
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        );
+        assert_eq!(predicate.kind(), TermKind::Iri);
+        assert_eq!(object.as_str(), "http://example.com/ns#my_type");
+        assert_eq!(object.kind(), TermKind::Iri);
+    }
+
+    #[test]
     fn derive_simple_triples_bn() {
         let st = r#" { 
             "@context": {"foaf": "http://xmlns.com/foaf/0.1/"} ,
@@ -456,4 +516,3 @@ mod tests {
         assert_eq!(friend_friend[0].object.kind(), TermKind::Literal);
     }
 }
-
