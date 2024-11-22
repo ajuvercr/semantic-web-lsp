@@ -3,12 +3,10 @@ use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
-use lang_turtle::TurtleLang;
 use lsp_core::components::{
     CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, Open,
     PositionComponent, RopeC, Source, Wrapped,
 };
-use lsp_core::lang::Lang;
 use lsp_core::systems::spawn_or_insert;
 use lsp_core::{Completion, Diagnostics, Format, Parse};
 use lsp_types::*;
@@ -26,15 +24,22 @@ use tower_lsp::LanguageServer;
 pub struct Backend {
     entities: Arc<Mutex<HashMap<String, Entity>>>,
     sender: CommandSender,
+    #[allow(unused)]
     client: tower_lsp::Client,
+    semantic_tokens: Vec<SemanticTokenType>,
 }
 
 impl Backend {
-    pub fn new(sender: CommandSender, client: tower_lsp::Client) -> Self {
+    pub fn new(
+        sender: CommandSender,
+        client: tower_lsp::Client,
+        tokens: Vec<SemanticTokenType>,
+    ) -> Self {
         Self {
             entities: Default::default(),
             sender,
             client,
+            semantic_tokens: tokens,
         }
     }
 
@@ -129,7 +134,7 @@ impl LanguageServer for Backend {
                             semantic_tokens_options: SemanticTokensOptions {
                                 work_done_progress_options: WorkDoneProgressOptions::default(),
                                 legend: SemanticTokensLegend {
-                                    token_types: TurtleLang::LEGEND_TYPES.into(),
+                                    token_types: self.semantic_tokens.clone(),
                                     token_modifiers: vec![],
                                 },
                                 range: Some(false),

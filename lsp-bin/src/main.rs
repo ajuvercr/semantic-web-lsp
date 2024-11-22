@@ -7,8 +7,10 @@ use lsp_bin::TowerClient;
 use lsp_core::client::Client;
 use lsp_core::client::ClientSync;
 use lsp_core::components::CommandSender;
+use lsp_core::components::SemanticTokensDict;
 use lsp_core::lang::OtherPublisher;
 use lsp_core::setup_schedule_labels;
+use lsp_types::SemanticTokenType;
 use std::fs::File;
 use std::io;
 use tower_lsp::LspService;
@@ -17,7 +19,9 @@ use tracing::info;
 use tracing::Level;
 use tracing_subscriber::fmt;
 
-fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandSender {
+fn setup_world<C: Client + ClientSync + Resource + Clone>(
+    client: C,
+) -> (CommandSender, Vec<SemanticTokenType>) {
     let mut world = World::new();
 
     setup_schedule_labels::<C>(&mut world);
@@ -40,6 +44,11 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandS
     world.insert_resource(sender.clone());
     world.insert_resource(client.clone());
 
+    let r = world.resource::<SemanticTokensDict>();
+    let mut semantic_tokens: Vec<_> = (0..r.0.len()).map(|_| SemanticTokenType::KEYWORD).collect();
+    r.0.iter()
+        .for_each(|(k, v)| semantic_tokens[*v] = k.clone());
+
     tokio::spawn(async move {
         while let Some(mut x) = rx.next().await {
             world.commands().append(&mut x);
@@ -47,7 +56,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(client: C) -> CommandS
         }
     });
 
-    sender
+    (sender, semantic_tokens)
 }
 
 fn get_level() -> Level {
@@ -86,7 +95,8 @@ async fn main() {
     let stdout = tokio::io::stdout();
 
     let (service, socket) = LspService::build(|client| {
-        Backend::new(setup_world(TowerClient::new(client.clone())), client)
+        let (sender, rt) = setup_world(TowerClient::new(client.clone()));
+        Backend::new(sender, client, rt)
     })
     .finish();
 

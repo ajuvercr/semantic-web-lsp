@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
     lang::{Lang, LangHelper, SimpleCompletion},
@@ -9,7 +9,7 @@ use crate::{
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use lsp_types::{Position, SemanticToken};
+use lsp_types::{Position, SemanticToken, SemanticTokenType};
 use sophia_api::{prelude::Dataset, quad::Quad as _, term::matcher::TermMatcher};
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
@@ -67,6 +67,9 @@ impl Prefixes {
     }
 }
 
+#[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
+pub struct SemanticTokensDict(pub HashMap<SemanticTokenType, usize>);
+
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Wrapped<E>(pub E);
 
@@ -78,7 +81,6 @@ pub struct Source(pub String);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct RopeC(pub ropey::Rope);
-
 
 #[derive(Component, Debug, AsRef, Deref)]
 pub struct DynLang(pub Box<dyn LangHelper + 'static + Send + Sync>);

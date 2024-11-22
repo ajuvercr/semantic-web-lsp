@@ -7,12 +7,6 @@ use lsp_types::{TextDocumentItem, Url};
 use serde::Deserialize;
 use tracing::info;
 
-struct LocalPrefix {
-    location: &'static str,
-    content: &'static str,
-    name: &'static str,
-}
-
 #[derive(Deserialize, Debug)]
 struct Version {
     #[serde(rename = "fileURL")]

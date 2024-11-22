@@ -1,17 +1,15 @@
-// mod completion;
 mod formatter;
-// mod green;
 mod model;
+mod parser2;
 mod systems;
 mod utils;
-// mod parser;
-mod parser2;
+
 use bevy_ecs::component::Component;
 use bevy_ecs::observer::Trigger;
 use bevy_ecs::system::{Commands, Resource};
 use bevy_ecs::world::World;
-use lsp_core::components::DynLang;
-use lsp_core::systems::{publish_diagnostics, SemanticTokensSchedule};
+use lsp_core::components::{DynLang, SemanticTokensDict};
+use lsp_core::systems::publish_diagnostics;
 use lsp_core::token::semantic_token;
 use lsp_core::CreateEvent;
 pub use parser2::parse_turtle;
@@ -26,7 +24,6 @@ pub use model::*;
 
 pub use parser2::*;
 
-// use completion::{NextTokenCompletionCtx, NsCompletionCtx};
 use lsp_core::client::{Client, ClientSync};
 
 use lsp_core::lang::{Lang, LangHelper};
@@ -39,6 +36,14 @@ pub struct TurtleHelper;
 impl LangHelper for TurtleHelper {}
 
 pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
+    let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
+    TurtleLang::LEGEND_TYPES.iter().for_each(|lt| {
+        if !semantic_token_dict.contains_key(lt) {
+            let l = semantic_token_dict.0.len();
+            semantic_token_dict.insert(lt.clone(), l);
+        }
+    });
+
     world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
         println!("Turtle got create event");
         match &trigger.event().language_id {
@@ -59,10 +64,6 @@ pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
                 .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
             return;
         }
-    });
-
-    world.schedule_scope(SemanticTokensSchedule, |_, schedule| {
-        schedule.add_systems(lsp_core::systems::semantic_tokens_system::<TurtleLang>);
     });
 
     world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {

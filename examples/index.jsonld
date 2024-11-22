@@ -2,5 +2,7 @@
   "@context": {
     "foaf": "http://xmlns.com/foaf/0.1/"
   },
-  "@type": "foaf:Group"
+  "@id": "me",
+  "@type": "foaf:Agent",
+  "foaf:topic": "foaf:Document"
 }

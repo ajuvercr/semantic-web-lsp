@@ -1,10 +1,14 @@
-mod parse;
 use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Resource, world::World};
 use lsp_core::{
     client::Client,
     systems::{derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties},
     Parse,
 };
+
+mod highlight;
+pub use highlight::*;
+
+mod parse;
 use parse::derive_triples;
 pub use parse::{parse_jsonld_system, parse_source};
 
@@ -28,7 +32,7 @@ mod tests {
     use futures::executor::block_on;
     use lsp_core::{components::*, utils::lsp_range_to_range, Completion, Parse, Tasks};
     use ropey::Rope;
-    use test_utils::{create_file, debug_world, setup_world, TestClient};
+    use test_utils::{create_file, setup_world, TestClient};
     use tracing::info;
 
     use crate::JsonLd;
@@ -152,7 +156,6 @@ mod tests {
             .expect("triple component");
 
         assert_eq!(triple.target, TripleTarget::Predicate);
-        assert_eq!(1, 2);
     }
 
     #[test_log::test]
@@ -279,5 +282,4 @@ mod tests {
 
         assert_eq!(comppletions.len(), 63);
     }
-
 }
