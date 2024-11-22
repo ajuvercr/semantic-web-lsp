@@ -1,36 +1,33 @@
-use std::sync::Arc;
-
 use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
-use futures::lock::Mutex;
-use hashbrown::HashMap;
-use json_ld::syntax::Value;
 use lsp_core::{
     client::Client,
-    components::DynLang,
+    components::{DynLang, SemanticTokensDict},
     lang::{Lang, LangHelper},
     model::Spanned,
-    systems::{publish_diagnostics, SemanticTokensSchedule},
+    systems::{basic_semantic_tokens, publish_diagnostics, semantic_tokens_system},
     token::Token,
     CreateEvent,
 };
 use lsp_types::SemanticTokenType;
 use ropey::Rope;
-use systems::setup_parse;
+use systems::{highlight_named_nodes, keyword_highlight, setup_parse};
 
 use self::parser::Json;
 
-mod contexts;
-// mod loader;
-// pub mod parent;
 pub mod parser;
 pub mod systems;
 pub mod tokenizer;
 pub mod triples;
 
-pub type Cache = Arc<Mutex<HashMap<String, Spanned<Value>>>>;
-
 pub fn setup_world<C: Client + Resource>(world: &mut World) {
+    let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
+    JsonLd::LEGEND_TYPES.iter().for_each(|lt| {
+        if !semantic_token_dict.contains_key(lt) {
+            let l = semantic_token_dict.0.len();
+            semantic_token_dict.insert(lt.clone(), l);
+        }
+    });
     world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
         println!("Got create event");
         match &trigger.event().language_id {
@@ -55,8 +52,15 @@ pub fn setup_world<C: Client + Resource>(world: &mut World) {
         }
     });
 
-    world.schedule_scope(SemanticTokensSchedule, |_, schedule| {
-        schedule.add_systems(lsp_core::systems::semantic_tokens_system::<JsonLd>);
+    world.schedule_scope(lsp_core::systems::SemanticTokensSchedule, |_, schedule| {
+        schedule.add_systems((
+            highlight_named_nodes
+                .before(keyword_highlight)
+                .after(basic_semantic_tokens),
+            keyword_highlight
+                .before(semantic_tokens_system)
+                .after(basic_semantic_tokens),
+        ));
     });
 
     world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
@@ -111,35 +115,3 @@ impl LangHelper for JsonLdHelper {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use iref::{Iri, IriRefBuf};
-
-    #[test]
-    fn test_iri_resolve() {
-        let resolved: Result<_, iref::Error> = (|| {
-            let base_iri = Iri::new("http://a/b/c/d;p?q")?;
-            let iri_ref = IriRefBuf::new("tetten")?;
-
-            Ok(iri_ref.resolved(base_iri))
-        })();
-
-        assert!(resolved.is_ok());
-        let resolved = resolved.unwrap();
-        assert_eq!(resolved, "http://a/b/c/tetten");
-    }
-
-    #[test]
-    fn test_iri_resolve_abs() {
-        let resolved: Result<_, iref::Error> = (|| {
-            let base_iri = Iri::new("http://a/b/c/d;p?q")?;
-            let iri_ref = IriRefBuf::new("http://tetten.com")?;
-
-            Ok(iri_ref.resolved(base_iri))
-        })();
-
-        assert!(resolved.is_ok());
-        let resolved = resolved.unwrap();
-        assert_eq!(resolved, "http://tetten.com");
-    }
-}

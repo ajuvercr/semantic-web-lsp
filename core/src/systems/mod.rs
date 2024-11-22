@@ -13,7 +13,9 @@ mod diagnostics;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
 use lsp_types::CompletionItemKind;
-pub use semantics::{semantic_tokens_system, SemanticTokensSchedule};
+pub use semantics::{
+    basic_semantic_tokens, semantic_tokens_system, SemanticTokensSchedule, TokenTypesComponent,
+};
 mod properties;
 pub use properties::{
     complete_class, complete_properties, derive_classes, derive_properties, DefinedClass,

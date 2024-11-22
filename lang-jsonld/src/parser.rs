@@ -1,6 +1,9 @@
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    ops::Range,
+};
 
-use chumsky::{prelude::*, Parser, Stream};
+use chumsky::{prelude::*, Error, Parser, Stream};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
 use lsp_core::{
@@ -8,6 +11,157 @@ use lsp_core::{
     token::Token,
     triples::MyTerm,
 };
+
+struct ObjectMemberManager<'a> {
+    out: Vec<Spanned<ObjectMember>>,
+    full_start: usize,
+    start: usize,
+
+    seen_comma: bool,
+    seen_colon: bool,
+
+    current_key: Option<Spanned<Token>>,
+    current_value: Option<Spanned<Json>>,
+    emit: &'a mut dyn FnMut(Simple<Token>),
+}
+impl<'a> ObjectMemberManager<'a> {
+    fn new(span: &Range<usize>, emit: &'a mut dyn FnMut(Simple<Token>)) -> Self {
+        Self {
+            out: vec![],
+            full_start: span.start,
+            start: span.start,
+            seen_comma: false,
+            seen_colon: false,
+            current_key: None,
+            current_value: None,
+            emit,
+        }
+    }
+
+    fn print(&self) {
+        println!(
+            "key {:?} value {:?} (out {} len) (start {} full start {})",
+            self.current_key.as_ref().map(|x| x.value()),
+            self.current_value.as_ref().map(|x| x.value()),
+            self.out.len(),
+            self.start,
+            self.full_start
+        )
+    }
+
+    fn invalid(&mut self, span: Range<usize>) -> Spanned<Token> {
+        (self.emit)(Simple::custom(span.clone(), "Expected valid token"));
+        Spanned(Token::Invalid("".to_string()), span)
+    }
+    fn invalid_json(&mut self, span: Range<usize>) -> Spanned<Json> {
+        (self.emit)(Simple::custom(span.clone(), "Expected valid json"));
+        Spanned(Json::Invalid, span)
+    }
+
+    fn eat_json(&mut self, part: Spanned<Json>) {
+        if self.current_key.is_none() {
+            let span = part.span().clone();
+            match part {
+                Spanned(Json::Token(t), span) => {
+                    self.current_key = Some(Spanned(t, span));
+                }
+                x => {
+                    self.current_key = Some(self.invalid(self.start..span.start));
+                    self.current_value = Some(x);
+                }
+            }
+
+            self.full_start = span.start;
+            self.start = span.end + 1;
+            return;
+        }
+
+        if self.current_value.is_none() {
+            if !self.seen_colon {
+                (self.emit)(Simple::custom(
+                    self.start - 1..self.start,
+                    "expected colon, didn't find one",
+                ));
+            }
+
+            self.start = part.span().end + 1;
+            self.current_value = Some(part);
+            return;
+        }
+
+        // We didn't expect to flush a thing, but we did
+        self.flush(self.full_start..part.span().end, false);
+        self.eat_json(part);
+    }
+
+    fn eat_token(&mut self, token: Spanned<Token>) {
+        match token {
+            Spanned(Token::Colon, span) => {
+                (self.current_key, self.current_value) =
+                    match (self.current_key.take(), self.current_value.take()) {
+                        (Some(k), Some(Spanned(Json::Token(k2), r))) => {
+                            self.current_key = Some(k);
+                            // self.current_value = Some(self.invalid_json(r.clone()));
+                            self.flush(span.clone(), false);
+                            (Some(Spanned(k2, r)), None)
+                        }
+                        (k, v) => (k, v),
+                    };
+                if self.seen_colon {
+                    (self.emit)(Simple::custom(
+                        span.clone(),
+                        "Unexepected colon, already seen one",
+                    ));
+                }
+                self.seen_colon = true;
+                // we expect to set the second part
+                if self.current_key.is_none() {
+                    self.current_key = Some(self.invalid(self.start..span.start));
+                }
+                self.start = span.end;
+            }
+            Spanned(Token::Comma, span) => {
+                if self.seen_comma {
+                    (self.emit)(Simple::custom(
+                        span.clone(),
+                        "Unexepected comma, already seen one",
+                    ));
+                }
+                self.seen_comma = true;
+                self.flush(span, false);
+            }
+            Spanned(x, s) => {
+                (self.emit)(Simple::expected_input_found(
+                    s,
+                    [Some(Token::Colon), Some(Token::Comma)],
+                    Some(x),
+                ));
+            }
+        }
+    }
+    fn flush(&mut self, span: Range<usize>, end: bool) {
+        if !end && !self.seen_comma {
+            (self.emit)(Simple::custom(
+                span.end - 1..span.end,
+                "Expected comma, but didn't find one",
+            ))
+        }
+        let k = match self.current_key.take() {
+            Some(k) => k,
+            None => self.invalid(span.clone()),
+        };
+        let v = match self.current_value.take() {
+            Some(v) => v,
+            None => self.invalid_json(span.clone()),
+        };
+        self.out
+            .push(Spanned(ObjectMember::Full(k, v), self.full_start..span.end));
+        self.start = span.end + 1;
+        self.full_start = span.end + 1;
+        self.seen_colon = false;
+        self.seen_comma = false;
+    }
+}
 
 #[derive(Clone, PartialEq, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
 pub enum ObjectMember {
@@ -149,36 +303,71 @@ pub fn parse(source: &str, tokens: Vec<Spanned<Token>>) -> (Spanned<Json>, Vec<S
     )
 }
 
+type S = std::ops::Range<usize>;
+fn expect_token(
+    token: Token,
+    not_allowed: Token,
+) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
+    just(token.clone()).or(none_of([token.clone(), not_allowed]).rewind().validate(
+        move |x, span: S, emit| {
+            emit(Simple::expected_input_found(
+                span,
+                [Some(token.clone())],
+                Some(x),
+            ));
+            token.clone()
+        },
+    ))
+}
+
 fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
     use lsp_core::token::Token::*;
     recursive(|value| {
         let array = value
             .clone()
-            .recover_with(skip_parser(
-                none_of([SqClose]).to(Json::Invalid).map_with_span(spanned),
-            ))
-            .separated_by(just(Comma))
+            .separated_by(expect_token(Token::Comma, Token::SqClose))
             .delimited_by(just(SqOpen), just(SqClose))
-            .map(Json::Array);
+            .map(Json::Array)
+            .labelled("array");
 
         // let array = just(SqOpen).ignore_then(value.clone().separated_by(just(Comma))).then_ignore(just(SqClose)).map(Json::Array);
 
-        let member = filter(Token::is_str)
-            .map_with_span(spanned)
-            .then(just(Colon).to(()).map_with_span(spanned).or_not())
-            .then(value.or_not().clone())
-            .validate(|((s, p), o), span, emit| match (p, o) {
-                (Some(_), Some(o)) => ObjectMember::Full(s, o),
-                (p, o) => {
-                    emit(Simple::custom(span, "Erroneous object member"));
-                    ObjectMember::Partial(s, p, o)
-                }
-            });
+        let member_part = value
+            .map(Result::Ok)
+            .or(one_of([Token::Comma, Token::Colon])
+                .map_with_span(spanned)
+                .map(Result::Err));
+        // let member_value = just(Token::Colon).ignore_then(value.clone());
+        // let member = filter(Token::is_str)
+        //     .map_with_span(spanned)
+        //     .then(member_value.or())
+        //     .validate(|(s, o), span, emit| match o {
+        //         Some(o) => ObjectMember::Full(s, o),
+        //         None => {
+        //             emit(Simple::custom(span, "Erroneous object member"));
+        //             ObjectMember::Partial(s, None, None)
+        //         }
+        //     })
+        //     .labelled("object member");
 
         let obj = just(CurlOpen)
-            .ignore_then(member.map_with_span(spanned).separated_by(just(Comma)))
+            .ignore_then(member_part.repeated().validate(|parts, span, emit| {
+                let mut manager = ObjectMemberManager::new(&span, emit);
+
+                for part in parts {
+                    manager.print();
+                    match part {
+                        Ok(e) => manager.eat_json(e),
+                        Err(e) => manager.eat_token(e),
+                    }
+                }
+                manager.print();
+                manager.flush(span, true);
+                manager.out
+            }))
             .then_ignore(just(CurlClose))
-            .map(Json::Object);
+            .map(Json::Object)
+            .labelled("object");
 
         // let obj = member
         //     .map_with_span(spanned)
@@ -186,13 +375,26 @@ fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
         //     .delimited_by(just(CuOpen), just(CuClose))
         //     .map(Json::Object);
 
-        let null = just(Null).map(Json::Token);
-        let t = just(True).map(Json::Token);
-        let f = just(False).map(Json::Token);
-        let st = filter(Token::is_str).map(Json::Token);
-        let num = filter(Token::is_number).map(Json::Token);
+        let leaves = chumsky::prelude::select! {
+            Null => Json::Token(Null),
+            True => Json::Token(True),
+            False => Json::Token(False),
+            Token::Str(x, st) => Json::Token(Token::Str(x, st)),
+            Token::Number(n) => Json::Token(Token::Number(n)),
+        }
+        .labelled("leaf");
 
-        choice((st, array, obj, null, t, f, num)).map_with_span(spanned)
+        choice((array, obj, leaves))
+            // .map(std::result::Result::Ok)
+            // .or(any().map(std::result::Result::Err))
+            // .validate(|t, span, emit| match t {
+            //     Ok(x) => x,
+            //     Err(v) => {
+            //         emit(Simple::custom(span, format!("Expected JSON found {:?}", v)));
+            //         Json::Invalid
+            //     }
+            // })
+            .map_with_span(spanned)
     })
 }
 
@@ -241,60 +443,115 @@ mod tests {
             ]
         );
     }
-    // #[test]
-    // fn parse_json_array_to_vec() {
-    //     let source = "[\"test\", 42]";
-    //     let (tokens, token_errors) = tokenize(source);
-    //     let (json, json_errors) = parse(source, tokens);
-    //
-    //     assert!(token_errors.is_empty());
-    //     assert!(json_errors.is_empty());
-    //
-    //     let parents = parent::system(json);
-    //
-    //     let vec = to_json_vec(&parents).unwrap();
-    //
-    //     assert_eq!(vec, b"[\"test\",42]");
-    //
-    //     let source = "{}";
-    //     let (tokens, token_errors) = tokenize(source);
-    //     let (json, json_errors) = parse(source, tokens);
-    //     println!("errors {:?}", json_errors);
-    //
-    //     assert!(token_errors.is_empty());
-    //     assert!(json_errors.is_empty());
-    //
-    //     let parents = parent::system(json);
-    //
-    //     let vec = to_json_vec(&parents).unwrap();
-    //
-    //     assert_eq!(vec, b"{}");
-    // }
 
-    // #[test]
-    // #[ignore]
-    // fn parse_json_array_invalid() {
-    //     let source = "[\"test\" :  , 42 ]";
-    //     let (tokens, token_errors) = tokenize(source);
-    //     let (json, json_errors) = parse(source, tokens);
-    //
-    //     assert!(token_errors.is_empty());
-    //     // assert_eq!(json_errors.len(), 1);
-    //
-    //     println!("Error: {:?}", json_errors);
-    //     let arr: Vec<_> = match json.into_value() {
-    //         Json::Array(x) => x.into_iter().map(|x| x.into_value()).collect(),
-    //         _ => panic!("Expected json array"),
-    //     };
-    //
-    //     assert_eq!(
-    //         arr,
-    //         vec![
-    //             Json::Token(Token::String("test".into())),
-    //             Json::Token(Token::Num(42, None)),
-    //         ]
-    //     );
-    // }
+    #[test]
+    fn parse_json_object_no_comma() {
+        let source = r#"{
+  "@type": "foaf:Document"
+  "foaf:topic": "foaf:Document"
+}"#;
+
+        let (tokens, token_errors) = tokenize(source);
+        assert_eq!(token_errors, vec![]);
+
+        let (json, json_errors) = parse(source, tokens);
+
+        println!("json errors {:?}", json_errors);
+        assert_eq!(json_errors.len(), 1, "One json error");
+
+        let obj = match json.into_value() {
+            Json::Object(xs) => xs,
+            x => panic!("Expected json object, found {:?}", x),
+        };
+        assert_eq!(obj.len(), 2);
+    }
+
+    #[test]
+    fn parse_json_object_no_value() {
+        let source = r#"{
+  "something":
+  "foaf:topic": "foaf:Document"
+}"#;
+
+        let (tokens, token_errors) = tokenize(source);
+        assert_eq!(token_errors, vec![]);
+
+        let (json, json_errors) = parse(source, tokens);
+
+        for e in &json_errors {
+            println!("json errors {:?}", e);
+        }
+
+        let obj = match json.into_value() {
+            Json::Object(xs) => xs,
+            x => panic!("Expected json object, found {:?}", x),
+        };
+        assert_eq!(obj.len(), 2);
+
+        assert_eq!(
+            json_errors.len(),
+            2,
+            "Erroneous object member and expected comma"
+        );
+    }
+
+    #[test]
+    fn parse_json_object_no_colon_value() {
+        let source = r#"{
+  "something"
+  "foaf:topic": "foaf:Document"
+}"#;
+
+        let (tokens, token_errors) = tokenize(source);
+        assert_eq!(token_errors, vec![]);
+
+        let (json, json_errors) = parse(source, tokens);
+
+        for e in &json_errors {
+            println!("json errors {:?}", e);
+        }
+
+        let obj = match json.into_value() {
+            Json::Object(xs) => xs,
+            x => panic!("Expected json object, found {:?}", x),
+        };
+        assert_eq!(obj.len(), 2);
+
+        for e in &json_errors {
+            println!("e {:?}", e);
+        }
+
+        assert_eq!(
+            json_errors.len(),
+            3,
+            "Erroneous object member and expected comma"
+        );
+    }
+
+    #[ignore]
+    #[test]
+    fn parse_json_array_invalid() {
+        let source = "[\"test\" :  , 42 ]";
+        let (tokens, token_errors) = tokenize(source);
+        let (json, json_errors) = parse(source, tokens);
+
+        assert!(token_errors.is_empty());
+        // assert_eq!(json_errors.len(), 1);
+
+        println!("Error: {:?}", json_errors);
+        let arr: Vec<_> = match json.into_value() {
+            Json::Array(x) => x.into_iter().map(|x| x.into_value()).collect(),
+            x => panic!("Expected json array, got {:?}", x),
+        };
+
+        assert_eq!(
+            arr,
+            vec![
+                Json::Token(Token::Str("test".into(), StringStyle::Double)),
+                Json::Token(Token::Number("42".to_string())),
+            ]
+        );
+    }
 
     #[test]
     fn parse_failed() {

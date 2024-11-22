@@ -5,10 +5,11 @@ use bevy_ecs::{
     world::World,
 };
 use client::Client;
+use components::SemanticTokensDict;
 use systems::{
-    complete_class, complete_properties, defined_prefix_completion, derive_classes,
-    derive_prefix_links, derive_properties, fetch_lov_properties, get_current_token,
-    get_current_triple,
+    basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
+    derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
+    get_current_token, get_current_triple, semantic_tokens_system,
 };
 
 pub mod client;
@@ -24,6 +25,8 @@ pub mod triples;
 pub mod utils;
 
 pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
+    world.init_resource::<SemanticTokensDict>();
+
     let mut parse = Schedule::new(Parse);
     parse.add_systems((
         derive_prefix_links,
@@ -47,7 +50,13 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(Schedule::new(Diagnostics));
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
-    world.add_schedule(Schedule::new(systems::SemanticTokensSchedule));
+
+    let mut semantic_tokens = Schedule::new(systems::SemanticTokensSchedule);
+    semantic_tokens.add_systems((
+        basic_semantic_tokens,
+        semantic_tokens_system.after(basic_semantic_tokens),
+    ));
+    world.add_schedule(semantic_tokens);
 }
 
 #[derive(Event)]

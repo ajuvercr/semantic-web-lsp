@@ -1,11 +1,11 @@
 use crate::{
-    components::{Element, HighlightRequest, RopeC, Tokens},
-    lang::{Lang, Token},
+    components::{HighlightRequest, RopeC, SemanticTokensDict, Tokens, Wrapped},
+    lang::Token,
+    model::{spanned, Spanned},
 };
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 use lsp_types::{SemanticToken, SemanticTokenType};
-use tracing::info;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct SemanticTokensSchedule;
@@ -16,22 +16,37 @@ struct T {
     ty: usize,
 }
 
-pub fn semantic_tokens_system<L: Lang>(
-    mut query: Query<(&RopeC, &Tokens, Option<&Element<L>>, &mut HighlightRequest)>,
+pub type TokenTypesComponent = Wrapped<Vec<Spanned<SemanticTokenType>>>;
+pub fn basic_semantic_tokens(
+    mut query: Query<(Entity, &Tokens), With<HighlightRequest>>,
+    mut commands: Commands,
 ) {
-    for (rope, tokens, element, mut req) in &mut query {
-        info!("Found {} tokens", tokens.0.len());
+    for (e, tokens) in &mut query {
+        let types: TokenTypesComponent = Wrapped(
+            tokens
+                .iter()
+                .flat_map(|token| {
+                    Token::span_tokens(token)
+                        .into_iter()
+                        .map(|(x, y)| spanned(x, y))
+                })
+                .collect(),
+        );
+        commands.entity(e).insert(types);
+    }
+}
 
+pub fn semantic_tokens_system(
+    mut query: Query<(&RopeC, &TokenTypesComponent, &mut HighlightRequest)>,
+    res: Res<SemanticTokensDict>,
+) {
+    for (rope, types, mut req) in &mut query {
         let rope = &rope.0;
         let mut ts: Vec<Option<SemanticTokenType>> = Vec::with_capacity(rope.len_chars());
         ts.resize(rope.len_chars(), None);
-        tokens.0.iter().for_each(|token| {
-            Token::span_tokens(token)
-                .into_iter()
-                .for_each(|(token, span)| span.for_each(|j| ts[j] = Some(token.clone())));
+        types.iter().for_each(|Spanned(ty, r)| {
+            r.clone().for_each(|j| ts[j] = Some(ty.clone()));
         });
-
-        let _ = element;
 
         let mut last = None;
         let mut start = 0;
@@ -42,7 +57,7 @@ pub fn semantic_tokens_system<L: Lang>(
                     out_tokens.push(T {
                         start,
                         length: i - start,
-                        ty: L::LEGEND_TYPES.iter().position(|x| x == &t).unwrap_or(0),
+                        ty: res.get(&t).cloned().unwrap_or(0),
                     });
                 }
 
@@ -55,7 +70,7 @@ pub fn semantic_tokens_system<L: Lang>(
             out_tokens.push(T {
                 start,
                 length: rope.len_chars() - start,
-                ty: L::LEGEND_TYPES.iter().position(|x| x == &t).unwrap_or(0),
+                ty: res.get(&t).cloned().unwrap_or(0),
             });
         }
 
