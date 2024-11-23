@@ -406,6 +406,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
 
 [[package]]
+name = "casey"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "614586263949597dcc18675da12ef9b429135e13628d92eb8b8c6fa50ca5656b"
+dependencies = [
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1003,6 +1012,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "lang-sparql"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "chumsky",
+ "enum-methods",
+ "futures",
+ "hashbrown 0.13.2",
+ "lsp-core",
+ "lsp-types",
+ "reqwest",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "sophia_iri",
+ "test-log",
+ "test-utils",
+ "token-helpers",
+ "tower-lsp",
+ "tracing",
+]
+
+[[package]]
 name = "lang-turtle"
 version = "0.1.0"
 dependencies = [
@@ -1022,6 +1055,7 @@ dependencies = [
  "sophia_iri",
  "test-log",
  "test-utils",
+ "token-helpers",
  "tower-lsp",
  "tracing",
 ]
@@ -1097,6 +1131,7 @@ name = "lsp-core"
 version = "0.1.0"
 dependencies = [
  "bevy_ecs",
+ "casey",
  "chrono",
  "chumsky",
  "derive_more",
@@ -1976,6 +2011,16 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "token-helpers"
+version = "0.1.0"
+dependencies = [
+ "chumsky",
+ "lsp-core",
+ "test-log",
+ "test-utils",
+]
 
 [[package]]
 name = "tokio"

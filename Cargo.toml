@@ -5,7 +5,7 @@ bevy_ecs = { version = "0.14.2", default-features = false, features = [
 ] }
 bevy_tasks = { version = "0.14.2", features = ["multi_threaded"] }
 chumsky = "0.9.0"
-derive_more = { version = "1.0.0", features = ["as_ref", "deref", "deref_mut"]}
+derive_more = { version = "1.0.0", features = ["as_ref", "deref", "deref_mut"] }
 enum-methods = "0.0.8"
 futures = { version = "0.3.31", features = ["thread-pool", "async-await"] }
 hashbrown = "0.13.2"
@@ -30,7 +30,9 @@ members = [
   "lsp-web",
   "lang-turtle",
   "lang-jsonld",
+  "lang-sparql",
   "lsp-bin",
   "test-utils",
+  "token-helpers",
 ]
 resolver = "2"

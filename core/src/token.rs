@@ -4,6 +4,89 @@ use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
 use crate::model::Spanned;
 
+pub mod testing {
+
+    macro_rules! derive_enum {
+    // entry point, put all meta things in brackets (ie #[derive()] pub)
+    ($(#$meta:tt)? $vis:vis enum $name:ident { 
+        $($xs:tt)*
+    }) => {
+        derive_enum!(@imp $name {} ($(#$meta)? $vis): $($xs)*);
+        derive_enum!(@fromStr $name {}: $($xs)*);
+    };
+
+    // enum implementation
+    (@imp $name:ident {$($eout:tt)*} ($($meta:tt)*): $member:ident, $($xs:tt)*) => {
+        derive_enum!(@imp $name { $member, $($eout)*} ($($meta)*): $($xs)*);
+    };
+    (@imp $name:ident {$($eout:tt)*} ($($meta:tt)*): $member:ident @ $str:tt, $($xs:tt)*) => {
+        derive_enum!(@imp $name { $member, $($eout)*} ($($meta)*): $($xs)*);
+    };
+    (@imp $name:ident {$($eout:tt)*} ($($meta:tt)*):) => {
+        $($meta)*
+        enum $name {
+            $($eout)*
+        }
+    };
+
+    // fromstr implementation
+    (@fromStr $name:ident {$($eout:tt)*}: $member:ident, $($xs:tt)*) => {
+        derive_enum!(@fromStr $name
+            { x if x.eq_ignore_ascii_case(stringify!($member))  => Ok($name::$member), $($eout)*}:
+            $($xs)*
+        );
+    };
+    (@fromStr $name:ident {$($eout:tt)*}: $member:ident @ $str:tt, $($xs:tt)*) => {
+        derive_enum!(@fromStr $name
+            { $str => Ok($name::$member), $($eout)*}:
+            $($xs)*
+        );
+    };
+    (@fromStr $name:ident {$($eout:tt)*}:) => {
+        impl std::str::FromStr for $name {
+            type Err = ();
+
+            fn from_str(st: &str) -> Result<Self, Self::Err> {
+                match st {
+                    $($eout)*
+                    _ => Err(()),
+                }
+            }
+        }
+    };
+}
+
+    derive_enum!(
+        #[derive(Debug, Clone, PartialEq)] 
+        pub enum SparqlExpr2 { 
+            Or, And, Plus @ "+",
+        }
+    );
+
+    derive_enum!(
+       enum SparqlExpr3 { Or, And, Plus @ "+", }
+    );
+
+    #[cfg(test)]
+    mod tests {
+        use std::str::FromStr as _;
+
+        use super::SparqlExpr2;
+
+        #[test]
+        fn test_sparql_expr_2() {
+            let or = SparqlExpr2::from_str("or");
+            assert_eq!(or, Ok(SparqlExpr2::Or));
+
+            let or = SparqlExpr2::from_str("+");
+            assert_eq!(or, Ok(SparqlExpr2::Plus));
+        }
+    }
+    pub fn testing() {
+        let _ = SparqlExpr2::Or;
+    }
+}
+
 pub mod semantic_token {
     use lsp_types::SemanticTokenType as STT;
     pub const BOOLEAN: STT = STT::new("boolean");
@@ -11,9 +94,156 @@ pub mod semantic_token {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+pub enum SparqlExpr {
+    Or,
+    And,
+    Equal,
+    NotEqual,
+    Lt,
+    Gt,
+    Lte,
+    Gte,
+    In,
+    Not,
+    Plus,
+    Minus,
+    Times,
+    Divide,
+    Exclamation,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+pub enum SparqlCall {
+    Str,
+    Lang,
+    LangMatches,
+    LangDir,
+    Datatype,
+    Bound,
+    Iri,
+    Uri,
+    Bnode,
+    Rand,
+    Abs,
+    Ceil,
+    Floor,
+    Round,
+    Concat,
+    StrLen,
+    Ucase,
+    Lcase,
+    EncodeForUri,
+    Contains,
+    StrStarts,
+    StrEnds,
+    StrBefore,
+    StrAfter,
+    Year,
+    Month,
+    Day,
+    Hours,
+    Minutes,
+    Seconds,
+    Timezone,
+    Tz,
+    Now,
+    Uuid,
+    StrUuid,
+    Md5,
+    Sha1,
+    Sha256,
+    Sha384,
+    Sha512,
+    Coalesce,
+    If,
+    StrLang,
+    StrLangDir,
+    StrDt,
+    SameTerm,
+    IsIri,
+    IsUri,
+    IsBlank,
+    IsLiteral,
+    IsNumeric,
+    HasLang,
+    HasLangDir,
+    IsTriple,
+    Triple,
+    Subject,
+    Predicate,
+    Object,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+pub enum SparqlAggregate {
+    Count,
+    Sum,
+    Min,
+    Max,
+    Avg,
+    Sample,
+    GroupConcat,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+pub enum SparqlKeyword {
+    Regex,
+    Substr,
+    Replace,
+    Exists,
+    Select,
+    Distinct,
+    Reduced,
+    As,
+    Construct,
+    Where,
+    Describe,
+    Ask,
+    From,
+    Named,
+    Group,
+    By,
+    Having,
+    Order,
+    Asc,
+    Desc,
+    Limit,
+    Offset,
+    Values,
+    Load,
+    Silent,
+    Clear,
+    Drop,
+    Create,
+    Add,
+    Move,
+    Copy,
+    Insert,
+    Data,
+    Delete,
+    With,
+    Using,
+    Default,
+    All,
+    Graph,
+    Service,
+    Bind,
+    Undef,
+    Minus,
+    Filter,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
 pub enum Token {
+    /// Sparql expression
+    SparqlExpr(SparqlExpr),
+    /// Sparql keyword
+    SparqlKeyword(SparqlKeyword),
+    /// Sparql call
+    SparqlCall(SparqlCall),
+    /// Sparql aggregate
+    SparqlAggregate(SparqlAggregate),
     // Turtle Tokens
-    
     /// @prefix
     PrefixTag,
     /// @base
@@ -70,12 +300,10 @@ pub enum Token {
     ANON,
     Comment(String),
 
-
     /// :
     Colon,
     /// null
     Null,
-
 
     Invalid(String),
 }
@@ -191,6 +419,10 @@ impl std::fmt::Display for Token {
             Token::CurlClose => write!(f, "'}}'"),
             Token::Colon => write!(f, "':'"),
             Token::Null => write!(f, "'null'"),
+            Token::SparqlExpr(_) => write!(f, "sparql expr token"),
+            Token::SparqlKeyword(_) => write!(f, "sparql keyword"),
+            Token::SparqlCall(_) => write!(f, "sparql call"),
+            Token::SparqlAggregate(_) => write!(f, "sparql aggregate"),
         }
     }
 }

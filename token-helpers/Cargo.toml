@@ -1,0 +1,16 @@
+[package]
+name = "token-helpers"
+
+authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
+edition = "2021"
+version = "0.1.0"
+
+[dependencies]
+chumsky.workspace      = true
+
+lsp-core = { path = "../core/" }
+
+[dev-dependencies]
+test-log   = { version = "0.2.16", features = ["trace"] }
+test-utils = { path = "../test-utils/" }
+
