@@ -4,20 +4,6 @@ use chumsky::prelude::*;
 use lsp_core::model::{spanned, Spanned};
 use lsp_core::token::{StringStyle, Token};
 
-// impl Token for Token {
-//     fn token(&self) -> Option<lsp_types::SemanticTokenType> {
-//         use lsp_types::SemanticTokenType;
-//         match self {
-//             Token::True => Some(SemanticTokenType::ENUM_MEMBER),
-//             Token::False => Some(SemanticTokenType::ENUM_MEMBER),
-//             Token::Null => Some(SemanticTokenType::ENUM_MEMBER),
-//             Token::String(_) => Some(SemanticTokenType::STRING),
-//             Token::Num(_, _) => Some(SemanticTokenType::NUMBER),
-//             _ => None,
-//         }
-//     }
-// }
-
 pub fn tokenize(st: &str) -> (Vec<Spanned<Token>>, Vec<Simple<char>>) {
     let parser = parser()
         .then_ignore(end().recover_with(skip_then_retry_until([])))
