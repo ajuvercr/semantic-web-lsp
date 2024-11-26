@@ -7,6 +7,7 @@ use token_helpers::*;
 
 pub fn parse_token() -> t!(Token) {
     choice((
+        keywords(),
         comment(),
         iri_ref(),
         pname_ns(),

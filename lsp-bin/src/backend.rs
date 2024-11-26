@@ -13,10 +13,12 @@ use lsp_types::*;
 
 use futures::lock::Mutex;
 use ropey::Rope;
+use tokio::time::sleep;
 use tracing::info;
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::LanguageServer;
 
@@ -128,6 +130,11 @@ impl LanguageServer for Backend {
                                             scheme: None,
                                             pattern: Some(String::from("*.jsonld")),
                                         },
+                                        DocumentFilter {
+                                            language: Some(String::from("sparql")),
+                                            scheme: None,
+                                            pattern: Some(String::from("*.sq")),
+                                        },
                                     ]),
                                 }
                             },
@@ -161,12 +168,27 @@ impl LanguageServer for Backend {
         info!("semantic tokens full");
         let uri = params.text_document.uri.as_str();
         let entity = {
-            let map = self.entities.lock().await;
-            if let Some(entity) = map.get(uri) {
-                entity.clone()
+            let e = {
+                let map = self.entities.lock().await;
+                if let Some(entity) = map.get(uri) {
+                    Some(entity.clone())
+                } else {
+                    info!("Didn't find entity {} retrying", uri);
+                    None
+                }
+            };
+
+            if let Some(e) = e {
+                e
             } else {
-                info!("Didn't find entity {}", uri);
-                return Ok(None);
+                sleep(Duration::from_millis(50)).await;
+                let map = self.entities.lock().await;
+                if let Some(entity) = map.get(uri) {
+                    entity.clone()
+                } else {
+                    info!("Didn't find entity {} stopping", uri);
+                    return Ok(None);
+                }
             }
         };
 

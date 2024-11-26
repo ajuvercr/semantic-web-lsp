@@ -1,6 +1,6 @@
 use std::{
     borrow::Borrow,
-    ops::{Deref, Range},
+    ops::{Deref, DerefMut, Range},
 };
 
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
@@ -77,6 +77,12 @@ impl<T> Deref for Spanned<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<T> DerefMut for Spanned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 

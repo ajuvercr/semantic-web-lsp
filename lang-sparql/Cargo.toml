@@ -32,10 +32,10 @@ tracing.workspace      = true
 # once_cell   = "1.17.1"
 # rdf-types   = "0.14.2"
 
-token-helpers      = { path = "../token-helpers/" }
-lsp-core = { path = "../core/" }
+lang-turtle   = { path = "../lang-turtle/" }
+lsp-core      = { path = "../core/" }
+token-helpers = { path = "../token-helpers/" }
 
 [dev-dependencies]
 test-log   = { version = "0.2.16", features = ["trace"] }
 test-utils = { path = "../test-utils/" }
-

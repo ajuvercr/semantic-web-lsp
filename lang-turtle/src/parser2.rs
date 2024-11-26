@@ -1,6 +1,8 @@
 use chumsky::prelude::*;
 use tracing::info;
 
+use crate::Variable;
+
 use super::{
     token::{StringStyle, Token},
     Base, BlankNode, Literal, NamedNode, Prefix, RDFLiteral, Term, Triple, Turtle, PO,
@@ -63,7 +65,7 @@ fn literal() -> impl Parser<Token, Literal, Error = Simple<Token, S>> + Clone {
         })
 }
 
-fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> + Clone {
+pub fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> + Clone {
     let invalid = select! {
         Token::Invalid(_) => NamedNode::Invalid,
     }
@@ -83,7 +85,7 @@ fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> + Clo
     .or(invalid)
 }
 
-fn expect_token(token: Token) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
+pub fn expect_token(token: Token) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
     just(token.clone()).or(none_of([token.clone()])
         .rewind()
         .validate(move |_, span: S, emit| {
@@ -115,9 +117,17 @@ fn blank_node() -> impl Parser<Token, BlankNode, Error = Simple<Token>> + Clone 
 }
 
 fn subject() -> impl Parser<Token, Term, Error = Simple<Token, S>> + Clone {
-    named_node()
-        .map(|x| Term::NamedNode(x))
-        .or(blank_node().map(|x| Term::BlankNode(x)))
+    let nn = named_node().map(|x| Term::NamedNode(x));
+    let bn = blank_node().map(|x| Term::BlankNode(x));
+    let var = variable().map(|x| Term::Variable(x));
+
+    nn.or(bn).or(var)
+}
+
+fn variable() -> impl Parser<Token, Variable, Error = Simple<Token, S>> + Clone {
+    select! {
+        Token::Variable(x) => Variable(x),
+    }
 }
 
 fn term(
@@ -137,8 +147,8 @@ fn term(
         let nn = named_node().map(|x| Term::NamedNode(x));
         let blank = bn.map(|x| Term::BlankNode(x));
         let literal = literal().map(|x| Term::Literal(x));
-
-        collection.or(literal).or(nn).or(blank)
+        let variable = variable().map(|x| Term::Variable(x));
+        collection.or(literal).or(nn).or(blank).or(variable)
     })
 }
 
@@ -146,6 +156,7 @@ fn po(
     bn: impl Clone + Parser<Token, BlankNode, Error = Simple<Token>> + 'static,
 ) -> impl Parser<Token, PO, Error = Simple<Token>> + Clone {
     term(bn.clone())
+        .labelled("object")
         .map_with_span(spanned)
         .separated_by(just(Token::Comma))
         .at_least(1)
@@ -158,7 +169,8 @@ fn po(
             let os1 = os.clone();
             let predicate = term(bn.clone())
                 .map_with_span(spanned)
-                .map(move |pred| (os1.clone(), pred));
+                .map(move |pred| (os1.clone(), pred))
+                .labelled("basic predicate");
 
             let os2 = os.clone();
             // let end = os[0].span().end;
@@ -179,14 +191,15 @@ fn po(
                     os[0] = spanned(Term::NamedNode(NamedNode::Invalid), os[0].span().clone());
 
                     (os, pred)
-                });
+                })
+                .labelled("alt predicate");
 
             predicate.or(alt_pred)
         })
         .map(|(object, predicate)| PO { predicate, object })
 }
 
-fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
+pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
     expect_token(Token::Stop)
         .ignore_then(
             po(blank_node())

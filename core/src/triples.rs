@@ -85,7 +85,13 @@ impl PartialEq for MyTerm<'_> {
 
 impl<'a> std::fmt::Display for MyTerm<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<{}>", self.value)
+        match self.kind() {
+            TermKind::Iri => write!(f, "<{}>", self.value),
+            TermKind::Literal => write!(f, "\"{}\"", self.value),
+            TermKind::BlankNode => write!(f, "_:{}", self.value),
+            TermKind::Triple => write!(f, "<{}>", self.value),
+            TermKind::Variable => write!(f, "?{}", self.value),
+        }
     }
 }
 
@@ -96,6 +102,13 @@ impl<'a> MyTerm<'a> {
             value,
             ty: self.ty.clone(),
             span: self.span.clone(),
+        }
+    }
+    pub fn variable<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
+        Self {
+            value: value.into(),
+            ty: TermKind::Variable.into(),
+            span,
         }
     }
     pub fn named_node<T: Into<Cow<'a, str>>>(value: T, span: std::ops::Range<usize>) -> Self {
