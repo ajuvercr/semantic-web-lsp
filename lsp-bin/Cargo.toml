@@ -21,6 +21,7 @@ tower-lsp.workspace    = true
 tracing.workspace      = true
 
 lang-jsonld = { path = "../lang-jsonld/" }
+lang-sparql = { path = "../lang-sparql/" }
 lang-turtle = { path = "../lang-turtle/" }
 lsp-core    = { path = "../core/" }
 

@@ -66,7 +66,7 @@ fn derive_prefixes(
             .prefixes
             .iter()
             .flat_map(|prefix| {
-                let url = prefix.value.expand(&turtle)?;
+                let url = prefix.value.expand(turtle.value())?;
                 let url = lsp_types::Url::parse(&url).ok()?;
                 Some(Prefix {
                     url,

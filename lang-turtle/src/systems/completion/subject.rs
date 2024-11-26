@@ -19,7 +19,7 @@ pub fn subject_completion(
                 prefix: pref.clone().unwrap_or_default(),
                 value: value.clone(),
             }
-            .expand(&turtle.0),
+            .expand(turtle.0.value()),
             _ => continue,
         };
         let Some(expanded) = m_expaned else { continue };

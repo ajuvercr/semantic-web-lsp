@@ -360,7 +360,18 @@ impl FormatState<'_> {
             Term::BlankNode(b) => self.write_bnode(b)?,
             Term::NamedNode(n) => write!(self.buf, "{}", n)?,
             Term::Collection(ts) => self.write_collection(ts)?,
-            Term::Invalid => return Err(io::Error::new(io::ErrorKind::Other, "")),
+            Term::Invalid => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "cannot format turtle with invalid terms",
+                ))
+            }
+            Term::Variable(_) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "cannot format turtle with variables",
+                ))
+            }
         }
         Ok(())
     }

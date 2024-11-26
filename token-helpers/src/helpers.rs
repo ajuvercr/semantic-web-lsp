@@ -1,8 +1,5 @@
-use std::marker::PhantomData;
-
 use chumsky::chain::Chain;
 use chumsky::prelude::*;
-use chumsky::primitive::Seq;
 use chumsky::Parser;
 use lsp_core::token::{StringStyle, Token};
 
@@ -13,32 +10,25 @@ macro_rules! t {
     };
 }
 
-fn char_insensitive(c: char) -> impl Parser<char, char, Error = Simple<char>> + Clone {
-    just(c.to_ascii_uppercase()).or(just(c.to_ascii_lowercase()))
-}
-
-pub fn case_insensitive_kwd(token_str: &'static str, token: Token) -> t!(Token) {
-    let st: Vec<_> = token_str
-        .chars()
-        .map(|x| {
-            choice::<_, Simple<char>>((
-                just::<char, _, Simple<char>>(x.to_ascii_uppercase()),
-                just::<char, _, Simple<char>>(x.to_ascii_lowercase()),
-            ))
-        })
-        .collect();
-
-    just(st).map(|_| token)
-}
-
-fn tok(st: &'static str, tok: Token) -> t!(Token) {
+pub fn tok(st: &'static str, tok: Token) -> t!(Token) {
     just::<char, &str, Simple<char>>(st).to(tok)
+}
+
+pub fn tokens_ext() -> t!(Token) {
+    choice((tok("{", Token::CurlOpen), tok("}", Token::CurlClose)))
+}
+
+pub fn keywords() -> t!(Token) {
+    just('@').ignore_then(choice((
+        just("prefix").to(Token::PrefixTag),
+        just("base").to(Token::BaseTag),
+    )))
 }
 
 pub fn tokens() -> t!(Token) {
     choice((
-        tok("@prefix", Token::PrefixTag),
-        tok("@base", Token::BaseTag),
+        // tok("@prefix", Token::PrefixTag),
+        // tok("@base", Token::BaseTag),
         tok("PREFIX", Token::SparqlPrefix),
         tok("BASE", Token::SparqlBase),
         tok("[", Token::SqOpen),
@@ -147,9 +137,11 @@ pub fn integer() -> t!(Token) {
         filter(|c: &char| c.is_numeric())
             .repeated()
             .at_least(1)
-            .then(exponent())
+            .then(exponent().or_not())
             .map(|(mut x, y)| {
-                y.append_to(&mut x);
+                if let Some(exp) = y {
+                    exp.append_to(&mut x);
+                }
                 x
             })
     };
@@ -282,6 +274,9 @@ pub fn pn_chars_base() -> t!(char) {
 pub fn pn_chars_u() -> t!(char) {
     pn_chars_base().or(just('_'))
 }
+pub fn varname() -> t!(char) {
+    pn_chars_u().or(filter(|c: &char| c.is_numeric()))
+}
 pub fn pn_chars() -> t!(char) {
     pn_chars_u()
         .or(just('-'))
@@ -363,7 +358,6 @@ pub fn pn_local_esc() -> t!(Vec<char>) {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     #[test]
     fn parse_keywords() {

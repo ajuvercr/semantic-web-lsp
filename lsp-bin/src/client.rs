@@ -30,8 +30,8 @@ impl ClientSync for TowerClient {
     fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
         let handle = std::thread::current();
         info!("Spawn threaad name {:?}", handle.id());
-        info!("Spawn succesful");
         self.handle.spawn(fut);
+        // info!("Should spawn but won't!");
     }
 
     fn fetch(
@@ -41,6 +41,7 @@ impl ClientSync for TowerClient {
     ) -> Pin<Box<dyn Send + std::future::Future<Output = Result<Resp, String>>>> {
         use tokio::{fs::File, io::AsyncReadExt};
         use tracing::{debug, error, info};
+        info!("Should fetch, fetching!");
 
         let m_url = reqwest::Url::parse(url);
 
