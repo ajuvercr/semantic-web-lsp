@@ -4,11 +4,11 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
 use lsp_core::components::{
-    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, Label, Open,
+    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, InlayRequest, Label, Open,
     PositionComponent, RopeC, Source, Wrapped,
 };
 use lsp_core::systems::spawn_or_insert;
-use lsp_core::{Completion, Diagnostics, Format, Parse};
+use lsp_core::{Completion, Diagnostics, Format, Inlay, Parse};
 use lsp_types::*;
 
 use futures::lock::Mutex;
@@ -101,6 +101,7 @@ impl LanguageServer for Backend {
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
+                inlay_hint_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
@@ -216,6 +217,26 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self))]
     async fn shutdown(&self) -> Result<()> {
         Ok(())
+    }
+
+    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+        info!("Inlay hints called");
+        let uri = params.text_document.uri.as_str();
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(uri) {
+                entity.clone()
+            } else {
+                info!("Didn't find entity {}", uri);
+                return Ok(None);
+            }
+        };
+
+        let request = self
+            .run_schedule::<InlayRequest>(entity, Inlay, InlayRequest(None))
+            .await;
+
+        Ok(request.and_then(|x| x.0))
     }
 
     #[tracing::instrument(skip(self))]

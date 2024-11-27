@@ -9,7 +9,7 @@ use components::SemanticTokensDict;
 use systems::{
     basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
     derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
-    get_current_token, get_current_triple, semantic_tokens_system,
+    get_current_token, get_current_triple, inlay_triples, semantic_tokens_system,
 };
 
 pub mod client;
@@ -50,6 +50,10 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(Schedule::new(Diagnostics));
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
+    let mut inlay = Schedule::new(Inlay);
+    inlay.add_systems(inlay_triples);
+    world.add_schedule(inlay);
+
 
     let mut semantic_tokens = Schedule::new(systems::SemanticTokensSchedule);
     semantic_tokens.add_systems((
@@ -79,3 +83,6 @@ pub struct Tasks;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Format;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Inlay;

@@ -45,6 +45,7 @@ pub fn semantic_tokens_system(
         let mut ts: Vec<Option<SemanticTokenType>> = Vec::with_capacity(rope.len_chars());
         ts.resize(rope.len_chars(), None);
         types.iter().for_each(|Spanned(ty, r)| {
+            tracing::info!("{:?} in {}", r, ts.len());
             r.clone().for_each(|j| ts[j] = Some(ty.clone()));
         });
 

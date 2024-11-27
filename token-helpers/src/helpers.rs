@@ -52,7 +52,7 @@ pub fn comment() -> t!(Token) {
 }
 
 pub fn invalid() -> t!(Token) {
-    none_of(" \n\r")
+    none_of(" \n\r.,;[]")
         .repeated()
         .at_least(1)
         .collect()

@@ -1,5 +1,5 @@
 use sophia_iri::resolve::{BaseIri, IriParseError};
-use tracing::info;
+use tracing::{debug, info};
 
 use super::token::StringStyle;
 
@@ -453,20 +453,30 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
         span: std::ops::Range<usize>,
         subject: MyTerm<'a>,
     ) -> Result<(), TurtleSimpleError> {
-        // if pos.is_empty() {
-        //     let predicate = MyTerm::named_node("TestPredicate", 0..0);
-        //     let object = MyTerm::named_node("TestObject", 0..0);
-        //
-        //     let quad = MyQuad {
-        //         subject: subject.clone(),
-        //         predicate: predicate.clone(),
-        //         object,
-        //         span: span.clone(),
-        //     };
-        //
-        //     self.triples.push(quad);
-        // }
-        for Spanned(PO { predicate, object }, _) in pos.iter() {
+        if pos.is_empty() {
+            let e = subject.span.end;
+            let predicate = MyTerm::named_node("TestPredicate", 0..0);
+            let object = MyTerm::named_node("TestObject", 0..0);
+
+            let quad = MyQuad {
+                subject: subject.clone(),
+                predicate: predicate.clone(),
+                object,
+                span: span.clone(),
+            };
+
+            self.triples.push(quad);
+        }
+        let mut first = true;
+
+        for Spanned(PO { predicate, object }, span2) in pos.iter() {
+            let this_span = if first {
+                first = false;
+                span.clone()
+            } else {
+                span2.clone()
+            };
+
             let predicate = if let Ok(node) = predicate
                 .value()
                 .expand_step(self.based, HashSet::new())
@@ -485,14 +495,21 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
                 MyTerm::invalid(predicate.span().clone())
             };
 
+            let mut first_object = true;
             for o in object.iter() {
+                let this_span = if first_object {
+                    first_object = false;
+                    this_span.clone()
+                } else {
+                    o.span().clone()
+                };
                 let object = self.term_to_my_term(Ok(o.as_ref()))?;
 
                 let quad = MyQuad {
                     subject: subject.clone(),
                     predicate: predicate.clone(),
                     object,
-                    span: span.clone(),
+                    span: this_span,
                 };
 
                 self.triples.push(quad);
