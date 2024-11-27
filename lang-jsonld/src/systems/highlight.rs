@@ -49,7 +49,10 @@ fn walk_json(json: &Spanned<parser::Json>, ttc: &mut Vec<Spanned<SemanticTokenTy
 }
 
 pub fn highlight_named_nodes(
-    mut query: Query<(&Triples, &mut TokenTypesComponent), With<HighlightRequest>>,
+    mut query: Query<
+        (&Triples, &mut TokenTypesComponent),
+        (With<HighlightRequest>, With<Element<JsonLd>>),
+    >,
 ) {
     for (triples, mut ttc) in &mut query {
         for MyQuad {

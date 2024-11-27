@@ -1,18 +1,20 @@
 use crate::{
     components::{
-        CommandReceiver, CompletionRequest, DocumentLinks, DynLang, Label, PositionComponent,
-        Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget, Triples,
+        CommandReceiver, CompletionRequest, DocumentLinks, DynLang, InlayRequest, Label,
+        PositionComponent, Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget,
+        Triples,
     },
     lang::SimpleCompletion,
-    utils::{position_to_offset, range_to_range},
+    utils::{offset_to_position, position_to_offset, range_to_range},
     CreateEvent, Parse,
 };
 use bevy_ecs::prelude::*;
 
 mod diagnostics;
+pub mod prefix;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
-use lsp_types::CompletionItemKind;
+use lsp_types::{lsp_request, request::InlayHintRequest, CompletionItemKind};
 pub use semantics::{
     basic_semantic_tokens, semantic_tokens_system, SemanticTokensSchedule, TokenTypesComponent,
 };
@@ -125,6 +127,10 @@ pub fn get_current_triple(
     for (e, position, triples, rope) in &query {
         commands.entity(e).remove::<TripleComponent>();
 
+        for t in triples.iter() {
+            debug!("Triple {}", t);
+        }
+
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             debug!("Couldn't transform to an offset");
             continue;
@@ -220,5 +226,28 @@ pub fn defined_prefix_completion(
             });
 
         req.0.extend(completions);
+    }
+}
+
+#[instrument(skip(query))]
+pub fn inlay_triples(mut query: Query<(&Triples, &RopeC, &mut InlayRequest)>) {
+    for (triples, rope, mut req) in &mut query {
+        let mut out = Vec::new();
+        for t in triples.iter() {
+            let Some(position) = offset_to_position(t.span.end, &rope) else {
+                continue;
+            };
+            out.push(lsp_types::InlayHint {
+                position,
+                label: lsp_types::InlayHintLabel::String(format!("{}", t)),
+                kind: None,
+                text_edits: None,
+                tooltip: None,
+                padding_left: None,
+                padding_right: None,
+                data: None,
+            });
+        }
+        req.0 = Some(out);
     }
 }

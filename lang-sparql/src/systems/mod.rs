@@ -3,7 +3,10 @@ use lang_turtle::TriplesBuilder;
 use lsp_core::{
     client::Client,
     components::*,
-    systems::{derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties},
+    systems::{
+        derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
+        get_current_token, prefix::prefix_completion_helper,
+    },
     Parse,
 };
 use sophia_iri::resolve::BaseIri;
@@ -22,6 +25,12 @@ pub fn setup_parse<C: Client + Resource>(world: &mut World) {
                 .before(derive_prefix_links)
                 .before(derive_properties),
         ));
+    });
+}
+
+pub fn setup_completion(world: &mut World) {
+    world.schedule_scope(lsp_core::Completion, |_, schedule| {
+        schedule.add_systems(sparql_lov_undefined_prefix_completion.after(get_current_token));
     });
 }
 
@@ -90,5 +99,30 @@ fn derive_triples(
         }
         // let prefix = triples::derive_prefixes(&el);
         // let triples = triples::derive_triples(&el, &prefix);
+    }
+}
+
+pub fn sparql_lov_undefined_prefix_completion(
+    mut query: Query<(
+        &TokenComponent,
+        &Element<Sparql>,
+        &Prefixes,
+        &mut CompletionRequest,
+    )>,
+) {
+    for (word, turtle, prefixes, mut req) in &mut query {
+        let mut start = Position::new(0, 0);
+
+        if turtle.base_statement.is_some() {
+            start = Position::new(1, 0);
+        }
+
+        use lsp_types::{Position, Range};
+        prefix_completion_helper(word, prefixes, &mut req.0, |lov| {
+            Some(vec![lsp_types::TextEdit {
+                range: Range::new(start.clone(), start),
+                new_text: format!("PREFIX {}: <{}>\n", lov.name, lov.location),
+            }])
+        });
     }
 }

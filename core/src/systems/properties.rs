@@ -182,7 +182,7 @@ pub fn derive_properties(
     }
 }
 
-#[instrument(skip(query))]
+#[instrument(skip(query, other))]
 pub fn complete_properties(
     mut query: Query<(
         &TokenComponent,
@@ -194,7 +194,7 @@ pub fn complete_properties(
     other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
 ) {
     for (token, triple, prefixes, links, mut request) in &mut query {
-        debug!("target {:?}", triple.target);
+        debug!("target {:?} text {}", triple.target, token.text);
         if triple.target == TripleTarget::Predicate {
             for (label, properties) in &other {
                 // Check if this thing is actually linked
@@ -208,8 +208,9 @@ pub fn complete_properties(
                         .map(|x| Cow::Owned(x))
                         .unwrap_or(class.predicate.value.clone());
 
+                    debug!("{} starts with {} = {}", to_beat, token.text, to_beat.starts_with(&token.text));
+
                     if to_beat.starts_with(&token.text) {
-                        debug!("comp {} -> {}", token.text, to_beat);
                         request.push(
                             crate::lang::SimpleCompletion::new(
                                 CompletionItemKind::PROPERTY,

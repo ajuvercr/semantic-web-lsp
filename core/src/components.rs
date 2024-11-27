@@ -136,6 +136,9 @@ pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct InlayRequest(pub Option<Vec<lsp_types::InlayHint>>);
+
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Triples(pub Vec<MyQuad<'static>>);
 
 impl Triples {

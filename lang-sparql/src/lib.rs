@@ -12,7 +12,7 @@ use lsp_core::{
 };
 use lsp_types::SemanticTokenType;
 use model::Query;
-use systems::setup_parse;
+use systems::{setup_completion, setup_parse};
 
 pub mod parsing;
 pub mod tokenizer;
@@ -57,6 +57,8 @@ pub fn setup_world<C: Client + Resource>(world: &mut World) {
     });
 
     setup_parse::<C>(world);
+
+    setup_completion(world);
 }
 
 #[derive(Debug, Component)]
