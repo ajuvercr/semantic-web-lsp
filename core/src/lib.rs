@@ -1,16 +1,16 @@
 use bevy_ecs::{
     event::Event,
     schedule::{IntoSystemConfigs as _, Schedule, ScheduleLabel},
-    system::Resource,
+    system::{self, Resource},
     world::World,
 };
 use client::Client;
-use components::SemanticTokensDict;
+use components::{SemanticTokensDict, TypeHierarchy};
 use systems::{
     basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
-    derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
-    get_current_token, get_current_triple, hover_class, hover_property, inlay_triples,
-    semantic_tokens_system,
+    derive_classes, derive_prefix_links, derive_properties, extract_type_hierarchy,
+    fetch_lov_properties, get_current_token, get_current_triple, hover_class, hover_property,
+    hover_types, infer_types, inlay_triples, prefixes, semantic_tokens_system,
 };
 
 pub mod client;
@@ -27,13 +27,18 @@ pub mod utils;
 
 pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.init_resource::<SemanticTokensDict>();
+    world.init_resource::<TypeHierarchy<'static>>();
 
     let mut parse = Schedule::new(Parse);
     parse.add_systems((
-        derive_prefix_links,
-        derive_classes,
-        derive_properties,
-        fetch_lov_properties::<C>,
+        prefixes,
+        systems::triples,
+        derive_prefix_links.after(prefixes),
+        derive_classes.after(systems::triples),
+        derive_properties.after(systems::triples),
+        fetch_lov_properties::<C>.after(prefixes),
+        extract_type_hierarchy.after(systems::triples),
+        infer_types.after(systems::triples),
     ));
     world.add_schedule(parse);
 
@@ -52,6 +57,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     hover.add_systems((
         get_current_token,
         get_current_triple.after(get_current_token),
+        hover_types.before(hover_class).before(hover_property).after(get_current_token),
         hover_class.after(get_current_token),
         hover_property.after(get_current_token),
     ));

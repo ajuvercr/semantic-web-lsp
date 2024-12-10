@@ -1,4 +1,4 @@
-use std::str::FromStr as _;
+use std::{collections::HashMap, str::FromStr as _};
 
 use crate::{client::Client, components::*, systems::spawn_or_insert, Parse};
 use bevy_ecs::{prelude::*, world::CommandQueue};
@@ -68,14 +68,13 @@ pub fn fetch_lov_properties<C: Client + Resource>(
             // Without<Dirty>,
         ),
     >,
-    // mut handled: Local<HashSet<String>>,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,
 ) {
     println!("fetch lov properties");
     for prefs in &query {
         println!("Found some turtle!");
-        for prefix in prefs.iter() {
+        for prefix in prefs.0.iter() {
             if !prefixes.contains(&prefix.prefix) {
                 prefixes.insert(prefix.prefix.clone());
 
@@ -99,6 +98,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                             RopeC(ropey::Rope::from_str(local.content)),
                             Label(url), // this might crash
                             Wrapped(item),
+                            Types(HashMap::new()),
                         ),
                         Some("turtle".into()),
                         (),

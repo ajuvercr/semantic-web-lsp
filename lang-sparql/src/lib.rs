@@ -20,7 +20,7 @@ pub mod tokenizer;
 pub mod model;
 pub mod systems;
 
-pub fn setup_world<C: Client + Resource>(world: &mut World) {
+pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
     [SemanticTokenType::VARIABLE].iter().for_each(|lt| {
         if !semantic_token_dict.contains_key(lt) {
@@ -56,7 +56,7 @@ pub fn setup_world<C: Client + Resource>(world: &mut World) {
         schedule.add_systems(publish_diagnostics::<Sparql>);
     });
 
-    setup_parse::<C>(world);
+    setup_parse(world);
 
     setup_completion(world);
 }

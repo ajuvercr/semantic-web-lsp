@@ -17,9 +17,7 @@ use std::sync::Mutex;
 use tower_lsp::LspService;
 use tower_lsp::Server;
 use tracing::info;
-use tracing::instrument::WithSubscriber;
 use tracing::Level;
-use tracing_subscriber::fmt;
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
@@ -38,9 +36,9 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
         }
     });
 
-    lang_turtle::setup_world::<C>(&mut world);
-    lang_jsonld::setup_world::<C>(&mut world);
-    lang_sparql::setup_world::<C>(&mut world);
+    lang_turtle::setup_world(&mut world);
+    lang_jsonld::setup_world(&mut world);
+    lang_sparql::setup_world(&mut world);
 
     let (tx, mut rx) = unbounded();
     let sender = CommandSender(tx);

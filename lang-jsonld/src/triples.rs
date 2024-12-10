@@ -45,7 +45,7 @@ fn find_field<'a>(
         .and_then(|x| x.json_value().map(|y| (y, x.field().span())))
 }
 
-pub fn derive_prefixes(json: &Spanned<Json>) -> Prefixes {
+pub fn derive_prefixes(json: &Spanned<Json>, base: &lsp_types::Url) -> Prefixes {
     let mut options: Vec<(Cow<str>, Cow<str>)> = Vec::new();
 
     // Extract prefixes
@@ -104,7 +104,7 @@ pub fn derive_prefixes(json: &Spanned<Json>) -> Prefixes {
         }
     }
 
-    Prefixes(out)
+    Prefixes(out, base.clone())
 }
 
 fn shorten_span(span: &Range<usize>) -> Range<usize> {

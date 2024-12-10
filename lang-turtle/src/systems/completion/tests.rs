@@ -2,13 +2,13 @@ use futures::executor::block_on;
 use lsp_core::{components::*, Completion, Parse, Tasks};
 use ropey::Rope;
 use test_log::test;
-use test_utils::{create_file, debug_world, setup_world, TestClient};
-use tracing::{debug, info};
+use test_utils::{create_file, setup_world, TestClient};
+use tracing::info;
 
 #[test]
 fn completion_event_works() {
     println!("completion_event_works");
-    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
     let t1 = "
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
@@ -49,7 +49,7 @@ foa
 #[test_log::test]
 fn completion_event_works_multiple_files() {
     info!("Testing multiple files");
-    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
     let t1_1 = "
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
             ";
@@ -108,7 +108,7 @@ foaf:me foaf:friend <#me>.
 #[test_log::test]
 fn test_autocomplete_classes() {
     println!("completion_event_works");
-    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
     let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.";
 
@@ -147,7 +147,7 @@ fn test_autocomplete_classes() {
 #[test_log::test]
 fn test_autocomplete_properties() {
     println!("completion_event_works");
-    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
     let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.";
 
@@ -187,7 +187,7 @@ fn test_autocomplete_properties() {
 #[test_log::test]
 fn test_autocomplete_properties_2() {
     println!("completion_event_works");
-    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
     let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.
 <> a foaf:Person;
