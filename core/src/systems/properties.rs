@@ -114,6 +114,31 @@ pub fn complete_class(
     }
 }
 
+pub fn hover_class(
+    mut query: Query<(
+        &TokenComponent,
+        &Prefixes,
+        &DocumentLinks,
+        &mut HoverRequest,
+    )>,
+    other: Query<(&Label, &Wrapped<Vec<DefinedClass>>)>,
+) {
+    for (token, prefixes, links, mut request) in &mut query {
+        if let Some(target) = prefixes.expand(token.token.value()) {
+            for (label, classes) in &other {
+                // Check if this thing is actually linked
+                if links.iter().find(|link| link.0 == label.0).is_none() {
+                    continue;
+                }
+
+                for c in classes.iter().filter(|c| c.term.value == target) {
+                    request.0.push(format!("{}: {}", c.label, c.comment));
+                }
+            }
+        }
+    }
+}
+
 pub struct DefinedProperty {
     pub predicate: MyTerm<'static>,
     pub comment: String,
@@ -208,7 +233,12 @@ pub fn complete_properties(
                         .map(|x| Cow::Owned(x))
                         .unwrap_or(class.predicate.value.clone());
 
-                    debug!("{} starts with {} = {}", to_beat, token.text, to_beat.starts_with(&token.text));
+                    debug!(
+                        "{} starts with {} = {}",
+                        to_beat,
+                        token.text,
+                        to_beat.starts_with(&token.text)
+                    );
 
                     if to_beat.starts_with(&token.text) {
                         request.push(
@@ -222,6 +252,59 @@ pub fn complete_properties(
                             )
                             .documentation(&class.comment),
                         );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[instrument(skip(query, other))]
+pub fn hover_property(
+    mut query: Query<(
+        &TokenComponent,
+        &Prefixes,
+        &DocumentLinks,
+        &mut HoverRequest,
+    )>,
+    other: Query<(&Label, Option<&Prefixes>, &Wrapped<Vec<DefinedProperty>>)>,
+) {
+    for (token, prefixes, links, mut request) in &mut query {
+        if let Some(target) = prefixes.expand(token.token.value()) {
+            for (label, p2, classes) in &other {
+                // Check if this thing is actually linked
+                if links.iter().find(|link| link.0 == label.0).is_none() {
+                    continue;
+                }
+
+                let shorten = |from: &str| {
+                    if let Some(x) = prefixes.shorten(from) {
+                        return Some(x);
+                    }
+
+                    if let Some(p) = p2 {
+                        return p.shorten(from);
+                    }
+
+                    None
+                };
+
+                for c in classes.iter().filter(|c| c.predicate.value == target) {
+                    request.0.push(format!("{}: {}", c.label, c.comment));
+                    for r in &c.range {
+                        let range = shorten(&r);
+                        request.0.push(format!(
+                            "Range {}",
+                            range.as_ref().map(|x| x.as_str()).unwrap_or(r.as_str())
+                        ));
+                    }
+
+                    for d in &c.domain {
+                        let domain = shorten(&d);
+                        request.0.push(format!(
+                            "Domain {}",
+                            domain.as_ref().map(|x| x.as_str()).unwrap_or(d.as_str())
+                        ));
                     }
                 }
             }

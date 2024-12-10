@@ -132,6 +132,9 @@ pub struct TripleComponent {
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 
+#[derive(Component, Debug, Default)]
+pub struct HoverRequest(pub Vec<String>, pub Option<lsp_types::Range>);
+
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 

@@ -85,9 +85,45 @@ pub fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> +
     .or(invalid)
 }
 
-pub fn expect_token(token: Token) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
+pub fn is_term_like(token: &Token) -> bool {
+    match token {
+        // Token::True => true,
+        // Token::False => true,
+        // Token::IRIRef(_) => true,
+        // Token::PNameLN(_, _) => true,
+        // Token::BlankNodeLabel(_) => true,
+        // Token::Number(_) => true,
+        // Token::Str(_, _) => true,
+        // Token::ANON => true,
+        // Token::Null => true,
+        Token::Invalid(_) => true,
+        // Token::Variable(_) => true,
+        // Token::PrefixTag => true,
+        // Token::BaseTag => true,
+        // Token::SparqlPrefix => true,
+        // Token::SparqlBase => true,
+        _ => false,
+    }
+}
+
+pub fn expect_token(
+    token: Token,
+    valid: impl Fn(&Token) -> bool + Clone,
+) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
+    let inner_token = token.clone();
     just(token.clone()).or(none_of([token.clone()])
         .rewind()
+        .try_map(move |t, span| {
+            if valid(&t) {
+                Ok(t)
+            } else {
+                Err(Simple::expected_input_found(
+                    span,
+                    [Some(inner_token.clone())],
+                    Some(t),
+                ))
+            }
+        })
         .validate(move |_, span: S, emit| {
             emit(Simple::expected_input_found(
                 span,
@@ -200,7 +236,7 @@ fn po(
 }
 
 pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
-    expect_token(Token::Stop)
+    expect_token(Token::Stop, |_| true)
         .ignore_then(
             po(blank_node())
                 .map_with_span(spanned)
@@ -267,14 +303,14 @@ pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
 }
 
 fn base() -> impl Parser<Token, Base, Error = Simple<Token>> + Clone {
-    expect_token(Token::Stop)
+    expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
         .then(just(Token::BaseTag).map_with_span(|_, s| s))
         .map(|(x, s)| Base(s, x))
 }
 
 fn prefix() -> impl Parser<Token, Prefix, Error = Simple<Token>> {
-    expect_token(Token::Stop)
+    expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
         .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::PrefixTag).map_with_span(|_, s| s))
@@ -518,6 +554,9 @@ pub mod turtle_tests {
         let txt = "<a> <b> <c>";
         let (output, errors) = parse_it(txt, turtle(&url));
 
+        println!("Errors {:?}", errors);
+        println!("B {:?}", output);
+
         assert_eq!(errors.len(), 1);
         assert_eq!(output.unwrap().to_string(), "<a> <b> <c>.\n");
     }
@@ -613,5 +652,32 @@ pub mod turtle_tests {
         let output = parse_it_recovery(txt, turtle(&url)).0.expect("simple");
         // assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
         assert_eq!(output.triples.len(), 1, "triples are parsed");
+    }
+
+    #[test]
+    fn turtle_invalid_predicate_in_object() {
+        let txt = r#"
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+<> a foaf:Person.
+foaf: foaf:name "Arthur".
+
+<a> a foaf:Person;
+        foaf:  <invalid>;
+        foaf:name "Arthur".
+
+<a> a foaf:Person;.
+<c> foaf:name "Arthur".
+
+<a> foaf: foaf:Person;
+    foaf:name "Arthur".
+            "#;
+        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let output = parse_it(txt, turtle(&url)).0.expect("simple");
+        let triples = output.get_simple_triples().expect("triples");
+        for t in &triples.triples {
+            println!("t: {}", t);
+        }
+        assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
+        assert_eq!(triples.len(), 3, "triples are parsed");
     }
 }

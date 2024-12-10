@@ -505,7 +505,8 @@ PREFIX  ns:  <http://example.org/ns#>
 SELECT  ?title ?price
 { ?x ns:price ?p .
   ?x dc:title ?title . 
-  [] ns:discount ?discount .
+  [ # this is one triple as well
+  ] ns:discount ?discount .
 }
         "#;
 
@@ -518,6 +519,6 @@ SELECT  ?title ?price
             println!("t {}", t);
         }
 
-        assert_eq!(builder.triples.len(), 3);
+        assert_eq!(builder.triples.len(), 4);
     }
 }

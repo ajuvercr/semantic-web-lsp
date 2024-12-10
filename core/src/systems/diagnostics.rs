@@ -56,3 +56,4 @@ pub fn publish_diagnostics<L: Lang>(
         let _ = client.publish(&params.0, diagnostics);
     }
 }
+

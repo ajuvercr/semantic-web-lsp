@@ -725,7 +725,6 @@ impl Display for Turtle {
 
 #[cfg(test)]
 mod test {
-
     use std::{collections::HashSet, str::FromStr};
 
     use chumsky::Parser;
@@ -829,14 +828,17 @@ mod test {
             .map(|triple| format!("{} {} {}.", triple.subject, triple.predicate, triple.object))
             .collect();
 
-        let expected_quads: HashSet<String> = "<http://example.com/e> <http://example.com/pred> <internal_bnode_3>.
-<internal_bnode_3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <internal_bnode_2>.
-<internal_bnode_3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/a>.
-<internal_bnode_2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <internal_bnode_1>.
-<internal_bnode_2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/b>.
-<internal_bnode_1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>.
-<internal_bnode_1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/c>.".split("\n").map(|x|x.trim()).map(String::from).collect();
+        let expected_quads: HashSet<String> = "<http://example.com/e> <http://example.com/pred> _:internal_bnode_3.
+_:internal_bnode_3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:internal_bnode_2.
+_:internal_bnode_3 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/a>.
+_:internal_bnode_2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> _:internal_bnode_1.
+_:internal_bnode_2 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/b>.
+_:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#rest> <http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>.
+_:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://example.com/c>.".split("\n").map(|x|x.trim()).map(String::from).collect();
 
+        for t in &quads {
+            println!("{}", t);
+        }
         assert_eq!(quads, expected_quads);
 
         println!("triples {:?}", triples);
