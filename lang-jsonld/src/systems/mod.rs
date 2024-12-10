@@ -1,7 +1,6 @@
 use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Resource, world::World};
 use lsp_core::{
-    client::Client,
-    systems::{derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties},
+    systems::{prefixes, triples},
     Parse,
 };
 
@@ -12,17 +11,15 @@ mod parse;
 use parse::derive_triples;
 pub use parse::{parse_jsonld_system, parse_source};
 
-pub fn setup_parse<C: Client + Resource>(world: &mut World) {
+pub fn setup_parse(world: &mut World) {
     world.schedule_scope(Parse, |_, schedule| {
         schedule.add_systems((
             parse_source,
             parse_jsonld_system.after(parse_source),
             derive_triples
                 .after(parse_jsonld_system)
-                .before(fetch_lov_properties::<C>)
-                .before(derive_classes)
-                .before(derive_prefix_links)
-                .before(derive_properties),
+                .before(triples)
+                .before(prefixes),
         ));
     });
 }
@@ -39,7 +36,7 @@ mod tests {
 
     #[test]
     fn parse_works() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
         let t1 = r#"
 {
@@ -70,7 +67,7 @@ mod tests {
 
     #[test_log::test]
     fn current_triple_works() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
@@ -123,7 +120,7 @@ mod tests {
 
     #[test_log::test]
     fn current_triple_works_2() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
         let t1 = r#"{
   "@context": {
@@ -160,8 +157,8 @@ mod tests {
 
     #[test_log::test]
     fn current_triple_works_corrupt() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
-        lang_turtle::setup_world::<TestClient>(&mut world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        lang_turtle::setup_world(&mut world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" },
@@ -223,8 +220,8 @@ mod tests {
 
     #[test_log::test]
     fn current_triple_works_corrupt_bn() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
-        lang_turtle::setup_world::<TestClient>(&mut world);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
+        lang_turtle::setup_world(&mut world);
 
         let t1 = r#"{
     "@context" : { "foaf": "http://xmlns.com/foaf/0.1/" }

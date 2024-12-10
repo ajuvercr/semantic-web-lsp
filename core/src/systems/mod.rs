@@ -11,6 +11,7 @@ use crate::{
 use bevy_ecs::prelude::*;
 
 mod typed;
+pub use typed::*;
 mod diagnostics;
 pub mod prefix;
 pub use diagnostics::publish_diagnostics;
@@ -21,8 +22,8 @@ pub use semantics::{
 };
 mod properties;
 pub use properties::{
-    complete_class, complete_properties, hover_class, derive_classes, derive_properties, hover_property, DefinedClass,
-    DefinedProperty,
+    complete_class, complete_properties, derive_classes, derive_properties, hover_class,
+    hover_property, DefinedClass, DefinedProperty,
 };
 mod lov;
 pub use lov::fetch_lov_properties;
@@ -174,7 +175,7 @@ pub fn derive_prefix_links(
 ) {
     const SOURCE: &'static str = "prefix import";
     for (e, turtle, mut links) in &mut query {
-        let new_links: Vec<_> = turtle.iter().map(|u| (u.url.clone(), SOURCE)).collect();
+        let new_links: Vec<_> = turtle.0.iter().map(|u| (u.url.clone(), SOURCE)).collect();
         if let Some(links) = links.as_mut() {
             links.retain(|e| e.1 != SOURCE);
         }
@@ -204,7 +205,7 @@ pub fn defined_prefix_completion(
 
         debug!("matching {}", pref);
 
-        let completions = prefixes
+        let completions = prefixes.0
             .iter()
             .filter(|p| p.prefix.as_str().starts_with(pref))
             .flat_map(|x| {
@@ -252,3 +253,6 @@ pub fn inlay_triples(mut query: Query<(&Triples, &RopeC, &mut InlayRequest)>) {
         req.0 = Some(out);
     }
 }
+
+pub fn triples() {}
+pub fn prefixes() {}

@@ -4,8 +4,7 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
 use lsp_core::components::{
-    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest,
-    Label, Open, PositionComponent, RopeC, Source, Wrapped,
+    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest, Label, Open, PositionComponent, RopeC, Source, Types, Wrapped
 };
 use lsp_core::systems::spawn_or_insert;
 use lsp_core::{Completion, Diagnostics, Format, Hover, Inlay, Parse};
@@ -357,6 +356,7 @@ impl LanguageServer for Backend {
                 RopeC(Rope::from_str(&item.text)),
                 Wrapped(item),
                 Open,
+                Types(HashMap::new()),
             ),
             lang_id,
             (),

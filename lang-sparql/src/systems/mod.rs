@@ -1,29 +1,23 @@
-use bevy_ecs::{prelude::*, system::Resource, world::World};
+use bevy_ecs::{prelude::*, world::World};
 use lang_turtle::TriplesBuilder;
 use lsp_core::{
-    client::Client,
     components::*,
-    systems::{
-        derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
-        get_current_token, prefix::prefix_completion_helper,
-    },
+    systems::{get_current_token, prefix::prefix_completion_helper, prefixes, triples},
     Parse,
 };
 use sophia_iri::resolve::BaseIri;
 
 use crate::{parsing::parse, tokenizer::tokenize, Sparql};
 
-pub fn setup_parse<C: Client + Resource>(world: &mut World) {
+pub fn setup_parse(world: &mut World) {
     world.schedule_scope(Parse, |_, schedule| {
         schedule.add_systems((
             parse_source,
             parse_sparql_system.after(parse_source),
             derive_triples
                 .after(parse_sparql_system)
-                .before(fetch_lov_properties::<C>)
-                .before(derive_classes)
-                .before(derive_prefix_links)
-                .before(derive_properties),
+                .before(prefixes)
+                .before(triples),
         ));
     });
 }
@@ -69,10 +63,10 @@ fn parse_sparql_system(
 
 #[instrument(skip(query, commands))]
 fn derive_triples(
-    query: Query<(Entity, &Element<Sparql>), Changed<Element<Sparql>>>,
+    query: Query<(Entity, &Label, &Element<Sparql>), Changed<Element<Sparql>>>,
     mut commands: Commands,
 ) {
-    for (e, el) in &query {
+    for (e, l, el) in &query {
         let query = el.0.value();
 
         let prefixes: Vec<_> = query
@@ -88,7 +82,7 @@ fn derive_triples(
             })
             .collect();
 
-        commands.entity(e).insert(Prefixes(prefixes));
+        commands.entity(e).insert(Prefixes(prefixes, l.0.clone()));
 
         if let Ok(base) = BaseIri::new(query.base.to_string()) {
             let mut builder = TriplesBuilder::new(query, base);
@@ -97,8 +91,6 @@ fn derive_triples(
 
             commands.entity(e).insert(Triples(triples));
         }
-        // let prefix = triples::derive_prefixes(&el);
-        // let triples = triples::derive_triples(&el, &prefix);
     }
 }
 

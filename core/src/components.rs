@@ -1,8 +1,13 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    borrow::Cow,
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 
 use crate::{
     lang::{Lang, LangHelper, SimpleCompletion},
     model::Spanned,
+    systems::TypeId,
     token::Token,
     triples::{MyQuad, MyTerm},
 };
@@ -24,8 +29,8 @@ pub struct Prefix {
     pub url: lsp_types::Url,
 }
 
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Prefixes(pub Vec<Prefix>);
+#[derive(Component, Debug)]
+pub struct Prefixes(pub Vec<Prefix>, pub lsp_types::Url);
 impl Prefixes {
     pub fn shorten(&self, value: &str) -> Option<String> {
         let try_shorten = |prefix: &Prefix| {
@@ -43,6 +48,9 @@ impl Prefixes {
                 let prefix = self.0.iter().find(|x| &x.prefix == pref)?;
                 Some(format!("{}{}", prefix.url, x))
             }
+            Token::IRIRef(x) => {
+                return self.1.join(&x).ok().map(|x| x.to_string());
+            }
             _ => None,
         }
     }
@@ -52,15 +60,22 @@ impl Prefixes {
             Token::Str(pref, _) => {
                 if let Some(x) = pref.find(':') {
                     let prefix = &pref[..x];
-                    if let Some(exp) = self.iter().find(|x| &x.prefix == prefix) {
+                    if let Some(exp) = self.0.iter().find(|x| &x.prefix == prefix) {
                         return Some(format!("{}{}", exp.url.as_str(), &pref[x + 1..]));
                     }
                 } else {
-                    if let Some(exp) = self.iter().find(|x| &x.prefix == pref) {
+                    if let Some(exp) = self.0.iter().find(|x| &x.prefix == pref) {
                         return Some(exp.url.as_str().to_string());
                     }
                 }
-                Some(pref.to_string())
+
+                return Some(
+                    self.1
+                        .join(&pref)
+                        .ok()
+                        .map(|x| x.to_string())
+                        .unwrap_or(pref.to_string()),
+                );
             }
             _ => None,
         }
@@ -140,6 +155,86 @@ pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct InlayRequest(pub Option<Vec<lsp_types::InlayHint>>);
+
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct Types(pub HashMap<Cow<'static, str>, Vec<TypeId>>);
+
+#[derive(Resource, Debug, Default)]
+pub struct TypeHierarchy<'a> {
+    numbers: HashMap<Cow<'a, str>, TypeId>,
+    nodes: Vec<Cow<'a, str>>,
+    subclass: Vec<HashSet<TypeId>>,
+    superclass: Vec<HashSet<TypeId>>,
+}
+
+impl<'a> TypeHierarchy<'a> {
+    pub fn get_id(&mut self, class: &str) -> TypeId {
+        if let Some(id) = self.numbers.get(class) {
+            *id
+        } else {
+            let new_id = TypeId(self.nodes.len());
+            let class_cow: Cow<'a, str> = Cow::Owned(class.to_string());
+            self.nodes.push(class_cow.clone());
+            self.numbers.insert(class_cow, new_id);
+            self.subclass.push(HashSet::new());
+            self.superclass.push(HashSet::new());
+            new_id
+        }
+    }
+
+    pub fn get_id_ref(&self, class: &str) -> Option<TypeId> {
+        self.numbers.get(class).copied()
+    }
+
+    pub fn set_subclass_of(&mut self, class: TypeId, to: TypeId) {
+        self.subclass[class.0].insert(to);
+        self.superclass[to.0].insert(class);
+    }
+
+    pub fn iter_subclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'a, str>> + 'b {
+        let mut stack = std::collections::VecDeque::new();
+        stack.push_back(id);
+        let mut done = HashSet::new();
+        std::iter::from_fn(move || {
+            while let Some(id) = stack.pop_front() {
+                if done.contains(&id) {
+                    continue;
+                }
+                done.insert(id);
+
+                self.subclass[id.0].iter().for_each(|i| stack.push_back(*i));
+                return Some(self.nodes[id.0].clone());
+            }
+
+            None
+        })
+    }
+
+    pub fn type_name(&self, id: TypeId) -> Cow<'a, str> {
+        self.nodes[id.0].clone()
+    }
+
+    pub fn iter_superclass<'b>(&'b self, id: TypeId) -> impl Iterator<Item = Cow<'a, str>> + 'b {
+        let mut stack = std::collections::VecDeque::new();
+        stack.push_back(id);
+        let mut done = HashSet::new();
+        std::iter::from_fn(move || {
+            while let Some(id) = stack.pop_front() {
+                if done.contains(&id) {
+                    continue;
+                }
+                done.insert(id);
+
+                self.superclass[id.0]
+                    .iter()
+                    .for_each(|i| stack.push_back(*i));
+                return Some(self.nodes[id.0].clone());
+            }
+
+            None
+        })
+    }
+}
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Triples(pub Vec<MyQuad<'static>>);

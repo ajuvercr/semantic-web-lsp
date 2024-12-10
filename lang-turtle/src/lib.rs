@@ -35,7 +35,7 @@ pub struct TurtleLang;
 pub struct TurtleHelper;
 impl LangHelper for TurtleHelper {}
 
-pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
+pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
     TurtleLang::LEGEND_TYPES.iter().for_each(|lt| {
         if !semantic_token_dict.contains_key(lt) {
@@ -70,7 +70,7 @@ pub fn setup_world<C: Client + ClientSync + Resource>(world: &mut World) {
         schedule.add_systems(publish_diagnostics::<TurtleLang>);
     });
 
-    setup_parsing::<C>(world);
+    setup_parsing(world);
     setup_completion(world);
     setup_formatting(world);
 }

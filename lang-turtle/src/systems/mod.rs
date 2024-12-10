@@ -1,16 +1,8 @@
-use bevy_ecs::{
-    schedule::IntoSystemConfigs as _,
-    system::{Query, Resource},
-    world::World,
-};
+use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Query, world::World};
 use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use formatting::format_turtle_system;
 use lsp_core::{
-    client::{Client, ClientSync},
-    systems::{
-        derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
-        get_current_token,
-    },
+    systems::{get_current_token, prefixes, triples},
     Parse,
 };
 use parsing::{derive_triples, parse_source, parse_turtle_system};
@@ -19,20 +11,13 @@ mod completion;
 mod formatting;
 mod parsing;
 
-pub fn setup_parsing<C: Client + ClientSync + Resource>(world: &mut World) {
+pub fn setup_parsing(world: &mut World) {
     world.schedule_scope(Parse, |_, schedule| {
         schedule.add_systems((
             parse_source,
-            parse_turtle_system
-                .after(parse_source)
-                .before(fetch_lov_properties::<C>),
-            derive_prefixes
-                .after(parse_turtle_system)
-                .before(derive_prefix_links),
-            derive_triples
-                .after(parse_turtle_system)
-                .before(derive_classes)
-                .before(derive_properties),
+            parse_turtle_system.after(parse_source),
+            derive_prefixes.after(parse_turtle_system).before(prefixes),
+            derive_triples.after(parse_turtle_system).before(triples),
         ));
     });
 }
@@ -58,10 +43,10 @@ use lsp_core::components::*;
 use crate::TurtleLang;
 
 fn derive_prefixes(
-    query: Query<(Entity, &Element<TurtleLang>), Changed<Element<TurtleLang>>>,
+    query: Query<(Entity, &Label, &Element<TurtleLang>), Changed<Element<TurtleLang>>>,
     mut commands: Commands,
 ) {
-    for (entity, turtle) in &query {
+    for (entity, url, turtle) in &query {
         let prefixes: Vec<_> = turtle
             .prefixes
             .iter()
@@ -75,7 +60,19 @@ fn derive_prefixes(
             })
             .collect();
 
-        commands.entity(entity).insert(Prefixes(prefixes));
+        let base = turtle
+            .base
+            .as_ref()
+            .and_then(|b| {
+                b.0 .1
+                    .expand(turtle.value())
+                    .and_then(|x| lsp_types::Url::parse(&x).ok())
+            })
+            .unwrap_or(url.0.clone());
+
+        commands
+            .entity(entity)
+            .insert(Prefixes(prefixes, base));
     }
 }
 
@@ -89,7 +86,7 @@ mod tests {
 
     #[test]
     fn diagnostics_work() {
-        let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, mut rx) = setup_world(TestClient::new(), crate::setup_world);
 
         let t1 = "
 @prefix foaf: <>.
@@ -148,7 +145,7 @@ foa
     fn fetch_lov_properties_test() {
         let mut client = TestClient::new();
         client.add_res("http://xmlns.com/foaf/0.1/", " @prefix foaf: <>. ");
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
         create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
@@ -162,7 +159,7 @@ foa
 
     #[test]
     fn turtle_does_prefix_links() {
-        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+        let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 
         let t1 = " @prefix foaf: <http://xmlns.com/foaf/0.1/>.";
         let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);

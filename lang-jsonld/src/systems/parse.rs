@@ -41,11 +41,11 @@ pub fn parse_jsonld_system(
 
 #[instrument(skip(query, commands))]
 pub fn derive_triples(
-    query: Query<(Entity, &Element<JsonLd>), Changed<Element<JsonLd>>>,
+    query: Query<(Entity, &Label, &Element<JsonLd>), Changed<Element<JsonLd>>>,
     mut commands: Commands,
 ) {
-    for (e, el) in &query {
-        let prefix = triples::derive_prefixes(&el);
+    for (e, l, el) in &query {
+        let prefix = triples::derive_prefixes(&el, &l.0);
         let triples = triples::derive_triples(&el, &prefix);
         commands.entity(e).insert((Triples(triples), prefix));
     }

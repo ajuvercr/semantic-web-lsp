@@ -20,7 +20,7 @@ pub mod systems;
 pub mod tokenizer;
 pub mod triples;
 
-pub fn setup_world<C: Client + Resource>(world: &mut World) {
+pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
     JsonLd::LEGEND_TYPES.iter().for_each(|lt| {
         if !semantic_token_dict.contains_key(lt) {
@@ -67,7 +67,7 @@ pub fn setup_world<C: Client + Resource>(world: &mut World) {
         schedule.add_systems(publish_diagnostics::<JsonLd>);
     });
 
-    setup_parse::<C>(world);
+    setup_parse(world);
 }
 
 #[derive(Debug, Component)]
