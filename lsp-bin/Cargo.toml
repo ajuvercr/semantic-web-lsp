@@ -26,4 +26,5 @@ lang-turtle = { path = "../lang-turtle/" }
 lsp-core    = { path = "../core/" }
 
 tokio = { version = "1.33.0", features = ["full"] }
-tracing-subscriber = { version = "0.3.17", features = ["json"] }
+tracing-subscriber = { version = "0.3", features = ["json"] }
+tracing-flame = "0.2.0"

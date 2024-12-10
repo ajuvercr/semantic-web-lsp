@@ -4,11 +4,11 @@ use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
 use lsp_core::components::{
-    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, InlayRequest, Label, Open,
-    PositionComponent, RopeC, Source, Wrapped,
+    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest,
+    Label, Open, PositionComponent, RopeC, Source, Wrapped,
 };
 use lsp_core::systems::spawn_or_insert;
-use lsp_core::{Completion, Diagnostics, Format, Inlay, Parse};
+use lsp_core::{Completion, Diagnostics, Format, Hover, Inlay, Parse};
 use lsp_types::*;
 
 use futures::lock::Mutex;
@@ -113,6 +113,7 @@ impl LanguageServer for Backend {
                     all_commit_characters: None,
                     completion_item: None,
                 }),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
                 semantic_tokens_provider: Some(
@@ -135,6 +136,11 @@ impl LanguageServer for Backend {
                                             language: Some(String::from("sparql")),
                                             scheme: None,
                                             pattern: Some(String::from("*.sq")),
+                                        },
+                                        DocumentFilter {
+                                            language: Some(String::from("sparql")),
+                                            scheme: None,
+                                            pattern: Some(String::from("*.rq")),
                                         },
                                     ]),
                                 }
@@ -216,7 +222,50 @@ impl LanguageServer for Backend {
 
     #[tracing::instrument(skip(self))]
     async fn shutdown(&self) -> Result<()> {
+        info!("Shutting down!");
         Ok(())
+    }
+
+    async fn hover(&self, params: HoverParams) -> Result<Option<lsp_types::Hover>> {
+        let request: HoverRequest = HoverRequest::default();
+
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(
+                params
+                    .text_document_position_params
+                    .text_document
+                    .uri
+                    .as_str(),
+            ) {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.text_document_position_params.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        if let Some(hover) = self
+            .run_schedule::<HoverRequest>(entity, Hover, (request, PositionComponent(pos)))
+            .await
+        {
+            if hover.0.len() > 0 {
+                return Ok(Some(lsp_types::Hover {
+                    contents: lsp_types::HoverContents::Array(
+                        hover.0.into_iter().map(MarkedString::String).collect(),
+                    ),
+                    range: hover.1,
+                }));
+            }
+        }
+
+        Ok(None)
     }
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {

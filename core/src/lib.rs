@@ -9,7 +9,8 @@ use components::SemanticTokensDict;
 use systems::{
     basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
     derive_classes, derive_prefix_links, derive_properties, fetch_lov_properties,
-    get_current_token, get_current_triple, inlay_triples, semantic_tokens_system,
+    get_current_token, get_current_triple, hover_class, hover_property, inlay_triples,
+    semantic_tokens_system,
 };
 
 pub mod client;
@@ -47,13 +48,21 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     ));
     world.add_schedule(completion);
 
+    let mut hover = Schedule::new(Hover);
+    hover.add_systems((
+        get_current_token,
+        get_current_triple.after(get_current_token),
+        hover_class.after(get_current_token),
+        hover_property.after(get_current_token),
+    ));
+    world.add_schedule(hover);
+
     world.add_schedule(Schedule::new(Diagnostics));
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
     let mut inlay = Schedule::new(Inlay);
     inlay.add_systems(inlay_triples);
     world.add_schedule(inlay);
-
 
     let mut semantic_tokens = Schedule::new(systems::SemanticTokensSchedule);
     semantic_tokens.add_systems((
@@ -68,6 +77,9 @@ pub struct CreateEvent {
     pub url: lsp_types::Url,
     pub language_id: Option<String>,
 }
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Hover;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Parse;

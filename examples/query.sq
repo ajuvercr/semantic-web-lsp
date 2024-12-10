@@ -6,7 +6,10 @@ PREFIX  ns:  <http://example.org/ns#>
 SELECT  *
 {
    [] a foaf:Image;
-     foaf:name "arthur", "arthur2";
-     foaf:sha1 "";
-     foaf:topic [].
+     a foaf:Person;.
+
+   ?person a foaf:Person;
+     rdfs:subClassOf ?name, ?name.
 }
+
+

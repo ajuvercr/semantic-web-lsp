@@ -10,17 +10,18 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 
+mod typed;
 mod diagnostics;
 pub mod prefix;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
-use lsp_types::{lsp_request, request::InlayHintRequest, CompletionItemKind};
+use lsp_types::CompletionItemKind;
 pub use semantics::{
     basic_semantic_tokens, semantic_tokens_system, SemanticTokensSchedule, TokenTypesComponent,
 };
 mod properties;
 pub use properties::{
-    complete_class, complete_properties, derive_classes, derive_properties, DefinedClass,
+    complete_class, complete_properties, hover_class, derive_classes, derive_properties, hover_property, DefinedClass,
     DefinedProperty,
 };
 mod lov;

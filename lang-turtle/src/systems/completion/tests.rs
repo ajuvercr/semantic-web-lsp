@@ -11,11 +11,11 @@ fn completion_event_works() {
     let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
 
     let t1 = "
-@prefix foaf: <>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
             ";
 
     let t2 = "
-@prefix foaf: <>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
 foa
             ";
 
@@ -40,7 +40,9 @@ foa
 
     assert!(m_completions.is_some());
     let completions = m_completions.unwrap().0;
-    println!("completions {:?}\n\n", completions);
+    for c in &completions {
+        println!("c {:?}\n\n", c);
+    }
     assert_eq!(completions.len(), 1);
 }
 
@@ -100,9 +102,6 @@ foaf:me foaf:friend <#me>.
         .expect("Completions exists")
         .0;
 
-    println!("completions {:?}\n\n", completions);
-    debug_world(&mut world);
-
     assert_eq!(completions.len(), 1);
 }
 
@@ -142,12 +141,89 @@ fn test_autocomplete_classes() {
         .take::<CompletionRequest>()
         .expect("competion request")
         .0;
-
-    println!("prefixes {:?}", world.entity(entity).get::<Prefixes>());
-    println!("links {:?}", world.entity(entity).get::<DocumentLinks>());
-    debug_world(&mut world);
-    for com in completions.iter() {
-        debug!("Comp {}", com.edits[0].new_text);
-    }
     assert_eq!(completions.len(), 14);
+}
+
+#[test_log::test]
+fn test_autocomplete_properties() {
+    println!("completion_event_works");
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+
+    let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.";
+
+    let t2 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+<> foaf:";
+
+    let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
+
+    let c = world.resource::<TestClient>().clone();
+    block_on(c.await_futures(|| world.run_schedule(Tasks)));
+
+    world
+        .entity_mut(entity)
+        .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
+    world.run_schedule(Parse);
+
+    block_on(c.await_futures(|| world.run_schedule(Tasks)));
+
+    // start call completion
+    world.entity_mut(entity).insert((
+        CompletionRequest(vec![]),
+        PositionComponent(lsp_types::Position {
+            line: 1,
+            character: 4,
+        }),
+    ));
+    world.run_schedule(Completion);
+    let completions = world
+        .entity_mut(entity)
+        .take::<CompletionRequest>()
+        .expect("competion request")
+        .0;
+
+    assert_eq!(completions.len(), 62);
+}
+
+#[test_log::test]
+fn test_autocomplete_properties_2() {
+    println!("completion_event_works");
+    let (mut world, _) = setup_world(TestClient::new(), crate::setup_world::<TestClient>);
+
+    let t1 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+<> a foaf:Person;
+    foaf:name \"Arthur\".";
+
+    let t2 = "@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+<> a foaf:Person;
+    foaf:
+    foaf:name \"Arthur\".";
+
+    let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
+
+    let c = world.resource::<TestClient>().clone();
+    block_on(c.await_futures(|| world.run_schedule(Tasks)));
+
+    world
+        .entity_mut(entity)
+        .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
+    world.run_schedule(Parse);
+
+    block_on(c.await_futures(|| world.run_schedule(Tasks)));
+
+    // start call completion
+    world.entity_mut(entity).insert((
+        CompletionRequest(vec![]),
+        PositionComponent(lsp_types::Position {
+            line: 2,
+            character: 5,
+        }),
+    ));
+    world.run_schedule(Completion);
+    let completions = world
+        .entity_mut(entity)
+        .take::<CompletionRequest>()
+        .expect("competion request")
+        .0;
+
+    assert_eq!(completions.len(), 0);
 }
