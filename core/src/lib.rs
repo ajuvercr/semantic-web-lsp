@@ -55,9 +55,14 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 
     let mut hover = Schedule::new(Hover);
     hover.add_systems((
+        infer_types,
         get_current_token,
         get_current_triple.after(get_current_token),
-        hover_types.before(hover_class).before(hover_property).after(get_current_token),
+        hover_types
+            .before(hover_class)
+            .before(hover_property)
+            .after(get_current_token)
+            .after(infer_types),
         hover_class.after(get_current_token),
         hover_property.after(get_current_token),
     ));

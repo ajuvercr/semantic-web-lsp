@@ -75,14 +75,11 @@ pub fn hover_types(
     mut query: Query<(&TokenComponent, &Types, &Prefixes, &mut HoverRequest)>,
     hierarchy: Res<TypeHierarchy<'static>>,
 ) {
-    info!("hierarchy {:?}", hierarchy);
     for (token, types, pref, mut hover) in &mut query {
-        info!("types {:?}", types.0);
         let Some(expaned) = pref.expand(&token.token) else {
             continue;
         };
 
-        info!("expaned {}", expaned);
         let Some(types) = types.get(expaned.as_str()) else {
             continue;
         };
@@ -94,6 +91,7 @@ pub fn hover_types(
                 .map(Cow::Owned)
                 .unwrap_or(type_name.clone());
             hover.0.push(format!("Type: {}", type_name));
+
             let mut subclass_str = String::from("Sub classes: ");
             let mut subclasses = hierarchy
                 .iter_subclass(*id)
