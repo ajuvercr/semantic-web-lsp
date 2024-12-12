@@ -53,7 +53,6 @@ pub fn publish_diagnostics<L: Lang>(
             })
             .collect();
 
-        let _ = client.publish(&params.0, diagnostics);
+        let _ = client.publish(&params.0, diagnostics, "syntax");
     }
 }
-

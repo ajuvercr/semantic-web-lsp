@@ -68,7 +68,9 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     ));
     world.add_schedule(hover);
 
-    world.add_schedule(Schedule::new(Diagnostics));
+    let mut diagnostics = Schedule::new(Diagnostics);
+    diagnostics.add_systems(systems::undefined_prefix);
+    world.add_schedule(diagnostics);
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
     let mut inlay = Schedule::new(Inlay);

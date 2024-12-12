@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash, ops::Range};
+use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
 use crate::model::Spanned;
 use bevy_ecs::system::Resource;
@@ -276,19 +276,31 @@ impl DiagnosticSender {
 #[derive(Resource)]
 pub struct OtherPublisher {
     tx: mpsc::UnboundedSender<DiagnosticItem>,
+    diagnostics: HashMap<lsp_types::Url, Vec<(Diagnostic, &'static str)>>,
 }
 
 impl OtherPublisher {
     pub fn new() -> (Self, mpsc::UnboundedReceiver<DiagnosticItem>) {
         let (tx, rx) = mpsc::unbounded();
-        (Self { tx }, rx)
+        (
+            Self {
+                tx,
+                diagnostics: HashMap::new(),
+            },
+            rx,
+        )
     }
 
     pub fn publish(
         &mut self,
         params: &TextDocumentItem,
         diagnostics: Vec<Diagnostic>,
+        reason: &'static str,
     ) -> Option<()> {
+        let items = self.diagnostics.entry(params.uri.clone()).or_default();
+        items.retain(|(_, r)| *r != reason);
+        items.extend(diagnostics.into_iter().map(|x| (x, reason)));
+        let diagnostics: Vec<_> = items.iter().map(|(x, _)| x).cloned().collect();
         let uri = params.uri.clone();
         let version = Some(params.version);
         let item = DiagnosticItem {
