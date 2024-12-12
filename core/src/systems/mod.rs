@@ -2,9 +2,9 @@ use crate::{
     components::{
         CommandReceiver, CompletionRequest, DocumentLinks, DynLang, InlayRequest, Label,
         PositionComponent, Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget,
-        Triples,
+        Triples, Wrapped,
     },
-    lang::SimpleCompletion,
+    lang::{OtherPublisher, SimpleCompletion},
     utils::{offset_to_position, position_to_offset, range_to_range},
     CreateEvent, Parse,
 };
@@ -16,7 +16,7 @@ mod diagnostics;
 pub mod prefix;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
-use lsp_types::CompletionItemKind;
+use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem};
 pub use semantics::{
     basic_semantic_tokens, semantic_tokens_system, SemanticTokensSchedule, TokenTypesComponent,
 };
@@ -205,7 +205,8 @@ pub fn defined_prefix_completion(
 
         debug!("matching {}", pref);
 
-        let completions = prefixes.0
+        let completions = prefixes
+            .0
             .iter()
             .filter(|p| p.prefix.as_str().starts_with(pref))
             .flat_map(|x| {
@@ -228,6 +229,37 @@ pub fn defined_prefix_completion(
             });
 
         req.0.extend(completions);
+    }
+}
+
+pub fn undefined_prefix(
+    query: Query<(&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC)>,
+    mut client: ResMut<OtherPublisher>,
+) {
+    for (tokens, prefixes, item, rope) in &query {
+        let mut diagnostics: Vec<Diagnostic> = Vec::new();
+        for t in &tokens.0 {
+            match t.value() {
+                crate::token::Token::PNameLN(x, _) => {
+                    let pref = x.as_ref().map(|x| x.as_str()).unwrap_or("");
+                    let found = prefixes.0.iter().find(|x| x.prefix == pref).is_some();
+                    if !found {
+                        if let Some(range) = range_to_range(t.span(), &rope) {
+                            diagnostics.push(Diagnostic {
+                                range,
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                source: Some(String::from("SWLS")),
+                                message: format!("Undefined prefix {}", pref),
+                                related_information: None,
+                                ..Default::default()
+                            })
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        let _ = client.publish(&item.0, diagnostics, "undefined_prefix");
     }
 }
 
