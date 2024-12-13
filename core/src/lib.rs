@@ -1,7 +1,7 @@
 use bevy_ecs::{
     event::Event,
     schedule::{IntoSystemConfigs as _, Schedule, ScheduleLabel},
-    system::{self, Resource},
+    system::Resource,
     world::World,
 };
 use client::Client;
@@ -13,6 +13,7 @@ use systems::{
     hover_types, infer_types, inlay_triples, prefixes, semantic_tokens_system,
 };
 
+pub mod backend;
 pub mod client;
 pub mod components;
 pub mod lang;

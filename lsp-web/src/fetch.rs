@@ -1,8 +1,14 @@
 use std::collections::HashMap;
 
-use crate::read_file;
+// pub mod reqwest {
+//     pub use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+//     pub use reqwest::Error;
+//     pub use reqwest::StatusCode;
+//     pub use reqwest::Url;
+// }
+
 use lsp_core::{
-    client::reqwest::{HeaderMap, HeaderName, HeaderValue, Url},
+    // client::reqwest::{HeaderMap, HeaderName, HeaderValue, Url},
     client::Resp,
 };
 use serde::Serializer;
@@ -18,19 +24,19 @@ extern "C" {
 }
 
 pub async fn try_fetch(url: String, headers: HashMap<String, String>) -> Result<Resp, String> {
-    if let Ok(url) = Url::parse(&url) {
-        if url.scheme() == "file" {
-            info!("Url scheme is file, let's do that! {}", url.path());
-            let body = read_file(url.path()).await?;
-            let status = 200;
-            let headers = HeaderMap::new();
-            return Ok(Resp {
-                headers,
-                body,
-                status,
-            });
-        }
-    }
+    // if let Ok(url) = Url::parse(&url) {
+    //     if url.scheme() == "file" {
+    //         info!("Url scheme is file, let's do that! {}", url.path());
+    //         let body = read_file(url.path()).await?;
+    //         let status = 200;
+    //         let headers = HeaderMap::new();
+    //         return Ok(Resp {
+    //             headers,
+    //             body,
+    //             status,
+    //         });
+    //     }
+    // }
 
     let ser: serde_wasm_bindgen::Serializer = serde_wasm_bindgen::Serializer::json_compatible();
     let options_json = json!({ "headers": headers });
@@ -55,17 +61,7 @@ pub async fn try_fetch(url: String, headers: HashMap<String, String>) -> Result<
     let headers: HashMap<String, String> =
         serde_wasm_bindgen::from_value(headers.into()).map_err(|e| e.to_string())?;
 
-    let mut map = HeaderMap::new();
-    headers
-        .into_iter()
-        .filter_map(|(k, v)| {
-            let key = HeaderName::try_from(k).ok()?;
-            let value = HeaderValue::from_str(&v).ok()?;
-            Some((key, value))
-        })
-        .for_each(|(k, v)| {
-            map.insert(k, v);
-        });
+    let map: Vec<_> = headers.into_iter().map(|(k, v)| (k, v)).collect();
 
     // Convert this other `Promise` into a rust `Future`.
     let body = wasm_bindgen_futures::JsFuture::from(resp.text().map_err(|e| format!("{:?}", e))?)
@@ -77,7 +73,7 @@ pub async fn try_fetch(url: String, headers: HashMap<String, String>) -> Result<
     info!("Got resp {} body {}", url, body.len());
 
     Ok(Resp {
-        headers: map,
+        headers: map, // map,
         body,
         status,
     })
