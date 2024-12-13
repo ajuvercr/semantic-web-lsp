@@ -1,0 +1,26 @@
+[config]
+default_to_workspace = false
+skip_core_tasks = true
+
+[tasks.deps]
+script = '''
+cargo install wasm-bindgen-cli --version 0.2.81
+# npm install
+'''
+
+[tasks.install-bin]
+script = '''
+cargo install --path ./lsp-bin/ --debug
+'''
+
+[tasks.build-server]
+script = '''
+RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build -p lsp-web --release --target wasm32-unknown-unknown 
+RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-bindgen --out-dir ./lsp-web/packages/app/assets/wasm --target web --typescript ./target/wasm32-unknown-unknown/release/lsp_web.wasm
+'''
+
+[tasks.build-app]
+script = '''
+npm run build --workspace=packages/app
+'''
+

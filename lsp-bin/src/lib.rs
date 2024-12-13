@@ -1,6 +1,5 @@
 use std::ops::Range;
 
-pub mod backend;
 pub mod client;
 pub use client::TowerClient;
 

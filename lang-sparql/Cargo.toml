@@ -18,7 +18,6 @@ ropey.workspace        = true
 serde_json.workspace   = true
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
-tower-lsp.workspace    = true
 tracing.workspace      = true
 
 # bytes          = "1.4.0"

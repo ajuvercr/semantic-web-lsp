@@ -28,3 +28,6 @@ lsp-core    = { path = "../core/" }
 tokio = { version = "1.33.0", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["json"] }
 tracing-flame = "0.2.0"
+
+[features]
+default = ["tower-lsp/runtime-tokio"]
