@@ -130,10 +130,6 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     })
     .finish();
 
-    // Server::new(stdin, stdout, socket).serve(service).await;
-    //
-    // let (service, messages) =
-    //     LspService::new(|client| demo_lsp_server::Server::new(client, language));
     Server::new(input, output, socket).serve(service).await;
 
     Ok(())

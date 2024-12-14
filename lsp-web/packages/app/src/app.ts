@@ -5,7 +5,7 @@ import * as proto from "vscode-languageserver-protocol";
 
 import Client from "./client";
 import { FromServer, IntoServer } from "./codec";
-import Language from "./language";
+import Language, { protocolToMonaco } from "./language";
 import Server from "./server";
 
 class Environment implements monaco.Environment {
@@ -85,20 +85,29 @@ export default class App {
     return model;
   }
 
-  createEditor(client: Client): void {
+  createEditor(client: Client): monaco.editor.ITextModel {
     const container = document.getElementById("editor")!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
     this.initializeMonaco();
     const model = this.createModel(client);
     monaco.editor.create(container, {
       model,
       automaticLayout: true,
+      "semanticHighlighting.enabled": true,
     });
+    return model;
   }
 
   async run(): Promise<void> {
     const client = new Client(this.#fromServer, this.#intoServer);
     const server = await Server.initialize(this.#intoServer, this.#fromServer);
-    this.createEditor(client);
-    await Promise.all([server.start(), client.start()]);
+    const model = this.createEditor(client);
+    const onDiagnostic = (diags: proto.PublishDiagnosticsParams) => {
+      monaco.editor.setModelMarkers(
+        model,
+        "SWLS",
+        protocolToMonaco.asDiagnostics(diags.diagnostics)
+      );
+    };
+    await Promise.all([server.start(), client.start(onDiagnostic)]);
   }
 }

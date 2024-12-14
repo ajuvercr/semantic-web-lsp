@@ -8,10 +8,7 @@ import {
   MessageWriter,
 } from "vscode-jsonrpc";
 import * as proto from "vscode-languageserver-protocol";
-import {
-  MessageReader,
-  RequestMessage,
-} from "vscode-languageserver-protocol";
+import { MessageReader, RequestMessage } from "vscode-languageserver-protocol";
 
 import { Codec, FromServer, IntoServer } from "./codec";
 
@@ -88,6 +85,8 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
   afterInitializedHooks: (() => Promise<void>)[] = [];
   #fromServer: FromServer;
 
+  onLegend: (legen: any) => void = () => {};
+
   constructor(fromServer: FromServer, intoServer: IntoServer) {
     super(
       new jsrpc.JSONRPCServer(),
@@ -104,7 +103,7 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
     this.#fromServer = fromServer;
   }
 
-  async start(): Promise<void> {
+  async start(onDiagnostic: (diags: proto.PublishDiagnosticsParams) => void): Promise<void> {
     // process "window/logMessage": client <- server
     this.addMethod(proto.LogMessageNotification.type.method, (params) => {
       const { type, message } = params as {
@@ -134,15 +133,25 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
       return;
     });
 
+    this.addMethod(proto.PublishDiagnosticsNotification.type.method, (params) => {
+      onDiagnostic(params);
+    });
+
     // request "initialize": client <-> server
-    await (this.request(proto.InitializeRequest.type.method, {
+    const resp: any = await (this.request(proto.InitializeRequest.type.method, {
       processId: null,
       clientInfo: {
         name: "demo-language-client",
       },
-      capabilities: {},
+      capabilities: {
+        textDocument: {
+          publishDiagnostics: {},
+        },
+      },
       rootUri: null,
     } as proto.InitializeParams) as Promise<jsrpc.JSONRPCResponse>);
+
+    this.onLegend(resp.capabilities.semanticTokensProvider.legend);
 
     // notify "initialized": client --> server
     this.notify(proto.InitializedNotification.type.method, {});

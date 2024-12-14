@@ -26,7 +26,7 @@ pub trait Client: Clone + ClientSync {
 }
 
 pub trait ClientSync {
-    fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F);
+    fn spawn<F: std::future::Future<Output = ()> + 'static>(&self, fut: F);
     fn fetch(
         &self,
         url: &str,
