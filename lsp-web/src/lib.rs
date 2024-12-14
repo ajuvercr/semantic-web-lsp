@@ -16,6 +16,23 @@ use tower_lsp::{LspService, Server};
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::stream::JsStream;
 
+fn setup_global_subscriber() {
+    use tracing_subscriber::fmt::format::Pretty;
+    use tracing_subscriber::prelude::*;
+    use tracing_web::{performance_layer, MakeWebConsoleWriter};
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(false) // Only partially supported across browsers
+        .without_time() // std::time is not available in browsers, see note below
+        .with_writer(MakeWebConsoleWriter::new()); // write events to the console
+    let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+
+    tracing_subscriber::registry()
+        .with(fmt_layer)
+        .with(perf_layer)
+        .init(); // Install these as subscribers to tracing events
+}
+
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
 ) -> (CommandSender, Vec<SemanticTokenType>) {
@@ -27,11 +44,11 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     world.insert_resource(publisher);
 
     let c = client.clone();
-    // tokio::spawn(async move {
-    //     while let Some(x) = rx.next().await {
-    //         c.publish_diagnostics(x.uri, x.diagnostics, x.version).await;
-    //     }
-    // });
+    client.spawn(async move {
+        while let Some(x) = rx.next().await {
+            c.publish_diagnostics(x.uri, x.diagnostics, x.version).await;
+        }
+    });
 
     lang_turtle::setup_world(&mut world);
     lang_jsonld::setup_world(&mut world);
@@ -47,12 +64,12 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     r.0.iter()
         .for_each(|(k, v)| semantic_tokens[*v] = k.clone());
 
-    // tokio::spawn(async move {
-    //     while let Some(mut x) = rx.next().await {
-    //         world.commands().append(&mut x);
-    //         world.flush_commands();
-    //     }
-    // });
+    client.spawn(async move {
+        while let Some(mut x) = rx.next().await {
+            world.commands().append(&mut x);
+            world.flush_commands();
+        }
+    });
 
     (sender, semantic_tokens)
 }
@@ -84,6 +101,8 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
 
     web_sys::console::log_1(&"server::serve".into());
+
+    setup_global_subscriber();
 
     let ServerConfig {
         into_server,
