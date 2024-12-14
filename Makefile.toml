@@ -19,8 +19,16 @@ RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build -p lsp-web --release --target 
 RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-bindgen --out-dir ./lsp-web/packages/app/assets/wasm --target web --typescript ./target/wasm32-unknown-unknown/release/lsp_web.wasm
 '''
 
-[tasks.build-app]
+[tasks.run-app]
 script = '''
-npm run build --workspace=packages/app
+cd lsp-web
+npm run app --workspace=packages/app
 '''
+
+[tasks.build-prod]
+script = '''
+cd lsp-web
+npm run build:prod --workspace=packages/app
+''''
+
 

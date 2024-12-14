@@ -40,7 +40,7 @@ pub async fn try_fetch(url: String, headers: HashMap<String, String>) -> Result<
 
     let ser: serde_wasm_bindgen::Serializer = serde_wasm_bindgen::Serializer::json_compatible();
     let options_json = json!({ "headers": headers });
-    let url = format!("https://proxy.linkeddatafragments.org/{}", url);
+    // let url = format!("https://proxy.linkeddatafragments.org/{}", url);
     let options = ser
         .serialize_some(&options_json)
         .map_err(|_| String::from("failed to serialize headers"))?;
@@ -69,8 +69,6 @@ pub async fn try_fetch(url: String, headers: HashMap<String, String>) -> Result<
         .map_err(|e| format!("{:?}", e))?
         .as_string()
         .ok_or(String::from("Not a string"))?;
-
-    info!("Got resp {} body {}", url, body.len());
 
     Ok(Resp {
         headers: map, // map,

@@ -2,6 +2,10 @@
 import {
   MonacoToProtocolConverter,
   ProtocolToMonacoConverter,
+  ProviderResult,
+  SemanticTokens,
+  SemanticTokensEdit,
+  SemanticTokensLegend,
 } from "monaco-languageclient";
 import * as monaco from "monaco-editor-core";
 import * as proto from "vscode-languageserver-protocol";
@@ -21,8 +25,17 @@ export default class Language
   readonly extensions: string[];
   readonly mimetypes: string[];
 
+  private legend: {
+    tokenModifiers: string[];
+    tokenTypes: string[];
+  } = {
+    tokenTypes: [],
+    tokenModifiers: [],
+  };
+
   private constructor(client: Client) {
     const { id, aliases, extensions, mimetypes } = Language.extensionPoint();
+    client.onLegend = (legen) => this.legend = legen;
     this.id = id;
     this.aliases = aliases;
     this.extensions = extensions;
@@ -68,17 +81,9 @@ export default class Language
         return result;
       },
     });
+
     monaco.languages.registerCompletionItemProvider(this.id, {
       async provideCompletionItems(model, position, _token, _context) {
-        console.log("Completion item", model, position);
-
-        console.log({
-          textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
-          position: monacoToProtocol.asPosition(
-            position.lineNumber,
-            position.column
-          ),
-        } as proto.CompletionParams);
         const response = await client.request(
           proto.CompletionRequest.type.method,
           {
@@ -89,31 +94,47 @@ export default class Language
             ),
           } as proto.CompletionParams
         );
-        console.log("response", response);
         let out = {
           incomplete: false,
           suggestions: [],
         };
 
         try {
-          out = protocolToMonaco.asCompletionResult({isIncomplete: false, items: response}, {
-            startLineNumber: 1,
-            startColumn: 1,
-            endLineNumber: 1,
-            endColumn: 1,
-          });
+          out = protocolToMonaco.asCompletionResult(
+            {
+              isIncomplete: false,
+              items: response,
+            },
+            {
+              startLineNumber: 1,
+              startColumn: 1,
+              endLineNumber: 1,
+              endColumn: 1,
+            }
+          );
         } catch (ex: any) {
           console.log(ex);
         }
-        console.log(out);
 
         return out;
       },
-      // async resolveCompletionItem(item, _token) {
-      //   return await jsonService
-      //     .doResolve(codeConverter.asCompletionItem(item))
-      //     .then((result) => protocolConverter.asCompletionItem(result));
-      // },
+    });
+
+    const getLegend = () => this.legend;
+    monaco.languages.registerDocumentSemanticTokensProvider(this.id, {
+      releaseDocumentSemanticTokens() {},
+      getLegend(): monaco.languages.SemanticTokensLegend {
+        return getLegend();
+      },
+      async provideDocumentSemanticTokens(model) {
+        const response = await client.request(
+          proto.SemanticTokensRequest.type.method,
+          {
+            textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+          } as proto.SemanticTokensParams
+        );
+        return protocolToMonaco.asSemanticTokens(response);
+      },
     });
   }
 
