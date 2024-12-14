@@ -16,7 +16,14 @@ impl WebClient {
 }
 
 impl ClientSync for WebClient {
-    fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {}
+    fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
+        let _ = wasm_bindgen_futures::future_to_promise(async {
+            info!("Spawning future");
+            fut.await;
+            info!("Future ended");
+            Ok("Good".into())
+        });
+    }
 
     fn fetch(
         &self,

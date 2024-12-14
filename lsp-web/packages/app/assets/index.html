@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>
+    <%= htmlWebpackPlugin.options.title %>
+  </title>
+</head>
+
+<body>
+  <div id="container">
+    <h1 id="title">browser-hosted editor and language server</h1>
+    <p id="synopsis">
+      This app demos an editor with language smarts (for JavaScript) by hosting the <a
+        href="https://microsoft.github.io/monaco-editor/">Monaco</a> widget with an <a
+        href="https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/">LSP</a>
+      server implemented via <a href="https://github.com/ebkalderon/tower-lsp">tower-lsp</a> and <a
+        href="https://github.com/tree-sitter/tree-sitter">tree-sitter</a>. Everything is compiled to WASM and run
+      client-side directly in the browser; there are no separate sever-side processes or web workers used by the app
+      code. (Monaco itself does use web workers, however).
+    </p>
+    <p id="features">
+      <strong>features</strong>: ⇧⌘O (macos) or ⇧⌃O (windows) opens symbol view; the <strong>syntax</strong> area shows
+      the JavaScript syntax tree (green for valid; red for errors) parsed from <strong>editor</strong>
+    </p>
+    <div id="cell-editor">
+      <label for="editor">editor</label>
+      <div id="editor"></div>
+    </div>
+    <div id="cell-syntax">
+      <label for="channel-syntax">syntax</label>
+      <textarea id="channel-syntax" autocomplete="off" spellcheck="off" wrap="off" readonly></textarea>
+    </div>
+    <div id="cell-console">
+      <label for="channel-console">console</label>
+      <textarea id="channel-console" autocomplete="off" spellcheck="off" wrap="off" readonly rows="3"></textarea>
+    </div>
+    <div id="cell-client">
+      <label for="channel-client">message trace (client ⇒ server)</label>
+      <textarea id="channel-client" autocomplete="off" spellcheck="off" wrap="off" readonly rows="4"></textarea>
+    </div>
+    <div id="cell-server">
+      <label for="channel-server">message trace (client ⇐ server)</label>
+      <textarea id="channel-server" autocomplete="off" spellcheck="off" wrap="off" readonly rows="4"></textarea>
+    </div>
+  </div>
+</body>
+
+</html>
