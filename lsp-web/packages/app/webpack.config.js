@@ -1,6 +1,7 @@
 // @ts-check
 
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const path = require("path");
 const webpack = require("webpack");
@@ -62,6 +63,13 @@ const config = {
       template: "assets/index.html",
       scriptLoading: "module",
       title: "tower-lsp web demo",
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "./assets/css/*",
+        },
+      ],
     }),
   ],
   optimization: {
