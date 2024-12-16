@@ -75,19 +75,31 @@ pub fn complete_class(
         &TripleComponent,
         &Prefixes,
         &DocumentLinks,
+        &Label,
         &mut CompletionRequest,
     )>,
     other: Query<(&Label, &Wrapped<Vec<DefinedClass>>)>,
 ) {
-    for (token, triple, prefixes, links, mut request) in &mut query {
+    info!("Running");
+    for (token, triple, prefixes, links, this_label, mut request) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
         {
             for (label, classes) in &other {
                 // Check if this thing is actually linked
-                if links.iter().find(|link| link.0 == label.0).is_none() {
+                if links
+                    .iter()
+                    .find(|link| link.0.as_str().starts_with(label.0.as_str()))
+                    .is_none()
+                    && label.0 != this_label.0
+                {
+                    info!(
+                        "Not looking for defined classes in {} (not linked)",
+                        label.0
+                    );
                     continue;
                 }
+                info!("Looking for defined classes in {}", label.0);
 
                 for class in classes.0.iter() {
                     let to_beat = prefixes
@@ -214,16 +226,22 @@ pub fn complete_properties(
         &TripleComponent,
         &Prefixes,
         &DocumentLinks,
+        &Label,
         &mut CompletionRequest,
     )>,
     other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
 ) {
-    for (token, triple, prefixes, links, mut request) in &mut query {
+    for (token, triple, prefixes, links, this_label, mut request) in &mut query {
         debug!("target {:?} text {}", triple.target, token.text);
         if triple.target == TripleTarget::Predicate {
             for (label, properties) in &other {
                 // Check if this thing is actually linked
-                if links.iter().find(|link| link.0 == label.0).is_none() {
+                if links
+                    .iter()
+                    .find(|link| link.0.as_str().starts_with(label.0.as_str()))
+                    .is_none()
+                    && label.0 != this_label.0
+                {
                     continue;
                 }
 

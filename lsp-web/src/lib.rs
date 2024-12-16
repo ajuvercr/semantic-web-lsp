@@ -3,7 +3,7 @@ mod fetch;
 
 use bevy_ecs::{system::Resource, world::World};
 use client::WebClient;
-use futures::{channel::mpsc::unbounded, stream::TryStreamExt, StreamExt as _};
+use futures::{channel::mpsc::unbounded, stream::TryStreamExt, StreamExt};
 use lsp_core::{
     backend::Backend,
     client::{Client, ClientSync},

@@ -140,6 +140,7 @@ const editors: { [K in Keys]: ModelStart } = {
 @prefix rml: <http://w3id.org/rml/core#>.
 @prefix tree: <https://w3id.org/tree#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix ed: <./owl.ttl#>.
 
 
 [ ] a foaf:Project;
@@ -149,7 +150,7 @@ const editors: { [K in Keys]: ModelStart } = {
   foaf:name "ben"^^xsd:string;
   foaf:nick "Benny".
     `,
-    url: "inmemory://demo.ttl",
+    url: "inmemory://examples.this/demo.ttl",
     elementId: "editor",
   },
   sparql: {
@@ -168,15 +169,21 @@ SELECT  *
      rdfs:subClassOf ?name, ?name.
 }
     `,
-    url: "inmemory://query.sq",
+    url: "inmemory://examples.this/query.sq",
     elementId: "editor2",
   },
   owl: {
-    value: `
+    value: `@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
 @prefix rml: <http://w3id.org/rml/core#>.
 @prefix tree: <https://w3id.org/tree#>.
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix : <#>.
 
+:Test a owl:Class, rdfs:Class;
+	rdfs:label "Person" ;
+	rdfs:comment "A person." ;
+  .
 
 [ ] a foaf:Project;
   foaf:name "Arthur", "Testing";.
@@ -184,8 +191,9 @@ SELECT  *
 <a> a foaf:Person;
   foaf:name "ben"^^xsd:string;
   foaf:nick "Benny".
+    
     `,
-    url: "inmemory://owl.ttl",
+    url: "inmemory://examples.this/owl.ttl",
     elementId: "editor3",
   },
   shacl: {
@@ -201,7 +209,7 @@ SELECT  *
   foaf:name "ben"^^xsd:string;
   foaf:nick "Benny".
     `,
-    url: "inmemory://shacl.ttl",
+    url: "inmemory://examples.this/shacl.ttl",
     elementId: "editor4",
   },
 };

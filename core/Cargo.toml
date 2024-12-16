@@ -24,3 +24,4 @@ hashbrown.workspace    = true
 chrono                 = { version = "0.4.38", default-features = false, features = ["serde"] }
 lov      = { path = "../lov/" }
 casey = "0.4.0"
+lazy_static = "1.5.0"

@@ -312,56 +312,56 @@ impl OtherPublisher {
     }
 }
 
-pub struct Publisher<C: Client + Send + Sync + 'static> {
-    version: i32,
-    uri: Url,
-    client: C,
-    diagnostics: Vec<Diagnostic>,
-    rope: Rope,
-    rx: mpsc::UnboundedReceiver<Vec<SimpleDiagnostic>>,
-}
-
-impl<C: Client + Send + Sync + 'static> Publisher<C> {
-    pub fn new(uri: Url, version: i32, client: C, rope: Rope) -> (Self, DiagnosticSender) {
-        let (tx, rx) = mpsc::unbounded();
-        (
-            Self {
-                version,
-                uri,
-                client,
-                diagnostics: Vec::new(),
-                rx,
-                rope,
-            },
-            DiagnosticSender { tx },
-        )
-    }
-
-    pub async fn spawn(mut self) {
-        loop {
-            if let Some(x) = self.rx.next().await {
-                self.diagnostics.extend(x.into_iter().flat_map(|item| {
-                    let (span, message) = (item.range, item.msg);
-                    let start_position = offset_to_position(span.start, &self.rope)?;
-                    let end_position = offset_to_position(span.end, &self.rope)?;
-                    Some(Diagnostic {
-                        range: lsp_types::Range::new(start_position, end_position),
-                        message,
-                        severity: item.severity,
-                        ..Default::default()
-                    })
-                }));
-
-                self.client
-                    .publish_diagnostics(
-                        self.uri.clone(),
-                        self.diagnostics.clone(),
-                        Some(self.version),
-                    )
-                    .await;
-            } else {
-                return;
-            }
-        }
-    }
-}
+// pub struct Publisher<C: Client + Send + Sync + 'static> {
+//     version: i32,
+//     uri: Url,
+//     client: C,
+//     diagnostics: Vec<Diagnostic>,
+//     rope: Rope,
+//     rx: mpsc::UnboundedReceiver<Vec<SimpleDiagnostic>>,
+// }
+//
+// impl<C: Client + Send + Sync + 'static> Publisher<C> {
+//     pub fn new(uri: Url, version: i32, client: C, rope: Rope) -> (Self, DiagnosticSender) {
+//         let (tx, rx) = mpsc::unbounded();
+//         (
+//             Self {
+//                 version,
+//                 uri,
+//                 client,
+//                 diagnostics: Vec::new(),
+//                 rx,
+//                 rope,
+//             },
+//             DiagnosticSender { tx },
+//         )
+//     }
+//
+//     pub async fn spawn(mut self) {
+//         loop {
+//             if let Some(x) = self.rx.next().await {
+//                 self.diagnostics.extend(x.into_iter().flat_map(|item| {
+//                     let (span, message) = (item.range, item.msg);
+//                     let start_position = offset_to_position(span.start, &self.rope)?;
+//                     let end_position = offset_to_position(span.end, &self.rope)?;
+//                     Some(Diagnostic {
+//                         range: lsp_types::Range::new(start_position, end_position),
+//                         message,
+//                         severity: item.severity,
+//                         ..Default::default()
+//                     })
+//                 }));
+//
+//                 self.client
+//                     .publish_diagnostics(
+//                         self.uri.clone(),
+//                         self.diagnostics.clone(),
+//                         Some(self.version),
+//                     )
+//                     .await;
+//             } else {
+//                 return;
+//             }
+//         }
+//     }
+// }
