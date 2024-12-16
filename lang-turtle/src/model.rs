@@ -337,6 +337,16 @@ impl Base {
     pub fn fix_spans(&mut self, len: usize) {
         self.1 .1 = rev_range(&self.1 .1, len);
     }
+    pub fn resolve_location(&mut self, location: &lsp_types::Url) {
+        match self.1.value_mut() {
+            NamedNode::Full(s) => {
+                if let Some(ns) = location.join(&s).ok() {
+                    *s = ns.to_string();
+                }
+            }
+            _ => {}
+        }
+    }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Prefix {
@@ -678,11 +688,14 @@ impl Turtle {
 
 impl Turtle {
     pub fn new(
-        base: Option<Spanned<Base>>,
+        mut base: Option<Spanned<Base>>,
         prefixes: Vec<Spanned<Prefix>>,
         triples: Vec<Spanned<Triple>>,
         location: &lsp_types::Url,
     ) -> Self {
+        if let Some(b) = base.as_mut() {
+            b.resolve_location(location);
+        }
         Self {
             base,
             prefixes,

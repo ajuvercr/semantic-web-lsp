@@ -1286,6 +1286,7 @@ dependencies = [
  "enum-methods",
  "futures",
  "hashbrown 0.13.2",
+ "lazy_static",
  "lov",
  "lsp-types",
  "ropey",

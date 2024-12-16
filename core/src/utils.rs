@@ -27,7 +27,7 @@ pub fn offset_to_position(offset: usize, rope: &Rope) -> Option<Position> {
 }
 pub fn position_to_offset(position: Position, rope: &Rope) -> Option<usize> {
     let line_offset = rope.try_line_to_char(position.line as usize).ok()?;
-    let line_length = rope.line(position.line as usize).len_chars();
+    let line_length = rope.get_line(position.line as usize)?.len_chars();
 
     if (position.character as usize) < line_length {
         Some(line_offset + position.character as usize)

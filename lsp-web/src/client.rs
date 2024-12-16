@@ -62,7 +62,7 @@ impl Client for WebClient {
         diags: Vec<Diagnostic>,
         version: Option<i32>,
     ) -> () {
-        info!("Publishing {} diagnostics", diags.len());
+        info!("Publishing {} diagnostics {} (version {:?})", diags.len(), uri, version);
         self.client.publish_diagnostics(uri, diags, version).await;
     }
 }

@@ -23,7 +23,7 @@
     "build:prod": "webpack --optimization-minimize",
     "format": "prettier --write '**/*.{js,json,ts,tsx,yml,yaml}'",
     "lint": "eslint 'src/**/*.{js,ts,tsx}' && prettier --check '**/*.{json,yml,yaml}'",
-    "app": "webpack serve --open"
+    "app": "webpack serve"
   },
   "devDependencies": {
     "@types/debounce": "^1.2.1",

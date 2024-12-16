@@ -23,7 +23,7 @@ pub struct Tokens(pub Vec<Spanned<crate::token::Token>>);
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Element<L: Lang>(pub Spanned<L::Element>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Prefix {
     pub prefix: String,
     pub url: lsp_types::Url,

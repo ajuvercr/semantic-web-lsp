@@ -219,7 +219,7 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
         protocolToMonaco.asDiagnostics(diagnostics.diagnostics)
       );
     } else {
-      console.error("Failed to publish diagnostics to", url, "Unknown url");
+      console.error("Failed to publish diagnostics to", url, "Unknown url", Object.keys(this.editors));
     }
   }
 

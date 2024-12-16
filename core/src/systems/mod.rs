@@ -233,7 +233,10 @@ pub fn defined_prefix_completion(
 }
 
 pub fn undefined_prefix(
-    query: Query<(&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC)>,
+    query: Query<
+        (&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC),
+        Or<(Changed<Prefixes>, Changed<Tokens>)>,
+    >,
     mut client: ResMut<OtherPublisher>,
 ) {
     for (tokens, prefixes, item, rope) in &query {

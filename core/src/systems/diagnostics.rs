@@ -13,6 +13,7 @@ pub fn publish_diagnostics<L: Lang>(
             &Errors<L::ElementError>,
             &Wrapped<TextDocumentItem>,
             &RopeC,
+            &Label,
         ),
         (
             Or<(
@@ -26,7 +27,8 @@ pub fn publish_diagnostics<L: Lang>(
     L::TokenError: 'static + Clone,
     L::ElementError: 'static + Clone,
 {
-    for (token_errors, element_errors, params, rope) in &query {
+    for (token_errors, element_errors, params, rope, label) in &query {
+        tracing::info!("Publish diagnostics for {}", label.0);
         use std::iter::Iterator as _;
         let token_iter = token_errors
             .0

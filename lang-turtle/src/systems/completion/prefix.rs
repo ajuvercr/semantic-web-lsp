@@ -20,10 +20,10 @@ pub fn turtle_lov_undefined_prefix_completion(
         }
 
         use lsp_types::{Position, Range};
-        prefix_completion_helper(word, prefixes, &mut req.0, |lov| {
+        prefix_completion_helper(word, prefixes, &mut req.0, |name, location| {
             Some(vec![lsp_types::TextEdit {
                 range: Range::new(start.clone(), start),
-                new_text: format!("@prefix {}: <{}>.\n", lov.name, lov.location),
+                new_text: format!("@prefix {}: <{}>.\n", name, location),
             }])
         });
     }
