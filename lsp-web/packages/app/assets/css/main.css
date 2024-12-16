@@ -69,6 +69,7 @@ p[id=features] {
   color: lightgrey;
 }
 
+
 div[id=cell-editor] {
   grid-column: 1 / 2;
   grid-row: 4;

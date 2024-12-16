@@ -92,7 +92,9 @@ impl GroupGraphPattern {
                     x.ingest_triples(builder)?;
                 }
             }
-            GroupGraphPattern::Invalid => todo!(),
+            GroupGraphPattern::Invalid => {
+
+            },
         }
         Ok(())
     }

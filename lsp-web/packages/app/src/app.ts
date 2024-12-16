@@ -5,7 +5,7 @@ import * as proto from "vscode-languageserver-protocol";
 
 import Client from "./client";
 import { FromServer, IntoServer } from "./codec";
-import Language, { protocolToMonaco } from "./language";
+import Language, { Languages, protocolToMonaco } from "./language";
 import Server from "./server";
 
 class Environment implements monaco.Environment {
@@ -21,6 +21,12 @@ class Environment implements monaco.Environment {
 
 const monacoToProtocol = new MonacoToProtocolConverter(monaco);
 
+type ModelStart = {
+  value: string;
+  url: string;
+  elementId: string;
+};
+
 export default class App {
   readonly #window: Window & monaco.Window & typeof globalThis = self;
 
@@ -31,26 +37,33 @@ export default class App {
     this.#window.MonacoEnvironment = new Environment();
   }
 
-  createModel(client: Client): monaco.editor.ITextModel {
-    const language = Language.initialize(client);
+  addEditor(
+    client: Client,
+    init: ModelStart,
+    languageId: string
+  ): monaco.editor.ITextModel {
+    // const value = `
+    // @prefix rml: <http://w3id.org/rml/core#>.
+    // @prefix tree: <https://w3id.org/tree#>.
+    // @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+    //
+    //
+    // [ ] a foaf:Project;
+    //   foaf:name "Arthur", "Testing";.
+    //
+    // <a> a foaf:Person;
+    //   foaf:name "ben"^^xsd:string;
+    //   foaf:nick "Benny".
+    // `.replace(/^\s*\n/gm, "");
+    // const uri = monaco.Uri.parse("inmemory://demo.ttl");
 
-    const value = `
-@prefix rml: <http://w3id.org/rml/core#>.
-@prefix tree: <https://w3id.org/tree#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+    const model = monaco.editor.createModel(
+      init.value,
+      languageId,
+      monaco.Uri.parse(init.url)
+    );
 
-
-[ ] a foaf:Project;
-  foaf:name "Arthur", "Testing";.
-
-<a> a foaf:Person;
-  foaf:name "ben"^^xsd:string;
-  foaf:nick "Benny".
-`.replace(/^\s*\n/gm, "");
-    const id = language.id;
-    const uri = monaco.Uri.parse("inmemory://demo.ttl");
-
-    const model = monaco.editor.createModel(value, id, uri);
+    client.editors[init.url] = model;
 
     model.onDidChangeContent(
       debounce(() => {
@@ -75,39 +88,120 @@ export default class App {
       client.notify(proto.DidOpenTextDocumentNotification.type.method, {
         textDocument: {
           uri: model.uri.toString(),
-          languageId: language.id,
+          languageId: languageId,
           version: 0,
           text: model.getValue(),
         },
       } as proto.DidOpenTextDocumentParams);
     });
 
-    return model;
-  }
-
-  createEditor(client: Client): monaco.editor.ITextModel {
-    const container = document.getElementById("editor")!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-    this.initializeMonaco();
-    const model = this.createModel(client);
+    const container = document.getElementById(init.elementId)!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
     monaco.editor.create(container, {
       model,
       automaticLayout: true,
       "semanticHighlighting.enabled": true,
     });
+
     return model;
   }
+
+  // createEditor(client: Client): monaco.editor.ITextModel {
+  //   const container = document.getElementById("editor")!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+  //   const model = this.addEditor(client);
+  //   monaco.editor.create(container, {
+  //     model,
+  //     automaticLayout: true,
+  //     "semanticHighlighting.enabled": true,
+  //   });
+  //   return model;
+  // }
 
   async run(): Promise<void> {
     const client = new Client(this.#fromServer, this.#intoServer);
     const server = await Server.initialize(this.#intoServer, this.#fromServer);
-    const model = this.createEditor(client);
-    const onDiagnostic = (diags: proto.PublishDiagnosticsParams) => {
-      monaco.editor.setModelMarkers(
-        model,
-        "SWLS",
-        protocolToMonaco.asDiagnostics(diags.diagnostics)
-      );
-    };
-    await Promise.all([server.start(), client.start(onDiagnostic)]);
+    const turtleId = client.addLanguage(Languages.turtle);
+    const sparqlId = client.addLanguage(Languages.sparql);
+
+    this.initializeMonaco();
+
+    this.addEditor(client, editors.turtle, turtleId);
+    this.addEditor(client, editors.owl, turtleId);
+    this.addEditor(client, editors.shacl, turtleId);
+    this.addEditor(client, editors.sparql, sparqlId);
+
+    await Promise.all([server.start(), client.start()]);
   }
 }
+
+type Keys = "turtle" | "sparql" | "owl" | "shacl";
+const editors: { [K in Keys]: ModelStart } = {
+  turtle: {
+    value: `
+@prefix rml: <http://w3id.org/rml/core#>.
+@prefix tree: <https://w3id.org/tree#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+
+[ ] a foaf:Project;
+  foaf:name "Arthur", "Testing";.
+
+<a> a foaf:Person;
+  foaf:name "ben"^^xsd:string;
+  foaf:nick "Benny".
+    `,
+    url: "inmemory://demo.ttl",
+    elementId: "editor",
+  },
+  sparql: {
+    value: `
+PREFIX tree: <https://w3id.org/tree#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX  dc:  <http://purl.org/dc/elements/1.1/>
+PREFIX  ns:  <http://example.org/ns#>
+
+SELECT  *
+{
+   [] a foaf:Image;
+    a foaf:Person,.
+
+   ?person a foaf:Person;
+     rdfs:subClassOf ?name, ?name.
+}
+    `,
+    url: "inmemory://query.sq",
+    elementId: "editor2",
+  },
+  owl: {
+    value: `
+@prefix rml: <http://w3id.org/rml/core#>.
+@prefix tree: <https://w3id.org/tree#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+
+[ ] a foaf:Project;
+  foaf:name "Arthur", "Testing";.
+
+<a> a foaf:Person;
+  foaf:name "ben"^^xsd:string;
+  foaf:nick "Benny".
+    `,
+    url: "inmemory://owl.ttl",
+    elementId: "editor3",
+  },
+  shacl: {
+    value: `
+@prefix rml: <http://w3id.org/rml/core#>.
+@prefix tree: <https://w3id.org/tree#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+[ ] a foaf:Project;
+  foaf:name "Arthur", "Testing";.
+
+<a> a foaf:Person;
+  foaf:name "ben"^^xsd:string;
+  foaf:nick "Benny".
+    `,
+    url: "inmemory://shacl.ttl",
+    elementId: "editor4",
+  },
+};
