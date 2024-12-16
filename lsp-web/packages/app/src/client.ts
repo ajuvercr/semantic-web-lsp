@@ -1,4 +1,5 @@
 import * as jsrpc from "json-rpc-2.0";
+import * as monaco from "monaco-editor-core";
 import { JSONRPCRequest } from "json-rpc-2.0";
 import {
   AbstractMessageReader,
@@ -11,6 +12,13 @@ import * as proto from "vscode-languageserver-protocol";
 import { MessageReader, RequestMessage } from "vscode-languageserver-protocol";
 
 import { Codec, FromServer, IntoServer } from "./codec";
+import {
+  MonacoToProtocolConverter,
+  ProtocolToMonacoConverter,
+} from "monaco-languageclient";
+
+export const monacoToProtocol = new MonacoToProtocolConverter(monaco);
+export const protocolToMonaco = new ProtocolToMonacoConverter(monaco);
 
 const consoleChannel = document.getElementById(
   "channel-console"
@@ -85,7 +93,13 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
   afterInitializedHooks: (() => Promise<void>)[] = [];
   #fromServer: FromServer;
 
-  onLegend: (legen: any) => void = () => {};
+  languages: Set<string> = new Set();
+  legend: monaco.languages.SemanticTokensLegend = {
+    tokenTypes: [],
+    tokenModifiers: [],
+  };
+
+  editors: { [id: string]: monaco.editor.IModel } = {};
 
   constructor(fromServer: FromServer, intoServer: IntoServer) {
     super(
@@ -103,7 +117,113 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
     this.#fromServer = fromServer;
   }
 
-  async start(onDiagnostic: (diags: proto.PublishDiagnosticsParams) => void): Promise<void> {
+  setEditor(editor: monaco.editor.IModel, uri: string) {
+    this.editors[uri] = editor;
+  }
+
+  addLanguage(language: monaco.languages.ILanguageExtensionPoint): string {
+    if (!this.languages.has(language.id)) {
+      this.languages.add(language.id);
+      const client = this;
+      monaco.languages.register(language);
+      monaco.languages.registerDocumentSymbolProvider(language.id, {
+        // eslint-disable-next-line
+        async provideDocumentSymbols(
+          model,
+          token
+        ): Promise<monaco.languages.DocumentSymbol[]> {
+          void token;
+          const response = await (client.request(
+            proto.DocumentSymbolRequest.type.method,
+            {
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+            } as proto.DocumentSymbolParams
+          ) as Promise<proto.SymbolInformation[]>);
+
+          const uri = model.uri.toString();
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const result: monaco.languages.DocumentSymbol[] =
+            protocolToMonaco.asSymbolInformations(response, uri);
+
+          return result;
+        },
+      });
+
+      monaco.languages.registerCompletionItemProvider(language.id, {
+        async provideCompletionItems(model, position, _token, _context) {
+          const response = await client.request(
+            proto.CompletionRequest.type.method,
+            {
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+              position: monacoToProtocol.asPosition(
+                position.lineNumber,
+                position.column
+              ),
+            } as proto.CompletionParams
+          );
+          let out = {
+            incomplete: false,
+            suggestions: [],
+          };
+
+          try {
+            out = protocolToMonaco.asCompletionResult(
+              {
+                isIncomplete: false,
+                items: response,
+              },
+              {
+                startLineNumber: 1,
+                startColumn: 1,
+                endLineNumber: 1,
+                endColumn: 1,
+              }
+            );
+          } catch (ex: any) {
+            console.log(ex);
+          }
+
+          return out;
+        },
+      });
+
+      monaco.languages.registerDocumentSemanticTokensProvider(language.id, {
+        releaseDocumentSemanticTokens() {},
+        getLegend(): monaco.languages.SemanticTokensLegend {
+          return client.legend;
+        },
+        async provideDocumentSemanticTokens(model) {
+          const response = await client.request(
+            proto.SemanticTokensRequest.type.method,
+            {
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+            } as proto.SemanticTokensParams
+          );
+          return protocolToMonaco.asSemanticTokens(response);
+        },
+      });
+    } else {
+      console.error("Language already added", language.id);
+    }
+    return language.id;
+  }
+
+  private handleDiagnostics(diagnostics: proto.PublishDiagnosticsParams) {
+    const url = diagnostics.uri;
+    const model = this.editors[url];
+    if (model) {
+      monaco.editor.setModelMarkers(
+        model,
+        "SWLS",
+        protocolToMonaco.asDiagnostics(diagnostics.diagnostics)
+      );
+    } else {
+      console.error("Failed to publish diagnostics to", url, "Unknown url");
+    }
+  }
+
+  async start(): Promise<void> {
     // process "window/logMessage": client <- server
     this.addMethod(proto.LogMessageNotification.type.method, (params) => {
       const { type, message } = params as {
@@ -133,9 +253,13 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
       return;
     });
 
-    this.addMethod(proto.PublishDiagnosticsNotification.type.method, (params) => {
-      onDiagnostic(params);
-    });
+    this.addMethod(
+      proto.PublishDiagnosticsNotification.type.method,
+      (params) => {
+        this.handleDiagnostics(params);
+        // onDiagnostic(params);
+      }
+    );
 
     // request "initialize": client <-> server
     const resp: any = await (this.request(proto.InitializeRequest.type.method, {
@@ -151,7 +275,7 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
       rootUri: null,
     } as proto.InitializeParams) as Promise<jsrpc.JSONRPCResponse>);
 
-    this.onLegend(resp.capabilities.semanticTokensProvider.legend);
+    this.legend = resp.capabilities.semanticTokensProvider.legend;
 
     // notify "initialized": client --> server
     this.notify(proto.InitializedNotification.type.method, {});
