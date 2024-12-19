@@ -1,13 +1,14 @@
+use crate::components::{
+    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest,
+    Label, Open, PositionComponent, RopeC, Source, Types, Wrapped,
+};
+use crate::systems::spawn_or_insert;
+use crate::{Completion, Diagnostics, Format, Hover, Inlay, Parse};
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
-use crate::components::{
-    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest, Label, Open, PositionComponent, RopeC, Source, Types, Wrapped
-};
-use crate::systems::spawn_or_insert;
-use crate::{Completion, Diagnostics, Format, Hover, Inlay, Parse};
 use lsp_types::*;
 
 use futures::lock::Mutex;

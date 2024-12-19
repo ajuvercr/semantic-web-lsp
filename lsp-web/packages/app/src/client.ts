@@ -150,6 +150,37 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
         },
       });
 
+      monaco.languages.registerDocumentFormattingEditProvider(language.id, {
+        async provideDocumentFormattingEdits(model, options, _token) {
+          const response = await client.request(
+            proto.DocumentFormattingRequest.type.method,
+            {
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+              options: monacoToProtocol.asFormattingOptions(options)
+            } as proto.DocumentFormattingParams
+          );
+
+          return protocolToMonaco.asTextEdits(response || []);
+        }
+      })
+
+      monaco.languages.registerHoverProvider(language.id, {
+        async provideHover(model, position, _token) {
+          const response = await client.request(
+            proto.HoverRequest.type.method,
+            {
+              position: monacoToProtocol.asPosition(
+                position.lineNumber,
+                position.column
+              ),
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+            } as proto.HoverParams
+          );
+
+          return protocolToMonaco.asHover(response);
+        },
+      });
+
       monaco.languages.registerCompletionItemProvider(language.id, {
         async provideCompletionItems(model, position, _token, _context) {
           const response = await client.request(
@@ -219,7 +250,12 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
         protocolToMonaco.asDiagnostics(diagnostics.diagnostics)
       );
     } else {
-      console.error("Failed to publish diagnostics to", url, "Unknown url", Object.keys(this.editors));
+      console.error(
+        "Failed to publish diagnostics to",
+        url,
+        "Unknown url",
+        Object.keys(this.editors)
+      );
     }
   }
 

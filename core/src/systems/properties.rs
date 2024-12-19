@@ -219,7 +219,7 @@ pub fn derive_properties(
     }
 }
 
-#[instrument(skip(query, other))]
+#[instrument(skip(query, other, hierarchy))]
 pub fn complete_properties(
     mut query: Query<(
         &TokenComponent,
@@ -227,13 +227,16 @@ pub fn complete_properties(
         &Prefixes,
         &DocumentLinks,
         &Label,
+        &Types,
         &mut CompletionRequest,
     )>,
     other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
+    hierarchy: Res<TypeHierarchy<'static>>,
 ) {
-    for (token, triple, prefixes, links, this_label, mut request) in &mut query {
+    for (token, triple, prefixes, links, this_label, types, mut request) in &mut query {
         debug!("target {:?} text {}", triple.target, token.text);
         if triple.target == TripleTarget::Predicate {
+            let tts = types.get(&triple.triple.subject.value);
             for (label, properties) in &other {
                 // Check if this thing is actually linked
                 if links
@@ -259,17 +262,38 @@ pub fn complete_properties(
                     );
 
                     if to_beat.starts_with(&token.text) {
-                        request.push(
-                            crate::lang::SimpleCompletion::new(
-                                CompletionItemKind::PROPERTY,
-                                format!("{}", to_beat),
-                                TextEdit {
-                                    range: token.range.clone(),
-                                    new_text: to_beat.to_string(),
-                                },
-                            )
-                            .documentation(&class.comment),
-                        );
+                        let correct_domain = class.domain.iter().any(|domain| {
+                            if let Some(domain_id) = hierarchy.get_id_ref(&domain) {
+                                if let Some(tts) = tts {
+                                    tts.iter().any(|tt| *tt == domain_id)
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        });
+
+                        let mut completion = crate::lang::SimpleCompletion::new(
+                            CompletionItemKind::PROPERTY,
+                            format!("{}", to_beat),
+                            TextEdit {
+                                range: token.range.clone(),
+                                new_text: to_beat.to_string(),
+                            },
+                        )
+                        .label_description(&class.comment);
+
+                        if correct_domain {
+                            completion.kind = CompletionItemKind::FIELD;
+                            debug!("Property has correct domain {}", to_beat);
+                            request.push(
+                                completion
+                                    .sort_text("1"),
+                            );
+                        } else {
+                            request.push(completion);
+                        }
                     }
                 }
             }

@@ -39,10 +39,7 @@ pub fn prefix_completion_helper(
     }
 
     completions.extend(
-        lov::LOCAL_PREFIXES
-            .iter()
-            .map(|x| (x.name, x.location))
-            .chain(HASHMAP.iter().cloned())
+        HASHMAP.iter()
             .filter(|(name, _)| name.starts_with(&word.text))
             .filter(|(_, location)| !defined.contains(location))
             .flat_map(|(name, location)| {

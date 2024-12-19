@@ -5,7 +5,7 @@ import * as proto from "vscode-languageserver-protocol";
 
 import Client from "./client";
 import { FromServer, IntoServer } from "./codec";
-import Language, { Languages, protocolToMonaco } from "./language";
+import { Languages } from "./language";
 import Server from "./server";
 
 class Environment implements monaco.Environment {
@@ -42,21 +42,6 @@ export default class App {
     init: ModelStart,
     languageId: string
   ): monaco.editor.ITextModel {
-    // const value = `
-    // @prefix rml: <http://w3id.org/rml/core#>.
-    // @prefix tree: <https://w3id.org/tree#>.
-    // @prefix foaf: <http://xmlns.com/foaf/0.1/>.
-    //
-    //
-    // [ ] a foaf:Project;
-    //   foaf:name "Arthur", "Testing";.
-    //
-    // <a> a foaf:Person;
-    //   foaf:name "ben"^^xsd:string;
-    //   foaf:nick "Benny".
-    // `.replace(/^\s*\n/gm, "");
-    // const uri = monaco.Uri.parse("inmemory://demo.ttl");
-
     const model = monaco.editor.createModel(
       init.value,
       languageId,
@@ -80,7 +65,7 @@ export default class App {
             },
           ],
         } as proto.DidChangeTextDocumentParams);
-      }, 200)
+      }, 50)
     );
 
     // eslint-disable-next-line @typescript-eslint/require-await
@@ -100,21 +85,13 @@ export default class App {
       model,
       automaticLayout: true,
       "semanticHighlighting.enabled": true,
+      minimap: {
+        enabled: false
+      }
     });
 
     return model;
   }
-
-  // createEditor(client: Client): monaco.editor.ITextModel {
-  //   const container = document.getElementById("editor")!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-  //   const model = this.addEditor(client);
-  //   monaco.editor.create(container, {
-  //     model,
-  //     automaticLayout: true,
-  //     "semanticHighlighting.enabled": true,
-  //   });
-  //   return model;
-  // }
 
   async run(): Promise<void> {
     const client = new Client(this.#fromServer, this.#intoServer);
@@ -136,25 +113,27 @@ export default class App {
 type Keys = "turtle" | "sparql" | "owl" | "shacl";
 const editors: { [K in Keys]: ModelStart } = {
   turtle: {
-    value: `
-@prefix rml: <http://w3id.org/rml/core#>.
-@prefix tree: <https://w3id.org/tree#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+    value: `@prefix ex: <http://example.org/>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix ed: <./owl.ttl#>.
+@prefix ed2: <./shacl.ttl#>.
 
+<HoverFeature> a ed:Hover.
+<CompleteFeature> a ed:Completion;
+  ed:completesTypes "true"^^xsd:boolean;
+  ed:completesProperties "true"^^xsd:boolean;
+  ed:isCool "true".
 
-[ ] a foaf:Project;
-  foaf:name "Arthur", "Testing";.
-
-<a> a foaf:Person;
-  foaf:name "ben"^^xsd:string;
-  foaf:nick "Benny".
-    `,
-    url: "inmemory://examples.this/demo.ttl",
+<SWLS> a ed:LanguageServer;
+  rdfs:label "test1", "test2";
+  ed:hasFeature <HoverFeature>, <CompleteFeature>.
+`,
+    url: "inmemory://examples.this/turtle.ttl",
     elementId: "editor",
   },
   sparql: {
-    value: `
+    value: `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX tree: <https://w3id.org/tree#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX  dc:  <http://purl.org/dc/elements/1.1/>
@@ -173,41 +152,84 @@ SELECT  *
     elementId: "editor2",
   },
   owl: {
-    value: `@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+    value: `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix owl: <http://www.w3.org/2002/07/owl#>.
-@prefix rml: <http://w3id.org/rml/core#>.
-@prefix tree: <https://w3id.org/tree#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
 @prefix : <#>.
 
-:Test a owl:Class, rdfs:Class;
-	rdfs:label "Person" ;
-	rdfs:comment "A person." ;
-  .
+:LanguageServer a rdfs:Class;
+  rdfs:label "Language Server";
+  rdfs:comment "LSP with supported features".
 
-[ ] a foaf:Project;
-  foaf:name "Arthur", "Testing";.
+:hasFeature a rdf:Property;
+  rdfs:label "Has Feature";
+  rdfs:comment "Links a property to a language server";
+  rdfs:domain :LanguageServer;
+  rdfs:range :Feature.
 
-<a> a foaf:Person;
-  foaf:name "ben"^^xsd:string;
-  foaf:nick "Benny".
-    
-    `,
+:Feature a rdfs:Class;
+  rdfs:label "Feature of a Language Server";
+  rdfs:comment "A feature supported by a LSP".
+
+:Hover a rdfs:Class;
+  rdfs:subClassOf :Feature;
+  rdfs:label "Hover Feature";
+  rdfs:comment "The LSP supports the hover action".
+
+:Completion a rdfs:Class;
+  rdfs:subClassOf :Feature;
+  rdfs:label "Completion Feature";
+  rdfs:comment "The LSP can autocomplete".
+
+:completesTypes a rdf:Property;
+  rdfs:label "Completes Types";
+  rdfs:comment "Indicates that the hover action can complete types";
+  rdfs:domain :Completion;
+  rdfs:range xsd:boolean.
+
+:completesProperties a rdf:Property;
+  rdfs:label "Completes Properties";
+  rdfs:comment "Indicates that the hover action can complete properties";
+  rdfs:domain :Completion;
+  rdfs:range xsd:boolean.
+
+:isCool a rdf:Property;
+  rdfs:label "Cool Feature";
+  rdfs:comment "Indicates whether or not a feature is cool";
+  rdfs:domain :Feature;
+  rdfs:range xsd:boolean.
+`,
     url: "inmemory://examples.this/owl.ttl",
     elementId: "editor3",
   },
   shacl: {
-    value: `
-@prefix rml: <http://w3id.org/rml/core#>.
-@prefix tree: <https://w3id.org/tree#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+    value: `@prefix ex: <http://example.org/>.
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ed: <./owl.ttl#>.
 
-[ ] a foaf:Project;
-  foaf:name "Arthur", "Testing";.
-
-<a> a foaf:Person;
-  foaf:name "ben"^^xsd:string;
-  foaf:nick "Benny".
+ed:LanguageFeatureShape 
+    a sh:NodeShape;
+    sh:targetClass ed:Feature, ed:Hover, ed:Completion;
+    sh:property [
+        sh:path ed:isCool;
+        sh:datatype xsd:boolean;
+        sh:name "Coolness";
+        sh:minCount 1;
+        sh:in ( "true" );
+    ].
+    
+ed:LanguageServerShape
+    a sh:NodeShape;
+    sh:targetClass ed:LanguageServer;
+    sh:property [
+        sh:path ed:hasFeature;
+        sh:minCount 3;
+        sh:node ed:LanguageFeatureShape;
+    ].
     `,
     url: "inmemory://examples.this/shacl.ttl",
     elementId: "editor4",

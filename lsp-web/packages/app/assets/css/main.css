@@ -6,14 +6,19 @@ a:visited {
   color: silver;
 }
 
-body {
-  background-color: black;
-  color: white;
+.name {
+  text-align: right;
+  font-size: smaller;
+  vertical-align: bottom;
+}
+
+body, html {
+  /* background-color: black; */
+  /* color: white; */
   margin: 0;
 }
 
 div[id="wrapper"], div[id="wrapper2"] {
-  width: 100vw;
   height: 100vh;
   display: flex;
   justify-items: center;
@@ -21,7 +26,7 @@ div[id="wrapper"], div[id="wrapper2"] {
 
 div[id=container2] {
   display: grid;
-  width: 75%;
+  width: 85%;
   height: 90%;
   min-width: 800px;
   min-height: 600px;
@@ -33,12 +38,15 @@ div[id=container2] {
 div[id=container] {
   display: grid;
   width: 75%;
-  height: 90%;
+  height: 95%;
   min-width: 800px;
   min-height: 600px;
   grid-template-rows: auto auto auto minmax(0, 1fr) minmax(0, 1fr);
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin: auto;
+  padding-bottom: 20px;
+
 }
 
 h1[id=title] {
@@ -49,7 +57,7 @@ h1[id=title] {
 }
 
 p[id=synopsis] {
-  color: lightgrey;
+  color: #333;
   grid-column: 1 / 3;
   grid-row: 2;
   margin: 0;
@@ -66,7 +74,7 @@ p[id=features] {
   font-style: italic;
   font-size: 10pt;
   line-height: 1.5em;
-  color: lightgrey;
+  color: #333;
 }
 
 
@@ -93,7 +101,12 @@ div[id=cell-editor4] {
 .cell-editor .editor {
   border: 1px solid black;
   height: calc(100% - 22px);
-  padding-right: 1.5em;
+}
+
+.cell-editor label {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
 }
 
 div[id=cell-syntax] {
@@ -106,7 +119,6 @@ div[id=container2] textarea {
 }
 
 [id=container] label {
-  display: block;
   font-family: monospace;
   font-size: 14pt;
 }

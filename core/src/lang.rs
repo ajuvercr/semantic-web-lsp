@@ -5,8 +5,9 @@ use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::{channel::mpsc, StreamExt};
 use lsp_types::{
-    CompletionItem, CompletionItemKind, CompletionTextEdit, Diagnostic, DiagnosticSeverity,
-    Documentation, InsertTextFormat, SemanticTokenType, TextDocumentItem, TextEdit, Url,
+    CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit, Diagnostic,
+    DiagnosticSeverity, Documentation, InsertTextFormat, SemanticTokenType, TextDocumentItem,
+    TextEdit, Url,
 };
 use ropey::Rope;
 
@@ -52,6 +53,7 @@ pub fn head() -> lsp_types::Range {
 pub struct SimpleCompletion {
     pub kind: CompletionItemKind,
     pub label: String,
+    pub _label_details: Option<CompletionItemLabelDetails>,
     pub _documentation: Option<String>,
     pub _sort_text: Option<String>,
     pub _filter_text: Option<String>,
@@ -64,11 +66,38 @@ impl SimpleCompletion {
             kind,
             label,
             edits: vec![edit],
+            _label_details: None,
             _documentation: None,
             _sort_text: None,
             _filter_text: None,
             _commit_char: None,
         }
+    }
+
+    pub fn label_detail(mut self, detail: impl Into<String>) -> Self {
+        if let Some(ref mut t) = self._label_details {
+            t.detail = Some(detail.into());
+        } else {
+            self._label_details = Some(CompletionItemLabelDetails {
+                detail: Some(detail.into()),
+                description: None,
+            });
+        }
+
+        self
+    }
+
+    pub fn label_description(mut self, description: impl Into<String>) -> Self {
+        if let Some(ref mut t) = self._label_details {
+            t.description = Some(description.into());
+        } else {
+            self._label_details = Some(CompletionItemLabelDetails {
+                description: Some(description.into()),
+                detail: None,
+            });
+        }
+
+        self
     }
 
     pub fn text_edit(mut self, edit: TextEdit) -> Self {
@@ -108,6 +137,7 @@ impl Into<CompletionItem> for SimpleCompletion {
             _filter_text: filter_text,
             _sort_text: sort_text,
             label,
+            _label_details,
             _documentation: documentation,
             kind,
             edits,
@@ -128,6 +158,7 @@ impl Into<CompletionItem> for SimpleCompletion {
             insert_text_format: (kind == CompletionItemKind::SNIPPET)
                 .then_some(InsertTextFormat::SNIPPET),
             filter_text,
+            label_details: _label_details,
             documentation: documentation.map(|st| Documentation::String(st)),
             text_edit,
             additional_text_edits: Some(additional_text_edits),

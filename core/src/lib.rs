@@ -8,9 +8,9 @@ use client::Client;
 use components::{SemanticTokensDict, TypeHierarchy};
 use systems::{
     basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
-    derive_classes, derive_prefix_links, derive_properties, extract_type_hierarchy,
+    derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
     fetch_lov_properties, get_current_token, get_current_triple, hover_class, hover_property,
-    hover_types, infer_types, inlay_triples, prefixes, semantic_tokens_system,
+    hover_types, infer_types, inlay_triples, prefixes, semantic_tokens_system, validate_shapes,
 };
 
 pub mod backend;
@@ -40,6 +40,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
         fetch_lov_properties::<C>.after(prefixes),
         extract_type_hierarchy.after(systems::triples),
         infer_types.after(systems::triples),
+        derive_shapes.after(systems::triples),
     ));
     world.add_schedule(parse);
 
@@ -70,7 +71,8 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(hover);
 
     let mut diagnostics = Schedule::new(Diagnostics);
-    diagnostics.add_systems(systems::undefined_prefix);
+    diagnostics.add_systems((systems::undefined_prefix, validate_shapes));
+
     world.add_schedule(diagnostics);
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
