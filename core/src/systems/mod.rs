@@ -10,6 +10,8 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 
+mod shapes;
+pub use shapes::*;
 mod typed;
 pub use typed::*;
 mod diagnostics;

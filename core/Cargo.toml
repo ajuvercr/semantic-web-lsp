@@ -12,16 +12,17 @@ chumsky.workspace      = true
 derive_more.workspace  = true
 enum-methods.workspace = true
 futures.workspace      = true
+hashbrown.workspace    = true
 lsp-types.workspace    = true
 ropey.workspace        = true
+serde.workspace        = true
+serde_json.workspace   = true
 sophia_api.workspace   = true
 tower-lsp.workspace    = true
 tracing.workspace      = true
-serde.workspace        = true
-serde_json.workspace   = true
-hashbrown.workspace    = true
 
-chrono                 = { version = "0.4.38", default-features = false, features = ["serde"] }
-lov      = { path = "../lov/" }
-casey = "0.4.0"
+casey       = "0.4.0"
+chrono      = { version = "0.4.38", default-features = false, features = ["serde"] }
 lazy_static = "1.5.0"
+lov         = { path = "../lov/" }
+rudof_lib   = { path = "../../rudof/rudof_lib/" }

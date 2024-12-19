@@ -1,3 +1,4 @@
+use rudof_lib::srdf::{SRDFBasic, SRDF};
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
@@ -245,3 +246,191 @@ impl<'a> Deref for Triples<'a> {
         &self.triples
     }
 }
+
+// impl<'a> SRDFBasic for Triples<'a> {
+//     type Subject;
+//
+//     type IRI;
+//
+//     type BNode;
+//
+//     type Literal;
+//
+//     type Term;
+//
+//     type Err;
+//
+//     fn subject_as_iri(subject: &Self::Subject) -> Option<Self::IRI> {
+//         todo!()
+//     }
+//
+//     fn subject_as_bnode(subject: &Self::Subject) -> Option<Self::BNode> {
+//         todo!()
+//     }
+//
+//     fn subject_is_iri(subject: &Self::Subject) -> bool {
+//         todo!()
+//     }
+//
+//     fn subject_is_bnode(subject: &Self::Subject) -> bool {
+//         todo!()
+//     }
+//
+//     fn term_as_iri(object: &Self::Term) -> Option<&Self::IRI> {
+//         todo!()
+//     }
+//
+//     fn term_as_bnode(object: &Self::Term) -> Option<Self::BNode> {
+//         todo!()
+//     }
+//
+//     fn term_as_literal(object: &Self::Term) -> Option<Self::Literal> {
+//         todo!()
+//     }
+//
+//     fn term_as_object(term: &Self::Term) -> rudof_lib::srdf::Object {
+//         todo!()
+//     }
+//
+//     fn object_as_term(obj: &rudof_lib::srdf::Object) -> Self::Term {
+//         todo!()
+//     }
+//
+//     fn term_is_iri(object: &Self::Term) -> bool {
+//         todo!()
+//     }
+//
+//     fn term_is_bnode(object: &Self::Term) -> bool {
+//         todo!()
+//     }
+//
+//     fn term_is_literal(object: &Self::Term) -> bool {
+//         todo!()
+//     }
+//
+//     fn term_as_subject(object: &Self::Term) -> Option<Self::Subject> {
+//         todo!()
+//     }
+//
+//     fn subject_as_term(subject: &Self::Subject) -> Self::Term {
+//         todo!()
+//     }
+//
+//     fn lexical_form(literal: &Self::Literal) -> &str {
+//         todo!()
+//     }
+//
+//     fn lang(literal: &Self::Literal) -> Option<String> {
+//         todo!()
+//     }
+//
+//     fn datatype(literal: &Self::Literal) -> Self::IRI {
+//         todo!()
+//     }
+//
+//     fn iri_s2iri(iri_s: &IriS) -> Self::IRI {
+//         todo!()
+//     }
+//
+//     fn term_s2term(term: &OxTerm) -> Self::Term {
+//         todo!()
+//     }
+//
+//     fn bnode_id2bnode(id: &str) -> Self::BNode {
+//         todo!()
+//     }
+//
+//     fn iri_as_term(iri: Self::IRI) -> Self::Term {
+//         todo!()
+//     }
+//
+//     fn iri_as_subject(iri: Self::IRI) -> Self::Subject {
+//         todo!()
+//     }
+//
+//     fn bnode_as_term(bnode: Self::BNode) -> Self::Term {
+//         todo!()
+//     }
+//
+//     fn bnode_as_subject(bnode: Self::BNode) -> Self::Subject {
+//         todo!()
+//     }
+//
+//     fn iri2iri_s(iri: &Self::IRI) -> IriS {
+//         todo!()
+//     }
+//
+//     fn qualify_iri(&self, iri: &Self::IRI) -> String {
+//         todo!()
+//     }
+//
+//     fn qualify_subject(&self, subj: &Self::Subject) -> String {
+//         todo!()
+//     }
+//
+//     fn qualify_term(&self, term: &Self::Term) -> String {
+//         todo!()
+//     }
+//
+//     fn prefixmap(&self) -> Option<rudof_lib::PrefixMap> {
+//         todo!()
+//     }
+//
+//     fn resolve_prefix_local(&self, prefix: &str, local: &str) -> Result<IriS, PrefixMapError> {
+//         todo!()
+//     }
+// }
+//
+// impl<'a> SRDF for Triples<'a> {
+//     fn predicates_for_subject(
+//         &self,
+//         subject: &Self::Subject,
+//     ) -> Result<std::collections::HashSet<Self::IRI>, Self::Err> {
+//         todo!()
+//     }
+//
+//     fn objects_for_subject_predicate(
+//         &self,
+//         subject: &Self::Subject,
+//         pred: &Self::IRI,
+//     ) -> Result<std::collections::HashSet<Self::Term>, Self::Err> {
+//         todo!()
+//     }
+//
+//     fn subjects_with_predicate_object(
+//         &self,
+//         pred: &Self::IRI,
+//         object: &Self::Term,
+//     ) -> Result<std::collections::HashSet<Self::Subject>, Self::Err> {
+//         todo!()
+//     }
+//
+//     fn triples_with_predicate(
+//         &self,
+//         pred: &Self::IRI,
+//     ) -> Result<Vec<rudof_lib::srdf::Triple<Self>>, Self::Err> {
+//         todo!()
+//     }
+//
+//     fn outgoing_arcs(
+//         &self,
+//         subject: &Self::Subject,
+//     ) -> Result<rudof_lib::srdf::HasMapOfIriAndItem<Self::IRI, Self::Term>, Self::Err> {
+//         todo!()
+//     }
+//
+//     fn incoming_arcs(
+//         &self,
+//         object: &Self::Term,
+//     ) -> Result<rudof_lib::srdf::HasMapOfIriAndItem<Self::IRI, Self::Subject>, Self::Err> {
+//         todo!()
+//     }
+//
+//     fn outgoing_arcs_from_list(
+//         &self,
+//         subject: &Self::Subject,
+//         preds: &[Self::IRI],
+//     ) -> Result<OutgoingArcs<Self::IRI, Self::Term>, Self::Err> {
+//         todo!()
+//     }
+// }
