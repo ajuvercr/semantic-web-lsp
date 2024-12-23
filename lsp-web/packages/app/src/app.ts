@@ -14,7 +14,7 @@ class Environment implements monaco.Environment {
       return "./editor.worker.bundle.js";
     }
     throw new Error(
-      `getWorkerUrl: unexpected ${JSON.stringify({ moduleId, label })}`
+      `getWorkerUrl: unexpected ${JSON.stringify({ moduleId, label })}`,
     );
   }
 }
@@ -40,12 +40,12 @@ export default class App {
   addEditor(
     client: Client,
     init: ModelStart,
-    languageId: string
+    languageId: string,
   ): monaco.editor.ITextModel {
     const model = monaco.editor.createModel(
       init.value,
       languageId,
-      monaco.Uri.parse(init.url)
+      monaco.Uri.parse(init.url),
     );
 
     client.editors[init.url] = model;
@@ -65,7 +65,7 @@ export default class App {
             },
           ],
         } as proto.DidChangeTextDocumentParams);
-      }, 50)
+      }, 50),
     );
 
     // eslint-disable-next-line @typescript-eslint/require-await
@@ -86,8 +86,9 @@ export default class App {
       automaticLayout: true,
       "semanticHighlighting.enabled": true,
       minimap: {
-        enabled: false
-      }
+        enabled: false,
+      },
+      quickSuggestions: false,
     });
 
     return model;
@@ -133,19 +134,17 @@ const editors: { [K in Keys]: ModelStart } = {
     elementId: "editor",
   },
   sparql: {
-    value: `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX tree: <https://w3id.org/tree#>
-PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-PREFIX  dc:  <http://purl.org/dc/elements/1.1/>
-PREFIX  ns:  <http://example.org/ns#>
+    value: `PREFIX  ed: <./owl.ttl#>
 
 SELECT  *
 {
-   [] a foaf:Image;
-    a foaf:Person,.
-
-   ?person a foaf:Person;
-     rdfs:subClassOf ?name, ?name.
+  ?s a ed:LanguageServer;
+    ed:hasFeature ?feature.
+  
+  ?feature a ?featureType.
+  OPTIONAL {
+    ?feature ed:isCool ?isCool.
+  }
 }
     `,
     url: "inmemory://examples.this/query.sq",
