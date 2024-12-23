@@ -50,23 +50,33 @@ export default class App {
 
     client.editors[init.url] = model;
 
-    model.onDidChangeContent(
-      debounce(() => {
-        const text = model.getValue();
-        client.notify(proto.DidChangeTextDocumentNotification.type.method, {
-          textDocument: {
-            version: 0,
-            uri: model.uri.toString(),
+    const change = debounce(() => {
+      const text = model.getValue();
+      client.notify(proto.DidChangeTextDocumentNotification.type.method, {
+        textDocument: {
+          version: 0,
+          uri: model.uri.toString(),
+        },
+        contentChanges: [
+          {
+            range: monacoToProtocol.asRange(model.getFullModelRange()),
+            text,
           },
-          contentChanges: [
-            {
-              range: monacoToProtocol.asRange(model.getFullModelRange()),
-              text,
-            },
-          ],
-        } as proto.DidChangeTextDocumentParams);
-      }, 50),
-    );
+        ],
+      } as proto.DidChangeTextDocumentParams);
+    }, 50);
+    const save = debounce(() => {
+      client.notify(proto.DidSaveTextDocumentNotification.type.method, {
+        textDocument: {
+          version: 0,
+          uri: model.uri.toString(),
+        },
+      } as proto.DidChangeTextDocumentParams);
+    }, 2000);
+    model.onDidChangeContent(() => {
+      change();
+      save();
+    });
 
     // eslint-disable-next-line @typescript-eslint/require-await
     client.pushAfterInitializeHook(async () => {
@@ -78,6 +88,8 @@ export default class App {
           text: model.getValue(),
         },
       } as proto.DidOpenTextDocumentParams);
+
+      save();
     });
 
     const container = document.getElementById(init.elementId)!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
@@ -89,6 +101,8 @@ export default class App {
         enabled: false,
       },
       quickSuggestions: false,
+      scrollBeyondLastLine: false,
+      links: false,
     });
 
     return model;

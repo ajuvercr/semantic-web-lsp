@@ -3,7 +3,7 @@ use crate::components::{
     Label, Open, PositionComponent, RopeC, Source, Types, Wrapped,
 };
 use crate::systems::spawn_or_insert;
-use crate::{Completion, Diagnostics, Format, Hover, Inlay, Parse};
+use crate::{Completion, Diagnostics, Format, Hover, Inlay, OnSave, Parse};
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
@@ -43,6 +43,7 @@ impl Backend {
         }
     }
 
+    #[must_use]
     async fn run<T: Send + Sync + 'static>(
         &self,
         f: impl FnOnce(&mut World) -> T + Send + Sync + 'static,
@@ -64,6 +65,7 @@ impl Backend {
         rx.await.ok()
     }
 
+    #[must_use]
     async fn run_schedule<T: Component>(
         &self,
         entity: Entity,
@@ -190,7 +192,7 @@ impl LanguageServer for Backend {
                 if let Some(entity) = map.get(uri) {
                     entity.clone()
                 } else {
-                    info!("Didn't find entity {} stopping", uri);
+                    info!("Didn't find entty {} stopping", uri);
                     return Ok(None);
                 }
             }
@@ -405,6 +407,17 @@ impl LanguageServer for Backend {
             world.flush();
             info!("Running diagnostics");
             world.run_schedule(Diagnostics);
+        })
+        .await;
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        info!("Did save");
+        self.run(move |world| {
+            world.run_schedule(OnSave);
+
+            info!("Ran OnSave Schedule");
         })
         .await;
     }
