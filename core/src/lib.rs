@@ -71,9 +71,13 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(hover);
 
     let mut diagnostics = Schedule::new(Diagnostics);
-    diagnostics.add_systems((systems::undefined_prefix, validate_shapes));
-
+    diagnostics.add_systems((systems::undefined_prefix,));
     world.add_schedule(diagnostics);
+
+    let mut on_save = Schedule::new(OnSave);
+    on_save.add_systems((validate_shapes,));
+    world.add_schedule(on_save);
+
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
     let mut inlay = Schedule::new(Inlay);
@@ -105,6 +109,9 @@ pub struct Completion;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Diagnostics;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct OnSave;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Tasks;
