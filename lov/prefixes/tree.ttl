@@ -1,0 +1,211 @@
+@prefix cc:    <http://creativecommons.org/ns#> .
+@prefix schema: <http://schema.org/> .
+@prefix gsp:   <http://www.opengis.net/ont/geosparql#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix tree:  <https://w3id.org/tree#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix voaf:  <http://purl.org/vocommons/voaf#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix hydra: <http://www.w3.org/ns/hydra/core#> .
+@prefix tiles: <https://w3id.org/tree#> .
+@prefix xhtm:  <http://www.w3.org/1999/xhtml> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix xml:   <http://www.w3.org/XML/1998/namespace> .
+@prefix wdrs:  <http://www.w3.org/2007/05/powder-s#> .
+@prefix locn:  <http://www.w3.org/ns/locn#> .
+@prefix dcat:  <http://www.w3.org/ns/dcat#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix vs:    <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+
+tiles:GreaterThanRelation
+        a                rdfs:Class ;
+        rdfs:comment     "All members of this related node are greater than the value"@en ;
+        rdfs:label       "Greater Than Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:LessThanOrEqualToRelation
+        a                rdfs:Class ;
+        rdfs:label       "Less than or equal to Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:value  a        rdf:Property ;
+        rdfs:comment  "The value the node linked in the node relation is compared to"@en ;
+        rdfs:label    "Value"@en .
+
+tiles:SuffixRelation  a  rdfs:Class ;
+        rdfs:comment     "All members of this related node end with this suffix"@en ;
+        rdfs:label       "Suffix Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:conditionalImport
+        a             rdf:Property ;
+        rdfs:comment  "Imports a file in order being able to evaluate a tree:path correctly"@en ;
+        rdfs:label    "Import conditionally"@en ;
+        rdfs:range    tiles:ConditionalImport .
+
+tiles:import  a       rdf:Property ;
+        rdfs:comment  "Imports a file in order being able to evaluate a tree:path correctly or comply fully to the tree:shape defined in the Collection"@en ;
+        rdfs:label    "Import"@en .
+
+<https://pietercolpaert.be/#me>
+        foaf:mbox  "pieter.colpaert@ugent.be" ;
+        foaf:name  "Pieter Colpaert" .
+
+tiles:node  a         rdf:Property ;
+        rdfs:comment  "The URL to follow when this Node cannot be pruned"@en ;
+        rdfs:domain   tiles:Relation ;
+        rdfs:label    "Has node"@en ;
+        rdfs:range    tiles:Node .
+
+tiles:  a                  foaf:Document ;
+        cc:license         <http://creativecommons.org/licenses/by/4.0/> ;
+        dct:creator        <http://www.rubensworks.net/#me> , <https://pietercolpaert.be/#me> ;
+        foaf:primaryTopic  tiles:Ontology .
+
+tiles:LessThanRelation
+        a                rdfs:Class ;
+        rdfs:label       "Less Than Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:GreaterThanOrEqualToRelation
+        a                rdfs:Class ;
+        rdfs:comment     "All members of this related node are greater than or equal to the value"@en ;
+        rdfs:label       "Greater than or equal to relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:EqualToRelation
+        a                rdfs:Class ;
+        rdfs:label       "Equal To Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:path  a         rdf:Property ;
+        rdfs:comment  "A property path, as defined by shacl, that indicates what resource the tree:value affects."@en ;
+        rdfs:domain   tiles:Relation ;
+        rdfs:label    "Path"@en ;
+        rdfs:range    rdfs:Resource .
+
+tiles:GeospatiallyContainsRelation
+        a                rdfs:Class ;
+        rdfs:comment     "All further members are geospatially contained within the WKT string of the tree:value."@en ;
+        rdfs:label       "Geospatially Contains Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:view  a         rdf:Property ;
+        rdfs:comment  "Links the collection to a `tree:Node` from which all other members can be found."@en ;
+        rdfs:domain   tiles:Collection ;
+        rdfs:label    "View"@en ;
+        rdfs:range    tiles:Node .
+
+tiles:relation  a     rdf:Property ;
+        rdfs:comment  "Links a node with another through a Relation class"@en ;
+        rdfs:domain   tiles:Node ;
+        rdfs:label    "Relation"@en ;
+        rdfs:range    tiles:Relation .
+
+tiles:viewDescription
+        a             rdf:Property ;
+        rdfs:comment  "Links together a tree:Node with its description of this TREE structure"@en ;
+        rdfs:domain   tiles:Node ;
+        rdfs:label    "View Description" ;
+        rdfs:range    tiles:ViewDescription .
+
+tiles:Relation  a     rdfs:Class ;
+        rdfs:comment  "A class describing the relation between two nodes"@en ;
+        rdfs:label    "Relation"@en .
+
+tiles:Collection  a      rdfs:Class ;
+        rdfs:comment     "A tree:Collection is a collection containing members. The members may be spread across multiple tree:Nodes."@en ;
+        rdfs:label       "Collection"@en ;
+        rdfs:subClassOf  dcat:Dataset .
+
+tiles:longitudeTile  a    rdf:Property ;
+        rdfs:comment      "The X tile number from longitude cfr. OSM convention"@en ;
+        rdfs:domain       tiles:Node ;
+        rdfs:isDefinedBy  <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames> ;
+        rdfs:label        "The X tile number"@en ;
+        rdfs:range        xsd:float .
+
+tiles:ViewDescription
+        a                rdfs:Class ;
+        rdfs:comment     "Describes a specific TREE structure on top of the tree:Collection"@en ;
+        rdfs:label       "View Description"@en ;
+        rdfs:subClassOf  dcat:DataService .
+
+<http://www.rubensworks.net/#me>
+        foaf:name  "Ruben Taelman" .
+
+tiles:PrefixRelation  a  rdfs:Class ;
+        rdfs:comment     "All members of this related node start with this prefix"@en ;
+        rdfs:label       "Prefix Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:latitudeTile  a     rdf:Property ;
+        rdfs:comment      "The Y tile number from latitude cfr. OSM convention"@en ;
+        rdfs:domain       tiles:Node ;
+        rdfs:isDefinedBy  <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames> ;
+        rdfs:label        "The Y tile number"@en ;
+        rdfs:range        xsd:float .
+
+tiles:member  a       rdf:Property ;
+        rdfs:comment  "The collection has a member."@en ;
+        rdfs:domain   tiles:Collection ;
+        rdfs:label    "Member"@en .
+
+tiles:Ontology  a     owl:Ontology ;
+        rdfs:comment  "A hypermedia specification for fragmenting collections."@en ;
+        rdfs:label    "TREE"@en .
+
+tiles:timeQuery  a    rdf:Property ;
+        rdfs:comment  "Will search for elements starting from a certain timestamp"@en ;
+        rdfs:domain   tiles:Node ;
+        rdfs:label    "Time Query"@en ;
+        rdfs:range    xsd:dateTime .
+
+tiles:search  a       rdf:Property ;
+        rdfs:comment  "The Node can be searched for child nodes."@en ;
+        rdfs:domain   tiles:Node ;
+        rdfs:label    "Search"@en ;
+        rdfs:range    hydra:IriTemplate .
+
+tiles:remainingItems  a  rdf:Property ;
+        rdfs:comment  "Total number of items of this node and its children"@en ;
+        rdfs:domain   tiles:Node ;
+        rdfs:label    "Remaining Items"@en ;
+        rdfs:range    xsd:integer .
+
+tiles:SubstringRelation
+        a                rdfs:Class ;
+        rdfs:comment     "All members of this related node contain this substring"@en ;
+        rdfs:label       "Substring Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:InBetweenRelation
+        a                rdfs:Class ;
+        rdfs:comment     "For comparing intervals: all further members are in-between the given interval"@en ;
+        rdfs:label       "In Between Relation"@en ;
+        rdfs:subClassOf  tiles:Relation .
+
+tiles:ConditionalImport
+        a             rdfs:Class ;
+        rdfs:comment  "Import a page when the tree:path is interesting for the client"@en ;
+        rdfs:label    "Conditional Import"@en .
+
+tiles:shape  a        rdf:Property ;
+        rdfs:comment  "The SHACL shape the members of the collection adhere to."@en ;
+        rdfs:domain   tiles:Collection ;
+        rdfs:label    "Shape"@en ;
+        rdfs:range    sh:NodeShape .
+
+tiles:Node  a         rdfs:Class ;
+        rdfs:comment  "A tree:Node is a node that may contain relations to other nodes."@en ;
+        rdfs:label    "Node"@en .
+
+tiles:zoom  a             rdf:Property ;
+        rdfs:comment      "The zoom level of the tile cfr. OSM convention"@en ;
+        rdfs:domain       tiles:Node ;
+        rdfs:isDefinedBy  <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames> ;
+        rdfs:label        "Zoom level"@en ;
+        rdfs:range        xsd:float .
