@@ -80,6 +80,14 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     on_save.add_systems((validate_shapes,));
     world.add_schedule(on_save);
 
+    let mut prepare_rename = Schedule::new(PrepareRename);
+    prepare_rename.add_systems((get_current_token, systems::prepare_rename.after(get_current_token)));
+    world.add_schedule(prepare_rename);
+
+    let mut rename = Schedule::new(Rename);
+    rename.add_systems((get_current_token, systems::rename.after(get_current_token)));
+    world.add_schedule(rename);
+
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
     let mut inlay = Schedule::new(Inlay);
@@ -120,6 +128,12 @@ pub struct Tasks;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Format;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct PrepareRename;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Rename;
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Inlay;

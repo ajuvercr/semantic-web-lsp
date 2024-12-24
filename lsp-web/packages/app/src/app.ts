@@ -33,6 +33,7 @@ export default class App {
   readonly #intoServer: IntoServer = new IntoServer();
   readonly #fromServer: FromServer = FromServer.create();
 
+  readonly editors: monaco.editor.IEditor[] = [];
   initializeMonaco(): void {
     this.#window.MonacoEnvironment = new Environment();
   }
@@ -104,9 +105,16 @@ export default class App {
       scrollBeyondLastLine: false,
       links: false,
     });
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, function() {
+
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
       console.log("Should rename");
+      const focusedEditor = this.editors.find((e) => e.hasTextFocus());
+      if (focusedEditor) {
+        focusedEditor.trigger("keyboard", "editor.action.rename", null);
+      }
     });
+
+    this.editors.push(editor);
 
     return model;
   }

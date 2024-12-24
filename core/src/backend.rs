@@ -1,9 +1,10 @@
 use crate::components::{
     CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest,
-    Label, Open, PositionComponent, RopeC, Source, Types, Wrapped,
+    Label, Open, PositionComponent, PrepareRenameRequest, RenameEdits, RopeC, Source, Types,
+    Wrapped,
 };
 use crate::systems::spawn_or_insert;
-use crate::{Completion, Diagnostics, Format, Hover, Inlay, OnSave, Parse};
+use crate::{Completion, Diagnostics, Format, Hover, Inlay, OnSave, Parse, PrepareRename, Rename};
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
@@ -15,7 +16,7 @@ use futures::lock::Mutex;
 use ropey::Rope;
 use tracing::info;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::LanguageServer;
@@ -223,6 +224,74 @@ impl LanguageServer for Backend {
     async fn shutdown(&self) -> Result<()> {
         info!("Shutting down!");
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
+    async fn prepare_rename(
+        &self,
+        params: TextDocumentPositionParams,
+    ) -> Result<Option<PrepareRenameResponse>> {
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(params.text_document.uri.as_str()) {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        let resp = self
+            .run_schedule::<PrepareRenameRequest>(entity, PrepareRename, PositionComponent(pos))
+            .await
+            .map(|x| PrepareRenameResponse::RangeWithPlaceholder {
+                range: x.range,
+                placeholder: x.placeholder,
+            });
+
+        Ok(resp)
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(params.text_document_position.text_document.uri.as_str())
+            {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.text_document_position.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        let mut change_map: HashMap<lsp_types::Url, Vec<TextEdit>> = HashMap::new();
+        if let Some(changes) = self
+            .run_schedule::<RenameEdits>(
+                entity,
+                Rename,
+                (PositionComponent(pos), RenameEdits(Vec::new(), params.new_name)),
+            )
+            .await
+        {
+            for (url, change) in changes.0 {
+                let entry = change_map.entry(url);
+                entry.or_default().push(change);
+            }
+        }
+        Ok(Some(WorkspaceEdit::new(change_map)))
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<lsp_types::Hover>> {

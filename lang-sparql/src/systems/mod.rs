@@ -105,7 +105,6 @@ pub fn variable_completion(
     mut query: Query<(&Tokens, &TokenComponent, &mut CompletionRequest), With<Sparql>>,
 ) {
     for (tokens, token, mut req) in &mut query {
-        tracing::info!("Current token {:?}", token.token.value());
         if token.text.starts_with('?') {
             let mut token_set: HashSet<&str> = tokens
                 .0

@@ -1,8 +1,8 @@
 use crate::{
     components::{
         CommandReceiver, CompletionRequest, DocumentLinks, DynLang, InlayRequest, Label,
-        PositionComponent, Prefixes, RopeC, TokenComponent, Tokens, TripleComponent, TripleTarget,
-        Triples, Wrapped,
+        PositionComponent, Prefixes, PrepareRenameRequest, RenameEdits, RopeC, TokenComponent,
+        Tokens, TripleComponent, TripleTarget, Triples, Wrapped,
     },
     lang::{OtherPublisher, SimpleCompletion},
     utils::{offset_to_position, position_to_offset, range_to_range},
@@ -18,7 +18,7 @@ mod diagnostics;
 pub mod prefix;
 pub use diagnostics::publish_diagnostics;
 mod semantics;
-use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem};
+use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
 pub use semantics::{
     basic_semantic_tokens, semantic_tokens_system, SemanticTokensSchedule, TokenTypesComponent,
 };
@@ -327,3 +327,47 @@ pub fn inlay_triples(mut query: Query<(&Triples, &RopeC, &mut InlayRequest)>) {
 
 pub fn triples() {}
 pub fn prefixes() {}
+
+#[instrument(skip(query, commands,))]
+pub fn prepare_rename(query: Query<(Entity, &TokenComponent)>, mut commands: Commands) {
+    for (e, token) in &query {
+        let renameable = match token.token.value() {
+            crate::token::Token::Variable(_) => true,
+            crate::token::Token::IRIRef(_) => true,
+            crate::token::Token::PNameLN(_, _) => true,
+            crate::token::Token::BlankNodeLabel(_) => true,
+            _ => false,
+        };
+
+        if renameable {
+            commands.entity(e).insert(PrepareRenameRequest {
+                range: token.range.clone(),
+                placeholder: token.text.clone(),
+            });
+        }
+    }
+}
+
+#[instrument(skip(query,))]
+pub fn rename(mut query: Query<(&TokenComponent, &Tokens, &RopeC, &Label, &mut RenameEdits)>) {
+    for (token, tokens, rope, label, mut edits) in &mut query {
+        tracing::info!("Token {:?}", token);
+        let new_text = edits.1.clone();
+        for t in tokens.0.iter().filter(|x| x.value() == token.token.value()) {
+            tracing::info!("Changing {:?}", t);
+            if let Some(range) = range_to_range(t.span(), &rope.0) {
+                edits.0.push((
+                    label.0.clone(),
+                    TextEdit {
+                        range,
+                        new_text: new_text.clone(),
+                    },
+                ))
+            }
+        }
+        // commands.entity(e).insert(PrepareRenameRequest {
+        //     range: token.range.clone(),
+        //     placeholder: token.text.clone(),
+        // });
+    }
+}
