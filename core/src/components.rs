@@ -14,7 +14,7 @@ use crate::{
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use lsp_types::{Position, SemanticToken, SemanticTokenType};
+use lsp_types::{Position, Range, SemanticToken, SemanticTokenType};
 use sophia_api::{prelude::Dataset, quad::Quad as _, term::matcher::TermMatcher};
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
@@ -158,6 +158,20 @@ pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct InlayRequest(pub Option<Vec<lsp_types::InlayHint>>);
+
+#[derive(Component, Debug)]
+pub struct PrepareRenameRequest {
+    pub range: Range,
+    pub placeholder: String,
+}
+
+#[derive(Component, Debug)]
+pub struct RenameEdits(pub Vec<(lsp_types::Url, lsp_types::TextEdit)>, pub String);
+// #[derive(Component, Debug)]
+// pub struct PrepareRenameRequest {
+//     range: Range,
+//     placeholder: String,
+// }
 
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Types(pub HashMap<Cow<'static, str>, Vec<TypeId>>);

@@ -159,6 +159,57 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
         },
       });
 
+      monaco.languages.registerRenameProvider(language.id, {
+        async provideRenameEdits(model, position, newName, _token) {
+          console.log("Provied rename edits", {
+            newName,
+            position: monacoToProtocol.asPosition(
+              position.lineNumber,
+              position.column
+            ),
+            textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+          } as proto.RenameParams);
+          const response = await client.request(
+            proto.RenameRequest.type.method,
+            {
+              newName,
+              position: monacoToProtocol.asPosition(
+                position.lineNumber,
+                position.column
+              ),
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+            } as proto.RenameParams
+          );
+
+          return protocolToMonaco.asWorkspaceEdit(response);
+        },
+
+        async resolveRenameLocation(model, position, _token) {
+          console.log("Prepare rename", {
+            position: monacoToProtocol.asPosition(
+              position.lineNumber,
+              position.column
+            ),
+            textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+          });
+          const response = await client.request(
+            proto.PrepareRenameRequest.type.method,
+            {
+              position: monacoToProtocol.asPosition(
+                position.lineNumber,
+                position.column
+              ),
+              textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
+            } as proto.PrepareRenameParams
+          );
+
+          return {
+            text: response.placeholder,
+            range: protocolToMonaco.asRange(<proto.Range>response.range),
+          };
+        },
+      });
+
       monaco.languages.registerHoverProvider(language.id, {
         async provideHover(model, position, _token) {
           const response = await client.request(
