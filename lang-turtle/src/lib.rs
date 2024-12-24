@@ -31,9 +31,18 @@ use lsp_core::lang::{Lang, LangHelper};
 #[derive(Component)]
 pub struct TurtleLang;
 
+
 #[derive(Debug)]
 pub struct TurtleHelper;
-impl LangHelper for TurtleHelper {}
+impl LangHelper for TurtleHelper {
+    fn keyword(&self) -> &[&'static str] {
+        &[
+            "@prefix",
+            "@base",
+            "a",
+        ]
+    }
+}
 
 pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();

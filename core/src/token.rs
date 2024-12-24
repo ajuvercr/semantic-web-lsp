@@ -6,24 +6,22 @@ use crate::model::Spanned;
 
 pub trait Membered: Sized + 'static {
     const ITEMS: &'static [Self];
+
+    fn complete(&self) -> &'static str;
 }
 
 macro_rules! derive_enum {
     // entry point
     ($(#$meta:tt)? $vis:vis enum $name:ident {
-        $($xs:ident $(@ $st:tt)?),* $(,)?
+        $($xs:ident $(@ $st:tt)? $(=> $it:tt)?) ,* $(,)?
     }) => {
 
         $(#$meta)? $vis enum $name {
             $($xs),*
         }
 
-        impl Membered for $name {
-            const ITEMS: &'static [Self] =  &[
-                $($name::$xs),*
-            ];
-        }
 
+        derive_enum!(@membered $name {$($xs)* } {}: $($xs $(=> $it)? ),* ,);
         derive_enum!(@fromStr $name {}: $($xs $(@ $st)? ),* ,);
     };
 
@@ -53,18 +51,54 @@ macro_rules! derive_enum {
             }
         }
     };
+
+    // membered implementation
+    (@membered $name:ident {$($els:ident)*} {$($eout:tt)*}: $member:ident => $str:tt , $($xs:tt)*) => {
+        derive_enum!(@membered $name {$($els)*}
+            {
+                $name::$member => $str,
+                $($eout)*
+            }:
+            $($xs)*
+        );
+    };
+    (@membered $name:ident {$($els:ident)*} {$($eout:tt)*}: $member:ident , $($xs:tt)*) => {
+        derive_enum!(@membered $name {$($els)*}
+            {
+                $name::$member => stringify!($member),
+                $($eout)*
+            }:
+            $($xs)*
+        );
+    };
+
+    (@membered $name:ident {$($xs:ident)*} {$($eout:tt)*}:) => {
+        impl Membered for $name {
+            const ITEMS: &'static [Self] =  &[
+                $($name::$xs),*
+            ];
+
+            fn complete(&self) -> &'static str {
+                match self {
+                    $($eout)*
+                }
+            }
+        }
+    };
 }
 
 derive_enum!(
     #[derive(Debug, Clone, PartialEq)]
     pub enum SparqlExpr2 {
-        Or, Plus @ "+"
+        Or => "PLUS",
+        Plus @ "+" => "PLUS"
     }
 );
 
 derive_enum!(
     pub enum SparqlExpr3 {
-        Or, Plus @ "+" ,
+        Or => "PLUS",
+        Plus @ "+" => "PLUS",
     }
 );
 
@@ -114,129 +148,129 @@ derive_enum!(
 derive_enum!(
     #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlCall {
-        Str,
-        Lang,
-        LangMatches,
-        LangDir,
-        Datatype,
-        Bound,
-        Iri,
-        Uri,
-        Bnode,
-        Rand,
-        Abs,
-        Ceil,
-        Floor,
-        Round,
-        Concat,
-        StrLen,
-        Ucase,
-        Lcase,
-        EncodeForUri,
-        Contains,
-        StrStarts,
-        StrEnds,
-        StrBefore,
-        StrAfter,
-        Year,
-        Month,
-        Day,
-        Hours,
-        Minutes,
-        Seconds,
-        Timezone,
-        Tz,
-        Now,
-        Uuid,
-        StrUuid,
-        Md5,
-        Sha1,
-        Sha256,
-        Sha384,
-        Sha512,
-        Coalesce,
-        If,
-        StrLang,
-        StrLangDir,
-        StrDt,
-        SameTerm,
-        IsIri,
-        IsUri,
-        IsBlank,
-        IsLiteral,
-        IsNumeric,
-        HasLang,
-        HasLangDir,
-        IsTriple,
-        Triple,
-        Subject,
-        Predicate,
-        Object,
+        Str => "STR",
+        Lang => "LANG",
+        LangMatches => "langMatches",
+        LangDir => "LANGDIR",
+        Datatype => "datatype",
+        Bound => "BOUND",
+        Iri => "IRI",
+        Uri => "URI",
+        Bnode => "BNODE",
+        Rand => "RAND",
+        Abs => "ABS",
+        Ceil => "CEIL",
+        Floor => "FLOOR",
+        Round => "ROUND",
+        Concat => "CONCAT",
+        StrLen => "STRLEN",
+        Ucase => "UCASE",
+        Lcase => "lcase",
+        EncodeForUri => "ENCODE_FOR_URI",
+        Contains => "CONTAINS",
+        StrStarts => "STRSTARTS",
+        StrEnds => "STRENDS",
+        StrBefore => "STRBEFORE",
+        StrAfter => "STRAFTER",
+        Year => "YEAR",
+        Month => "MONTH",
+        Day => "DAY",
+        Hours => "HOURS",
+        Minutes => "MINUTES",
+        Seconds => "SECONDS",
+        Timezone => "TIMEZONE",
+        Tz => "TZ",
+        Now => "NOW",
+        Uuid => "UUID",
+        StrUuid => "STRUUID",
+        Md5 => "MD5",
+        Sha1 => "SHA1",
+        Sha256 => "SHA256",
+        Sha384 => "SHA384",
+        Sha512 => "SHA512",
+        Coalesce => "COALESCE",
+        If => "IF",
+        StrLang => "STRLANG",
+        StrLangDir => "STRLANGDIR",
+        StrDt => "STRDT",
+        SameTerm => "sameTerm",
+        IsIri => "isIRI",
+        IsUri => "isURI",
+        IsBlank => "isBLANK",
+        IsLiteral => "isLITERAL",
+        IsNumeric => "isNUMBERIC",
+        HasLang => "hasLANG",
+        HasLangDir => "hasLANGDIR",
+        IsTriple => "isTRIPLE",
+        Triple => "TRIPLE",
+        Subject => "SUBJECT",
+        Predicate => "PREDICATE",
+        Object => "OBJECT",
     }
 );
 
 derive_enum!(
     #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlAggregate {
-        Count,
-        Sum,
-        Min,
-        Max,
-        Avg,
-        Sample,
-        GroupConcat,
+        Count => "COUNT",
+        Sum => "SUM",
+        Min => "MIN",
+        Max => "MAX",
+        Avg => "AVG",
+        Sample => "SAMPLE",
+        GroupConcat => "GROUP_CONCAT",
     }
 );
 
 derive_enum!(
     #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlKeyword {
-        Regex,
-        Substr,
-        Replace,
-        Exists,
-        Select,
-        Distinct,
-        Reduced,
-        Optional,
-        Union,
-        As,
-        Construct,
-        Where,
-        Describe,
-        Ask,
-        From,
-        Named,
-        Group,
-        By,
-        Having,
-        Order,
-        Asc,
-        Desc,
-        Limit,
-        Offset,
-        Values,
-        Load,
-        Silent,
-        Clear,
-        Drop,
-        Create,
-        Add,
-        Move,
-        Copy,
-        Insert,
-        Data,
-        Delete,
-        With,
-        Using,
-        Default,
-        All,
-        Graph,
-        Service,
-        Bind,
-        Undef,
-        Minus,
-        Filter,
+        Regex => "REGEX",
+        Substr => "SUBSTR",
+        Replace => "REPLACE",
+        Exists => "EXISTS",
+        Select => "SELECT",
+        Distinct => "DISTINCT",
+        Reduced => "REDUCED",
+        Optional => "OPTIONAL",
+        Union => "UNION",
+        As => "AS",
+        Construct => "CONSTRUCT",
+        Where => "WHERE",
+        Describe => "DESCRIBE",
+        Ask => "ASK",
+        From => "FROM",
+        Named => "NAMED",
+        Group => "GROUP",
+        By => "BY",
+        Having => "HAVING",
+        Order => "ORDER",
+        Asc => "ASC",
+        Desc => "DESC",
+        Limit => "LIMIT",
+        Offset => "OFFSET",
+        Values => "VALUES",
+        Load => "LOAD",
+        Silent => "SILENT",
+        Clear => "CLEAR",
+        Drop => "DROP",
+        Create => "CREATE",
+        Add => "ADD",
+        Move => "MOVE",
+        Copy => "COPY",
+        Insert => "INSERT",
+        Data => "DATA",
+        Delete => "DELETE",
+        With => "WITH",
+        Using => "USING",
+        Default => "DEFAULT",
+        All => "ALL",
+        Graph => "GRAPH",
+        Service => "SERVICE",
+        Bind => "BIND",
+        Undef => "UNDEF",
+        Minus => "MINUS",
+        Filter => "FILTER",
     }
 );
 
@@ -334,7 +368,7 @@ impl crate::lang::Token for Token {
             Token::Str(_, _) => Some(lsp_types::SemanticTokenType::STRING),
             Token::Comment(_) => Some(lsp_types::SemanticTokenType::COMMENT),
             Token::Variable(_) => Some(lsp_types::SemanticTokenType::VARIABLE),
-             _ => None,
+            _ => None,
         }
     }
 

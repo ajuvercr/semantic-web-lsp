@@ -9,6 +9,7 @@ derive_more = { version = "1.0.0", features = ["as_ref", "deref", "deref_mut"] }
 enum-methods = "0.0.8"
 futures = { version = "0.3.31", features = ["thread-pool", "async-await"] }
 hashbrown = "0.13.2"
+lazy_static = "1.5"
 lsp-types = "0.94.0"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 ropey = "1.5.0"
@@ -16,7 +17,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.96"
 sophia_api = "0.8.0"
 sophia_iri = "0.8.0"
-tower-lsp = { version = "0.19.0", default-features = false }
+tower-lsp = { version = "0.19.0", default-features = false, features = [
+  "runtime-agnostic",
+] }
 tracing = "0.1"
 
 [profile.release]

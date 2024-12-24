@@ -20,10 +20,6 @@ import {
 export const monacoToProtocol = new MonacoToProtocolConverter(monaco);
 export const protocolToMonaco = new ProtocolToMonacoConverter(monaco);
 
-const consoleChannel = document.getElementById(
-  "channel-console"
-) as HTMLTextAreaElement;
-
 class Reader extends AbstractMessageReader {
   private callBacks: DataCallback[] = [];
   private fromServer: FromServer;
@@ -65,7 +61,6 @@ class Writer extends AbstractMessageWriter {
     if (null != msg.id) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const response = await this.fromServer.responses.get(msg.id)!;
-      console.log(response);
     }
   }
 
@@ -156,13 +151,13 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
             proto.DocumentFormattingRequest.type.method,
             {
               textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
-              options: monacoToProtocol.asFormattingOptions(options)
+              options: monacoToProtocol.asFormattingOptions(options),
             } as proto.DocumentFormattingParams
           );
 
           return protocolToMonaco.asTextEdits(response || []);
-        }
-      })
+        },
+      });
 
       monaco.languages.registerHoverProvider(language.id, {
         async provideHover(model, position, _token) {
@@ -249,46 +244,10 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
         "SWLS",
         protocolToMonaco.asDiagnostics(diagnostics.diagnostics)
       );
-    } else {
-      console.error(
-        "Failed to publish diagnostics to",
-        url,
-        "Unknown url",
-        Object.keys(this.editors)
-      );
     }
   }
 
   async start(): Promise<void> {
-    // process "window/logMessage": client <- server
-    this.addMethod(proto.LogMessageNotification.type.method, (params) => {
-      const { type, message } = params as {
-        type: proto.MessageType;
-        message: string;
-      };
-      switch (type) {
-        case proto.MessageType.Error: {
-          consoleChannel.value += "[error] ";
-          break;
-        }
-        case proto.MessageType.Warning: {
-          consoleChannel.value += " [warn] ";
-          break;
-        }
-        case proto.MessageType.Info: {
-          consoleChannel.value += " [info] ";
-          break;
-        }
-        case proto.MessageType.Log: {
-          consoleChannel.value += "  [log] ";
-          break;
-        }
-      }
-      consoleChannel.value += message;
-      consoleChannel.value += "\n";
-      return;
-    });
-
     this.addMethod(
       proto.PublishDiagnosticsNotification.type.method,
       (params) => {

@@ -65,6 +65,40 @@ pub fn handle_tasks(mut commands: Commands, mut receiver: ResMut<CommandReceiver
     }
 }
 
+#[instrument(skip(query))]
+pub fn keyword_complete(
+    mut query: Query<(
+        Option<&TokenComponent>,
+        &PositionComponent,
+        &DynLang,
+        &mut CompletionRequest,
+    )>,
+) {
+    tracing::info!("Keyword complete!");
+    for (m_token, position, helper, mut req) in &mut query {
+        let range = if let Some(ct) = m_token {
+            ct.range
+        } else {
+            lsp_types::Range {
+                start: position.0,
+                end: position.0,
+            }
+        };
+
+        for kwd in helper.keyword() {
+            let completion = crate::lang::SimpleCompletion::new(
+                CompletionItemKind::KEYWORD,
+                kwd.to_string(),
+                lsp_types::TextEdit {
+                    range: range.clone(),
+                    new_text: kwd.to_string(),
+                },
+            );
+            req.push(completion);
+        }
+    }
+}
+
 #[instrument(skip(query, commands))]
 pub fn get_current_token(
     mut query: Query<(Entity, &Tokens, &PositionComponent, &RopeC, &DynLang)>,

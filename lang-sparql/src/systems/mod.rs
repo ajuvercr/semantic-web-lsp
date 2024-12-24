@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bevy_ecs::{prelude::*, world::World};
 use lang_turtle::TriplesBuilder;
 use lsp_core::{
@@ -5,6 +7,7 @@ use lsp_core::{
     systems::{get_current_token, prefix::prefix_completion_helper, prefixes, triples},
     Parse,
 };
+use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
 
 use crate::{parsing::parse, tokenizer::tokenize, Sparql};
@@ -24,7 +27,10 @@ pub fn setup_parse(world: &mut World) {
 
 pub fn setup_completion(world: &mut World) {
     world.schedule_scope(lsp_core::Completion, |_, schedule| {
-        schedule.add_systems(sparql_lov_undefined_prefix_completion.after(get_current_token));
+        schedule.add_systems((
+            sparql_lov_undefined_prefix_completion.after(get_current_token),
+            variable_completion.after(get_current_token),
+        ));
     });
 }
 
@@ -90,6 +96,38 @@ fn derive_triples(
             let triples: Vec<_> = builder.triples.into_iter().map(|x| x.to_owned()).collect();
 
             commands.entity(e).insert(Triples(triples));
+        }
+    }
+}
+
+#[instrument(skip(query,))]
+pub fn variable_completion(
+    mut query: Query<(&Tokens, &TokenComponent, &mut CompletionRequest), With<Sparql>>,
+) {
+    for (tokens, token, mut req) in &mut query {
+        tracing::info!("Current token {:?}", token.token.value());
+        if token.text.starts_with('?') {
+            let mut token_set: HashSet<&str> = tokens
+                .0
+                .iter()
+                .flat_map(|x| match x.value() {
+                    lsp_core::token::Token::Variable(x) => Some(x.as_str()),
+                    _ => None,
+                })
+                .collect();
+
+            for x in token_set {
+                let t = format!("?{}", x);
+                let completion = lsp_core::lang::SimpleCompletion::new(
+                    CompletionItemKind::VARIABLE,
+                    t.clone(),
+                    lsp_types::TextEdit {
+                        range: token.range.clone(),
+                        new_text: t,
+                    },
+                );
+                req.push(completion);
+            }
         }
     }
 }

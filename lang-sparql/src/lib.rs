@@ -8,6 +8,7 @@ use lsp_core::{
     components::{DynLang, SemanticTokensDict},
     lang::{Lang, LangHelper},
     systems::publish_diagnostics,
+    token::Membered,
     CreateEvent,
 };
 use lsp_types::SemanticTokenType;
@@ -90,7 +91,23 @@ impl Lang for Sparql {
     ];
 }
 
+lazy_static::lazy_static! {
+    static ref KWDS: Vec<&'static str> = {
+        let mut m = Vec::new();
+
+        // lsp_core::token::SparqlCall::ITEMS.iter().for_each(|x| m.push(x.complete()));
+        lsp_core::token::SparqlKeyword::ITEMS.iter().for_each(|x| m.push(x.complete()));
+        lsp_core::token::SparqlAggregate::ITEMS.iter().for_each(|x| m.push(x.complete()));
+
+        m
+    };
+}
+
 #[derive(Debug)]
 pub struct SparqlHelper;
 
-impl LangHelper for SparqlHelper {}
+impl LangHelper for SparqlHelper {
+    fn keyword(&self) -> &[&'static str] {
+        &KWDS
+    }
+}
