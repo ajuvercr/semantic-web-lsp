@@ -280,6 +280,7 @@ pub trait LangHelper: std::fmt::Debug {
     ) -> (String, std::ops::Range<usize>) {
         (self._get_relevant_text(token, rope), token.span().clone())
     }
+    fn keyword(&self) -> &[&'static str];
 }
 
 #[derive(Clone)]

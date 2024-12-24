@@ -10,7 +10,8 @@ use systems::{
     basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
     derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
     fetch_lov_properties, get_current_token, get_current_triple, hover_class, hover_property,
-    hover_types, infer_types, inlay_triples, prefixes, semantic_tokens_system, validate_shapes,
+    hover_types, infer_types, inlay_triples, keyword_complete, prefixes, semantic_tokens_system,
+    validate_shapes,
 };
 
 pub mod backend;
@@ -48,6 +49,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     println!("Setting completion systems");
     completion.add_systems((
         get_current_token,
+        keyword_complete.after(get_current_token),
         get_current_triple.after(get_current_token),
         complete_class.after(get_current_triple),
         complete_properties.after(get_current_triple),

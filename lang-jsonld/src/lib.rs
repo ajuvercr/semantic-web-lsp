@@ -113,5 +113,8 @@ impl LangHelper for JsonLdHelper {
             _ => (self._get_relevant_text(token, rope), r.clone()),
         }
     }
-}
 
+    fn keyword(&self) -> &[&'static str] {
+        &[]
+    }
+}

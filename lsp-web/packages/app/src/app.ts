@@ -14,7 +14,7 @@ class Environment implements monaco.Environment {
       return "./editor.worker.bundle.js";
     }
     throw new Error(
-      `getWorkerUrl: unexpected ${JSON.stringify({ moduleId, label })}`,
+      `getWorkerUrl: unexpected ${JSON.stringify({ moduleId, label })}`
     );
   }
 }
@@ -40,12 +40,12 @@ export default class App {
   addEditor(
     client: Client,
     init: ModelStart,
-    languageId: string,
+    languageId: string
   ): monaco.editor.ITextModel {
     const model = monaco.editor.createModel(
       init.value,
       languageId,
-      monaco.Uri.parse(init.url),
+      monaco.Uri.parse(init.url)
     );
 
     client.editors[init.url] = model;
@@ -93,7 +93,7 @@ export default class App {
     });
 
     const container = document.getElementById(init.elementId)!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-    monaco.editor.create(container, {
+    const editor = monaco.editor.create(container, {
       model,
       automaticLayout: true,
       "semanticHighlighting.enabled": true,
@@ -103,6 +103,9 @@ export default class App {
       quickSuggestions: false,
       scrollBeyondLastLine: false,
       links: false,
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, function() {
+      console.log("Should rename");
     });
 
     return model;

@@ -3,7 +3,6 @@ import * as vsrpc from "vscode-jsonrpc";
 import Bytes from "./bytes";
 import PromiseMap from "./map";
 import Queue from "./queue";
-import Tracer from "../tracer";
 
 export default class StreamDemuxer extends Queue<Uint8Array> {
   readonly responses: PromiseMap<number | string, vsrpc.ResponseMessage> =
@@ -69,8 +68,6 @@ export default class StreamDemuxer extends Queue<Uint8Array> {
           // set the content length
           contentLength = length;
         }
-
-        Tracer.server(message);
 
         // demux the message stream
         if (vsrpc.Message.isResponse(message) && null != message.id) {

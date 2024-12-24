@@ -1708,6 +1708,7 @@ dependencies = [
  "futures",
  "hashbrown 0.13.2",
  "lang-turtle",
+ "lazy_static",
  "lsp-core",
  "lsp-types",
  "reqwest",
