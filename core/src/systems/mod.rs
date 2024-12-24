@@ -105,6 +105,7 @@ pub fn get_current_token(
     mut commands: Commands,
 ) {
     for (entity, tokens, position, rope, helper) in &mut query {
+        commands.entity(entity).remove::<TokenComponent>();
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             debug!("Couldn't transform to an offset");
             continue;
@@ -329,22 +330,27 @@ pub fn triples() {}
 pub fn prefixes() {}
 
 #[instrument(skip(query, commands,))]
-pub fn prepare_rename(query: Query<(Entity, &TokenComponent)>, mut commands: Commands) {
-    for (e, token) in &query {
-        let renameable = match token.token.value() {
-            crate::token::Token::Variable(_) => true,
-            crate::token::Token::IRIRef(_) => true,
-            crate::token::Token::PNameLN(_, _) => true,
-            crate::token::Token::BlankNodeLabel(_) => true,
-            _ => false,
-        };
+pub fn prepare_rename(query: Query<(Entity, Option<&TokenComponent>)>, mut commands: Commands) {
+    for (e, m_token) in &query {
+        commands.entity(e).remove::<(PrepareRenameRequest,)>();
+        if let Some(token) = m_token {
+            let renameable = match token.token.value() {
+                crate::token::Token::Variable(_) => true,
+                crate::token::Token::IRIRef(_) => true,
+                crate::token::Token::PNameLN(_, _) => true,
+                crate::token::Token::BlankNodeLabel(_) => true,
+                _ => false,
+            };
 
-        if renameable {
-            commands.entity(e).insert(PrepareRenameRequest {
-                range: token.range.clone(),
-                placeholder: token.text.clone(),
-            });
+            if renameable {
+                commands.entity(e).insert(PrepareRenameRequest {
+                    range: token.range.clone(),
+                    placeholder: token.text.clone(),
+                });
+                continue;
+            }
         }
+        tracing::info!("Didn't find a good token");
     }
 }
 

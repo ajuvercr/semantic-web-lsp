@@ -169,6 +169,7 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
             ),
             textDocument: monacoToProtocol.asTextDocumentIdentifier(model),
           } as proto.RenameParams);
+
           const response = await client.request(
             proto.RenameRequest.type.method,
             {
@@ -203,10 +204,24 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
             } as proto.PrepareRenameParams
           );
 
-          return {
-            text: response.placeholder,
-            range: protocolToMonaco.asRange(<proto.Range>response.range),
-          };
+          console.log({response})
+          if (response) {
+            return {
+              text: response.placeholder,
+              range: protocolToMonaco.asRange(<proto.Range>response.range),
+            };
+          } else {
+            return {
+              rejectReason: "No valid token to rename",
+              text: "",
+              range: {
+                startColumn: 0,
+                endColumn: 0,
+                startLineNumber: 0,
+                endLineNumber: 0,
+              },
+            };
+          }
         },
       });
 
