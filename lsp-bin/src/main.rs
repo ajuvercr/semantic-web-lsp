@@ -60,6 +60,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     (sender, semantic_tokens)
 }
 
+#[allow(unused)]
 fn get_level() -> Level {
     match std::env::var_os("LOG")
         .and_then(|x| x.into_string().ok())
@@ -85,16 +86,8 @@ fn setup_global_subscriber() -> impl Drop {
     let (flame_layer, _guard) = FlameLayer::with_file("/tmp/tracing.folded").unwrap();
     let fmt_layer = fmt::Layer::default().with_writer(Mutex::new(target));
 
-    // let tmp_subscriber = fmt()
-    //     .with_file(true)
-    //     .with_line_number(true)
-    //     .with_max_level(get_level())
-    //     .with_writer(Mutex::new(target))
-    //     .finish();
-
     let subscriber = Registry::default()
         .with(fmt_layer)
-        // .with_subscriber(fmt_layer)
         .with(
             flame_layer
                 .with_empty_samples(false)
@@ -109,24 +102,12 @@ fn setup_global_subscriber() -> impl Drop {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let target: Box<dyn io::Write + Send + Sync> = match File::create("/tmp/turtle-lsp.txt") {
-        Ok(x) => Box::new(x),
-        Err(_) => Box::new(std::io::stdout()),
-    };
-
     std::panic::set_hook(Box::new(|_panic_info| {
         let backtrace = std::backtrace::Backtrace::capture();
         info!("My backtrace: {:#?}", backtrace);
     }));
 
-    // fmt()
-    //     .with_file(true)
-    //     .with_line_number(true)
-    //     .with_max_level(get_level())
-    //     .with_writer(std::sync::Mutex::new(target))
-    //     .init();
-
-    let flame = setup_global_subscriber();
+    let _ = setup_global_subscriber();
 
     info!("Hello world!");
     let stdin = tokio::io::stdin();
