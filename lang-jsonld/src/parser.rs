@@ -7,7 +7,7 @@ use chumsky::{prelude::*, Error, Parser, Stream};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
 use lsp_core::{
-    model::{spanned, Spanned},
+    prelude::{spanned, Spanned},
     token::Token,
     triples::MyTerm,
 };

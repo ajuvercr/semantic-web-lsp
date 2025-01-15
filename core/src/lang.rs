@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
-use crate::{features::diagnostic::SimpleDiagnostic, model::Spanned};
+use crate::{features::diagnostic::SimpleDiagnostic, prelude::*};
 use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::{channel::mpsc, StreamExt};
@@ -65,4 +65,3 @@ pub trait LangHelper: std::fmt::Debug {
     }
     fn keyword(&self) -> &[&'static str];
 }
-

@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use lsp_core::{
     components::{Element, HighlightRequest, Triples},
-    model::Spanned,
+    prelude::Spanned,
     systems::TokenTypesComponent,
     token::Token,
     triples::MyQuad,

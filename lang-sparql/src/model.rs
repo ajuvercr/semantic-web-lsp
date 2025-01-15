@@ -1,6 +1,6 @@
 use lang_turtle::{Based, NamedNode, Prefix, Triple, TriplesBuilder, TurtleSimpleError};
 use lsp_core::{
-    model::Spanned,
+    prelude::Spanned,
     token::{SparqlKeyword, Token},
 };
 
@@ -92,9 +92,7 @@ impl GroupGraphPattern {
                     x.ingest_triples(builder)?;
                 }
             }
-            GroupGraphPattern::Invalid => {
-
-            },
+            GroupGraphPattern::Invalid => {}
         }
         Ok(())
     }

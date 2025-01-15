@@ -1,6 +1,6 @@
 use chumsky::prelude::*;
 use lsp_core::{
-    model::{spanned, Spanned},
+    prelude::{spanned, Spanned},
     token::Token,
 };
 use token_helpers::*;

@@ -1,7 +1,7 @@
 use chumsky::chain::Chain as _;
 use chumsky::prelude::*;
 
-use lsp_core::model::{spanned, Spanned};
+use lsp_core::prelude::{spanned, Spanned};
 use lsp_core::token::{StringStyle, Token};
 
 pub fn tokenize(st: &str) -> (Vec<Spanned<Token>>, Vec<Simple<char>>) {

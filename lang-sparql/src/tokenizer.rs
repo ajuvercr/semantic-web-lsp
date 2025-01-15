@@ -2,7 +2,7 @@ use std::{ops::Range, str::FromStr as _};
 
 use chumsky::{prelude::*, Error};
 use lsp_core::{
-    model::{spanned, Spanned},
+    prelude::{spanned, Spanned},
     token::{Membered, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword, Token},
 };
 use text::ident;

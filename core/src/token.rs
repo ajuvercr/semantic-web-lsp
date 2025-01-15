@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use crate::model::Spanned;
+use crate::prelude::Spanned;
 
 pub trait Membered: Sized + 'static {
     const ITEMS: &'static [Self];

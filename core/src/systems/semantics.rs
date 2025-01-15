@@ -1,7 +1,7 @@
 use crate::{
     components::{HighlightRequest, RopeC, SemanticTokensDict, Tokens, Wrapped},
     lang::Token,
-    model::{spanned, Spanned},
+    prelude::{spanned, Spanned},
 };
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;

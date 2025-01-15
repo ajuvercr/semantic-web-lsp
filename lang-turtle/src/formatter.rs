@@ -7,7 +7,7 @@ use lsp_types::FormattingOptions;
 use ropey::Rope;
 use tracing::info;
 
-use lsp_core::model::{spanned, Spanned};
+use lsp_core::prelude::{spanned, Spanned};
 
 use super::{token::Token, Base, BlankNode, Prefix, Term, Triple, Turtle, PO};
 

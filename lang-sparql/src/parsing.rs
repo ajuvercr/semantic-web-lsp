@@ -1,7 +1,7 @@
 use chumsky::{prelude::*, Error};
 use lang_turtle::{named_node, triple, Prefix};
 use lsp_core::{
-    model::{spanned, Spanned},
+    prelude::{spanned, Spanned},
     token::{SparqlExpr, SparqlKeyword, Token},
 };
 
