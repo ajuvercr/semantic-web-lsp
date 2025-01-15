@@ -1,13 +1,7 @@
 use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
 use lsp_core::{
-    client::Client,
-    components::{DynLang, SemanticTokensDict},
-    lang::{Lang, LangHelper},
-    model::Spanned,
-    systems::{basic_semantic_tokens, publish_diagnostics, semantic_tokens_system},
-    token::Token,
-    CreateEvent,
+    client::Client, components::{DynLang, SemanticTokensDict}, features::diagnostic::systems::publish_diagnostics, lang::{Lang, LangHelper}, model::Spanned, systems::{basic_semantic_tokens, semantic_tokens_system}, token::Token, CreateEvent
 };
 use lsp_types::SemanticTokenType;
 use ropey::Rope;

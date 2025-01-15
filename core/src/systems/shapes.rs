@@ -4,7 +4,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{components::*, lang::OtherPublisher, utils::range_to_range};
+use crate::{components::*, features::diagnostic::DiagnosticPublisher, utils::range_to_range};
 use bevy_ecs::prelude::*;
 use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
@@ -104,7 +104,7 @@ pub fn validate_shapes(
         (Changed<Triples>, Without<Dirty>),
     >,
     other: Query<(&Label, &Wrapped<ShaclSchema>, &Prefixes)>,
-    mut client: ResMut<OtherPublisher>,
+    mut client: ResMut<DiagnosticPublisher>,
 ) {
     info!("Validate shapes");
 

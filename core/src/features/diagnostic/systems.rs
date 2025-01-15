@@ -1,8 +1,6 @@
-use crate::{
-    components::*,
-    lang::{Lang, OtherPublisher, SimpleDiagnostic},
-    utils::offset_to_position,
-};
+use super::DiagnosticPublisher;
+use super::SimpleDiagnostic;
+use crate::{components::*, lang::Lang, utils::offset_to_position};
 use bevy_ecs::prelude::*;
 use lsp_types::{Diagnostic, TextDocumentItem};
 
@@ -22,7 +20,7 @@ pub fn publish_diagnostics<L: Lang>(
             )>,
         ),
     >,
-    mut client: ResMut<OtherPublisher>,
+    mut client: ResMut<DiagnosticPublisher>,
 ) where
     L::TokenError: 'static + Clone,
     L::ElementError: 'static + Clone,

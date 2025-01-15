@@ -26,10 +26,15 @@ cd lsp-web
 npm run app --workspace=packages/app
 '''
 
+[tasks.run-web]
+script = '''
+cd lsp-web
+npm run run-in-browser --workspace=packages/vscode
+'''
+
 [tasks.build-prod]
 script = '''
 cd lsp-web
 npm run build:prod --workspace=packages/app
 ''''
-
 

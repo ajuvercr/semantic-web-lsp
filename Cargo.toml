@@ -18,7 +18,7 @@ serde_json = "1.0.96"
 sophia_api = "0.8.0"
 sophia_iri = "0.8.0"
 tower-lsp = { version = "0.19.0", default-features = false, features = [
-  "runtime-agnostic",
+  # "runtime-agnostic",
 ] }
 tracing = "0.1"
 
@@ -45,3 +45,4 @@ members = [
   "token-helpers",
 ]
 resolver = "2"
+

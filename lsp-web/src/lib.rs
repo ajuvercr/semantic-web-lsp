@@ -10,7 +10,7 @@ use lsp_core::{
     backend::Backend,
     client::{Client, ClientSync},
     components::{CommandSender, SemanticTokensDict},
-    lang::OtherPublisher,
+    lang::DiagnosticPublisher,
     setup_schedule_labels,
 };
 use lsp_types::SemanticTokenType;
@@ -74,7 +74,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
 
     setup_schedule_labels::<C>(&mut world);
 
-    let (publisher, mut rx) = OtherPublisher::new();
+    let (publisher, mut rx) = DiagnosticPublisher::new();
     world.insert_resource(publisher);
 
     let c = client.clone();
