@@ -3,7 +3,7 @@ use std::{collections::HashMap, str::FromStr as _};
 use crate::{client::Client, components::*, systems::spawn_or_insert, Parse};
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
-use lsp_types::{TextDocumentItem, Url};
+use lsp_types::TextDocumentItem;
 use serde::Deserialize;
 use tracing::info;
 
@@ -126,7 +126,6 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                     if let Some(url) = extract_file_url(&prefix.prefix, &c).await {
                         match c.fetch(&url, &std::collections::HashMap::new()).await {
                             Ok(resp) if resp.status == 200 => {
-                                let url_url = Url::from_str(&url).unwrap();
                                 let rope = ropey::Rope::from_str(&resp.body);
                                 let item = TextDocumentItem {
                                     version: 1,

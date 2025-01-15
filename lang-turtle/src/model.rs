@@ -464,7 +464,6 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
         subject: MyTerm<'a>,
     ) -> Result<(), TurtleSimpleError> {
         if pos.is_empty() {
-            let e = subject.span.end;
             let predicate = MyTerm::named_node("TestPredicate", 0..0);
             let object = MyTerm::named_node("TestObject", 0..0);
 

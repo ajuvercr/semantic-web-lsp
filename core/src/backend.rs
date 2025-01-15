@@ -280,7 +280,10 @@ impl LanguageServer for Backend {
             .run_schedule::<RenameEdits>(
                 entity,
                 Rename,
-                (PositionComponent(pos), RenameEdits(Vec::new(), params.new_name)),
+                (
+                    PositionComponent(pos),
+                    RenameEdits(Vec::new(), params.new_name),
+                ),
             )
             .await
         {
@@ -480,6 +483,8 @@ impl LanguageServer for Backend {
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
+        let _ = params;
+
         info!("Did save");
         self.run(move |world| {
             world.run_schedule(OnSave);

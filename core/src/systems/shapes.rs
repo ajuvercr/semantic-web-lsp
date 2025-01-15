@@ -1,58 +1,21 @@
-use std::{
-    collections::HashMap,
-    ops::{Deref, DerefMut},
-};
+use std::collections::HashMap;
 
 use crate::{components::*, features::diagnostic::DiagnosticPublisher, utils::range_to_range};
 use bevy_ecs::prelude::*;
 use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
 use rudof_lib::{
-    shacl_ast::{
-        compiled::schema::CompiledSchema,
-        ShaclParser,
-    },
+    shacl_ast::{compiled::schema::CompiledSchema, ShaclParser},
     shacl_validation::{
         shacl_processor::{GraphValidation, ShaclProcessor},
         shape::Validate,
         store::graph::Graph,
     },
     srdf::{Object, SRDFGraph},
-    RdfData, Rudof,
+    RdfData,
 };
 use sophia_api::prelude::Quad as _;
 use tracing::info;
-
-#[derive(Debug, Component)]
-pub struct Shapes {
-    rudof: Rudof,
-}
-unsafe impl Send for Shapes {}
-unsafe impl Sync for Shapes {}
-
-enum MyCow<'a, T> {
-    Borrowed(&'a mut T),
-    Owned(T),
-}
-impl<T> Deref for MyCow<'_, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            MyCow::Borrowed(x) => &x,
-            MyCow::Owned(x) => &x,
-        }
-    }
-}
-
-impl<T> DerefMut for MyCow<'_, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            MyCow::Borrowed(x) => x,
-            MyCow::Owned(x) => x,
-        }
-    }
-}
 
 fn get_reader<'a>(rope: &'a Rope) -> impl std::io::Read + 'a {
     use std::io::prelude::*;
@@ -93,7 +56,6 @@ pub fn derive_shapes(
 pub fn validate_shapes(
     query: Query<
         (
-            Entity,
             &RopeC,
             &Label,
             &DocumentLinks,
@@ -107,7 +69,7 @@ pub fn validate_shapes(
 ) {
     info!("Validate shapes");
 
-    for (e, rope, label, links, item, triples) in &query {
+    for (rope, label, links, item, triples) in &query {
         let mut diagnostics: Vec<lsp_types::Diagnostic> = Vec::new();
 
         if let Some(validator) = SRDFGraph::from_reader(
@@ -176,16 +138,14 @@ pub fn validate_shapes(
                                     let entry: &mut HashMap<String, Vec<String>> =
                                         per_fn_per_path.entry(t.s().span.clone()).or_default();
 
-                                    if let Some(range) = range_to_range(&t.s().span, &rope) {
-                                        let path = get_path(r.source()).unwrap_or(String::new());
-                                        let entry = entry.entry(path).or_default();
+                                    let path = get_path(r.source()).unwrap_or(String::new());
+                                    let entry = entry.entry(path).or_default();
 
-                                        let component = r.component().to_string();
-                                        let component =
-                                            prefixes.shorten(&component).unwrap_or(component);
+                                    let component = r.component().to_string();
+                                    let component =
+                                        prefixes.shorten(&component).unwrap_or(component);
 
-                                        entry.push(component);
-                                    }
+                                    entry.push(component);
                                 }
                             }
                         }

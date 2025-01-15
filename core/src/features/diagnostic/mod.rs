@@ -2,11 +2,8 @@ use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
 use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
-use futures::{channel::mpsc, StreamExt};
-use lsp_types::{
-    Diagnostic,
-    DiagnosticSeverity, TextDocumentItem, Url,
-};
+use futures::channel::mpsc;
+use lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url};
 
 pub mod systems;
 
