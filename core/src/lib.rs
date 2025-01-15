@@ -91,7 +91,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.add_schedule(Schedule::new(Tasks));
     world.add_schedule(Schedule::new(Format));
     let mut inlay = Schedule::new(Inlay);
-    inlay.add_systems(inlay_triples);
+    // inlay.add_systems(inlay_triples);
     world.add_schedule(inlay);
 
     let mut semantic_tokens = Schedule::new(systems::SemanticTokensSchedule);

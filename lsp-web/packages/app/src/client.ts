@@ -11,7 +11,7 @@ import {
 import * as proto from "vscode-languageserver-protocol";
 import { MessageReader, RequestMessage } from "vscode-languageserver-protocol";
 
-import { Codec, FromServer, IntoServer } from "./codec";
+import { Codec, FromServer, IntoServer } from "common";
 import {
   MonacoToProtocolConverter,
   ProtocolToMonacoConverter,
@@ -204,7 +204,7 @@ export default class Client extends jsrpc.JSONRPCServerAndClient {
             } as proto.PrepareRenameParams
           );
 
-          console.log({response})
+          console.log({ response });
           if (response) {
             return {
               text: response.placeholder,

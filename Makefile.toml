@@ -17,6 +17,7 @@ cargo install --path ./lsp-bin/ --debug
 script = '''
 RUSTFLAGS=--cfg=web_sys_unstable_apis cargo build -p lsp-web --release --target wasm32-unknown-unknown 
 RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-bindgen --out-dir ./lsp-web/packages/app/assets/wasm --target web --typescript ./target/wasm32-unknown-unknown/release/lsp_web.wasm
+RUSTFLAGS=--cfg=web_sys_unstable_apis wasm-bindgen --out-dir ./lsp-web/packages/vscode/assets/wasm --target web --typescript ./target/wasm32-unknown-unknown/release/lsp_web.wasm --omit-default-module-path
 '''
 
 [tasks.run-app]

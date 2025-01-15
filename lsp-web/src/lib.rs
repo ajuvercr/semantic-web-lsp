@@ -1,9 +1,11 @@
 mod client;
 mod fetch;
 
+use std::io::Write;
+
 use bevy_ecs::{system::Resource, world::World};
 use client::WebClient;
-use futures::{channel::mpsc::unbounded, stream::TryStreamExt, StreamExt};
+use futures::{channel::mpsc::unbounded, stream::TryStreamExt, AsyncWriteExt, StreamExt};
 use lsp_core::{
     backend::Backend,
     client::{Client, ClientSync},
@@ -16,21 +18,53 @@ use tower_lsp::{LspService, Server};
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::stream::JsStream;
 
-fn setup_global_subscriber() {
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen()]
+    pub fn logit(string: &str);
+}
+
+struct LogItWriter;
+impl Write for LogItWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        if let Ok(st) = std::str::from_utf8(buf) {
+            logit(st);
+        }
+
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn setup_global_subscriber(logit: bool) {
+    use tracing_subscriber::fmt;
     use tracing_subscriber::fmt::format::Pretty;
     use tracing_subscriber::prelude::*;
     use tracing_web::{performance_layer, MakeWebConsoleWriter};
 
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_ansi(false) // Only partially supported across browsers
-        .without_time() // std::time is not available in browsers, see note below
-        .with_writer(MakeWebConsoleWriter::new()); // write events to the console
-    let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+    if logit {
+        let fmt_layer = tracing_subscriber::fmt::layer()
+            .with_ansi(false) // Only partially supported across browsers
+            .without_time() // std::time is not available in browsers, see note below
+            .with_writer(MakeWebConsoleWriter::new()); // write events to the console
+        let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
 
-    tracing_subscriber::registry()
-        .with(fmt_layer)
-        .with(perf_layer)
-        .init(); // Install these as subscribers to tracing events
+        tracing_subscriber::registry()
+            .with(fmt_layer)
+            .with(perf_layer)
+            .init(); // Install these as subscribers to tracing events
+    } else {
+        let fmt_layer = fmt::Layer::default().with_writer(std::sync::Mutex::new(LogItWriter));
+        let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+
+        tracing_subscriber::registry()
+            .with(fmt_layer)
+            .with(perf_layer)
+            .init(); // Install these as subscribers to tracing events
+    }
 }
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
@@ -102,7 +136,7 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
 
     web_sys::console::log_1(&"server::serve".into());
 
-    setup_global_subscriber();
+    setup_global_subscriber(false);
 
     let ServerConfig {
         into_server,
@@ -124,6 +158,46 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     let output = wasm_streams::WritableStream::from_raw(output);
     let output = output.try_into_async_write().map_err(|err| err.0)?;
 
+    let (service, socket) = LspService::build(|client| {
+        let (sender, rt) = setup_world(WebClient::new(client.clone()));
+        Backend::new(sender, client, rt)
+    })
+    .finish();
+
+    Server::new(input, output, socket).serve(service).await;
+
+    Ok(())
+}
+
+#[wasm_bindgen]
+pub async fn serve2(config: ServerConfig) -> Result<(), JsValue> {
+    console_error_panic_hook::set_once();
+
+    web_sys::console::log_1(&"server::serve".into());
+
+    setup_global_subscriber(true);
+
+    tracing::info!("Hallo I'm here!");
+
+    let ServerConfig {
+        into_server,
+        from_server,
+    } = config;
+
+    let input = JsStream::from(into_server);
+    let input = input
+        .map_ok(|value| {
+            value
+                .dyn_into::<js_sys::Uint8Array>()
+                .expect("could not cast stream item to Uint8Array")
+                .to_vec()
+        })
+        .map_err(|_err| std::io::Error::from(std::io::ErrorKind::Other))
+        .into_async_read();
+
+    let output = JsCast::unchecked_into::<wasm_streams::writable::sys::WritableStream>(from_server);
+    let output = wasm_streams::WritableStream::from_raw(output);
+    let mut output = output.try_into_async_write().map_err(|err| err.0)?;
     let (service, socket) = LspService::build(|client| {
         let (sender, rt) = setup_world(WebClient::new(client.clone()));
         Backend::new(sender, client, rt)

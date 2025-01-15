@@ -1,0 +1,113 @@
+{
+  "name": "vscode",
+  "author": "Arthur Vercruysse",
+  "license": "MIT",
+  "displayName": "semantic-web-lsp",
+  "description": "A language server for semantic web standards",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajuvercr/seamntic-web-lsp.git"
+  },
+  "categories": [
+    "Programming Languages",
+    "Languages",
+    "Formatters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:turtle"
+  ],
+  "browser": "./dist/web/extension.js",
+  "main": "./dist/web/extension.js",
+  "configurationDefaults": {
+    "[turtle]": {
+      "editor.semanticHighlighting.enabled": true,
+      "editor.tabCompletion": "onlySnippets",
+      "editor.snippetSuggestions": "top"
+    }
+  },
+  "contributes": {
+    "semanticTokenTypes": [
+      {
+        "id": "langTag",
+        "superType": "decorator",
+        "description": "Denoting the language of the literal"
+      },
+      {
+        "id": "boolean",
+        "superType": "number",
+        "description": "Boolean literal"
+      }
+    ],
+    "languages": [
+      {
+        "id": "turtle",
+        "extensions": [
+          ".ttl"
+        ],
+        "configuration": "./turtle-configuration.json"
+      }
+    ],
+    "configuration": [
+      {
+        "order": 22,
+        "id": "turtle lsp",
+        "title": "turtle lsp",
+        "properties": {
+          "lsp-web-extension-sample.trace.server": {
+            "type": "string",
+            "scope": "window",
+            "enum": [
+              "off",
+              "messages",
+              "verbose"
+            ],
+            "default": "messages",
+            "description": "Traces the communication between VS Code and the lsp-web-extension-sample language server."
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/index.js",
+    "pretest": "npm run compile-web",
+    "vscode:prepublish": "npm run package-web",
+    "compile-web": "webpack",
+    "watch-web": "webpack --watch",
+    "package-web": "webpack --mode production --devtool hidden-source-map",
+    "lint": "eslint src",
+    "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
+  },
+  "devDependencies": {
+    "@types/assert": "^1.5.11",
+    "@types/mocha": "^10.0.10",
+    "@types/vscode": "^1.96.0",
+    "@types/webpack-env": "^1.18.5",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vscode/test-web": "^0.0.65",
+    "assert": "^2.1.0",
+    "eslint": "^9.16.0",
+    "mocha": "^11.0.1",
+    "process": "^0.11.10",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.2",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "common": "../common/",
+    "vscode-jsonrpc": "^8.2.1",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver-protocol": "^3.17.5"
+  },
+  "bugs": {
+    "url": "https://github.com/ajuvercr/seamntic-web-lsp/issues"
+  },
+  "homepage": "https://github.com/ajuvercr/seamntic-web-lsp#readme"
+}
