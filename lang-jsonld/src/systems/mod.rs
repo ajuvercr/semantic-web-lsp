@@ -1,4 +1,4 @@
-use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Resource, world::World};
+use bevy_ecs::{schedule::IntoSystemConfigs as _, world::World};
 use lsp_core::{
     systems::{prefixes, triples},
     Parse,

@@ -107,7 +107,7 @@ pub fn variable_completion(
 ) {
     for (tokens, token, mut req) in &mut query {
         if token.text.starts_with('?') {
-            let mut token_set: HashSet<&str> = tokens
+            let token_set: HashSet<&str> = tokens
                 .0
                 .iter()
                 .flat_map(|x| match x.value() {

@@ -4,7 +4,7 @@ extern crate tracing;
 use bevy_ecs::prelude::*;
 use chumsky::error::Simple;
 use lsp_core::{
-    client::Client, components::{DynLang, SemanticTokensDict}, features::diagnostic::systems::publish_diagnostics, lang::{Lang, LangHelper}, token::Membered, CreateEvent
+    components::{DynLang, SemanticTokensDict}, features::diagnostic::systems::publish_diagnostics, lang::{Lang, LangHelper}, token::Membered, CreateEvent
 };
 use lsp_types::SemanticTokenType;
 use model::Query;

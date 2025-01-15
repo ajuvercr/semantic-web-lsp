@@ -16,7 +16,7 @@ use futures::lock::Mutex;
 use ropey::Rope;
 use tracing::info;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::LanguageServer;
@@ -44,7 +44,6 @@ impl Backend {
         }
     }
 
-    #[must_use]
     async fn run<T: Send + Sync + 'static>(
         &self,
         f: impl FnOnce(&mut World) -> T + Send + Sync + 'static,
@@ -66,7 +65,6 @@ impl Backend {
         rx.await.ok()
     }
 
-    #[must_use]
     async fn run_schedule<T: Component>(
         &self,
         entity: Entity,

@@ -3,7 +3,6 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 use lsp_types::{Position, Range};
 use ropey::Rope;
 

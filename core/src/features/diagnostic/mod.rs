@@ -4,11 +4,9 @@ use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::{channel::mpsc, StreamExt};
 use lsp_types::{
-    CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit, Diagnostic,
-    DiagnosticSeverity, Documentation, InsertTextFormat, SemanticTokenType, TextDocumentItem,
-    TextEdit, Url,
+    Diagnostic,
+    DiagnosticSeverity, TextDocumentItem, Url,
 };
-use ropey::Rope;
 
 pub mod systems;
 

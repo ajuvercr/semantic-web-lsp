@@ -1,7 +1,6 @@
 use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
 use lsp_core::{
-    client::Client,
     components::{DynLang, SemanticTokensDict},
     features::diagnostic::systems::publish_diagnostics,
     lang::{Lang, LangHelper},

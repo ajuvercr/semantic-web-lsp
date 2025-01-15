@@ -1,4 +1,3 @@
-use rudof_lib::srdf::{SRDFBasic, SRDF};
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,

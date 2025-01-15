@@ -2,7 +2,6 @@ use bevy_ecs::prelude::*;
 use chumsky::Parser;
 use lsp_core::components::*;
 use tracing::info;
-use tracing::instrument;
 
 use crate::TurtleLang;
 use crate::{parse_turtle, tokenizer::parse_tokens};
