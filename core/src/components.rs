@@ -6,7 +6,6 @@ use std::{
 
 use crate::{
     lang::{Lang, LangHelper},
-    model::Spanned,
     prelude::*,
     systems::TypeId,
     token::Token,

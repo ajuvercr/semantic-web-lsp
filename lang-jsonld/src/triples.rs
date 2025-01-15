@@ -2,7 +2,7 @@ use std::{borrow::Cow, ops::Range};
 
 use lsp_core::{
     components::{Prefix, Prefixes},
-    model::Spanned,
+    prelude::Spanned,
     token::Token,
     triples::{MyQuad, MyTerm},
 };

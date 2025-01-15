@@ -8,7 +8,7 @@ use super::{
     Base, BlankNode, Literal, NamedNode, Prefix, RDFLiteral, Term, Triple, Turtle, PO,
 };
 
-use lsp_core::model::{spanned, Spanned};
+use lsp_core::prelude::{spanned, Spanned};
 
 type S = std::ops::Range<usize>;
 

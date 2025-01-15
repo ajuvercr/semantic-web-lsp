@@ -3,7 +3,7 @@ use tracing::{debug, info};
 
 use super::token::StringStyle;
 
-use lsp_core::model::Spanned;
+use lsp_core::prelude::Spanned;
 use lsp_core::triples::{MyQuad, MyTerm, Triples};
 use std::collections::HashSet;
 use std::{fmt::Display, ops::Range};

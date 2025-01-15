@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
-use crate::model::Spanned;
 use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::{channel::mpsc, StreamExt};

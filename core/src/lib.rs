@@ -37,13 +37,13 @@ pub mod client;
 /// derive [`DefinedClass`](struct@systems::DefinedClass) from them and add them to the [`Entity`].
 ///
 pub mod components;
+/// Hosts all common features of the semantic language server.
 pub mod features;
-/// 
+/// Defines common language traits
 pub mod lang;
-pub mod model;
+/// Defines common tokens
+// pub mod model;
 pub mod ns;
-pub mod parent;
-pub mod prefix;
 pub mod systems;
 pub mod token;
 pub mod triples;
