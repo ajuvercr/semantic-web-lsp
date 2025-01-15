@@ -1,9 +1,12 @@
+use crate::prelude::*;
 use crate::{
     components::{
         CommandReceiver, CompletionRequest, DocumentLinks, DynLang, InlayRequest, Label,
         PositionComponent, Prefixes, PrepareRenameRequest, RenameEdits, RopeC, TokenComponent,
         Tokens, TripleComponent, TripleTarget, Triples, Wrapped,
-    }, features::diagnostic::DiagnosticPublisher, lang::SimpleCompletion, utils::{offset_to_position, position_to_offset, range_to_range}, CreateEvent, Parse
+    },
+    utils::{offset_to_position, position_to_offset, range_to_range},
+    CreateEvent, Parse,
 };
 use bevy_ecs::prelude::*;
 
@@ -83,7 +86,7 @@ pub fn keyword_complete(
         };
 
         for kwd in helper.keyword() {
-            let completion = crate::lang::SimpleCompletion::new(
+            let completion = SimpleCompletion::new(
                 CompletionItemKind::KEYWORD,
                 kwd.to_string(),
                 lsp_types::TextEdit {

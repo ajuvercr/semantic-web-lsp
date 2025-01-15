@@ -5,7 +5,7 @@ use lsp_types::{CompletionItemKind, TextEdit};
 
 use crate::{
     components::{Prefixes, TokenComponent},
-    lang::SimpleCompletion,
+    prelude::*,
     token::Token,
 };
 

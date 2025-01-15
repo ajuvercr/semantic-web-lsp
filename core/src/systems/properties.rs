@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use crate::prelude::*;
 use crate::components::*;
 use crate::ns::*;
 use crate::triples::MyTerm;
@@ -109,7 +110,7 @@ pub fn complete_class(
 
                     if to_beat.starts_with(&token.text) {
                         request.push(
-                            crate::lang::SimpleCompletion::new(
+                            crate::features::completion::SimpleCompletion::new(
                                 CompletionItemKind::CLASS,
                                 format!("{}", to_beat),
                                 TextEdit {
@@ -274,7 +275,7 @@ pub fn complete_properties(
                             }
                         });
 
-                        let mut completion = crate::lang::SimpleCompletion::new(
+                        let mut completion = SimpleCompletion::new(
                             CompletionItemKind::PROPERTY,
                             format!("{}", to_beat),
                             TextEdit {
@@ -287,10 +288,7 @@ pub fn complete_properties(
                         if correct_domain {
                             completion.kind = CompletionItemKind::FIELD;
                             debug!("Property has correct domain {}", to_beat);
-                            request.push(
-                                completion
-                                    .sort_text("1"),
-                            );
+                            request.push(completion.sort_text("1"));
                         } else {
                             request.push(completion);
                         }
