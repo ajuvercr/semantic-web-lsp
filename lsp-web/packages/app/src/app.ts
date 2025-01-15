@@ -4,7 +4,7 @@ import { MonacoToProtocolConverter } from "monaco-languageclient";
 import * as proto from "vscode-languageserver-protocol";
 
 import Client from "./client";
-import { FromServer, IntoServer } from "./codec";
+import { FromServer, IntoServer } from "common";
 import { Languages } from "./language";
 import Server from "./server";
 

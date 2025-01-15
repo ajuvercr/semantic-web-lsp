@@ -1,5 +1,6 @@
+// import init, { InitOutput, serve, ServerConfig } from "../assets/wasm/lsp_web";
 import init, { InitOutput, serve, ServerConfig } from "../assets/wasm/lsp_web";
-import { FromServer, IntoServer } from "./codec";
+import { FromServer, IntoServer } from "common";
 
 let server: null | Server;
 

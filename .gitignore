@@ -1,5 +1,7 @@
 /target
 node_modules
+wasm/
+.vscode-test-web/
 out/
 .pnpm-debug.log
 *.ast 
