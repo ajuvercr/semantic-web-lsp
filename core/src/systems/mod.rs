@@ -3,10 +3,7 @@ use crate::{
         CommandReceiver, CompletionRequest, DocumentLinks, DynLang, InlayRequest, Label,
         PositionComponent, Prefixes, PrepareRenameRequest, RenameEdits, RopeC, TokenComponent,
         Tokens, TripleComponent, TripleTarget, Triples, Wrapped,
-    },
-    lang::{OtherPublisher, SimpleCompletion},
-    utils::{offset_to_position, position_to_offset, range_to_range},
-    CreateEvent, Parse,
+    }, features::diagnostic::DiagnosticPublisher, lang::SimpleCompletion, utils::{offset_to_position, position_to_offset, range_to_range}, CreateEvent, Parse
 };
 use bevy_ecs::prelude::*;
 
@@ -14,9 +11,9 @@ mod shapes;
 pub use shapes::*;
 mod typed;
 pub use typed::*;
-mod diagnostics;
+// mod diagnostics;
 pub mod prefix;
-pub use diagnostics::publish_diagnostics;
+// pub use diagnostics::publish_diagnostics;
 mod semantics;
 use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
 pub use semantics::{
@@ -274,7 +271,7 @@ pub fn undefined_prefix(
         (&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC),
         Or<(Changed<Prefixes>, Changed<Tokens>)>,
     >,
-    mut client: ResMut<OtherPublisher>,
+    mut client: ResMut<DiagnosticPublisher>,
 ) {
     for (tokens, prefixes, item, rope) in &query {
         let mut diagnostics: Vec<Diagnostic> = Vec::new();

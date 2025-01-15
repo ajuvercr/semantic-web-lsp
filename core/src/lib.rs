@@ -1,9 +1,12 @@
-use bevy_ecs::{
-    event::Event,
-    schedule::{IntoSystemConfigs as _, Schedule, ScheduleLabel},
-    system::Resource,
-    world::World,
-};
+use bevy_ecs::prelude::*;
+use bevy_ecs::schedule::ScheduleLabel;
+
+// use bevy_ecs::{
+//     event::Event,
+//     schedule::{IntoSystemConfigs as _, Schedule, ScheduleLabel},
+//     system::Resource,
+//     world::World,
+// };
 use client::Client;
 use components::{SemanticTokensDict, TypeHierarchy};
 use systems::{
@@ -14,9 +17,28 @@ use systems::{
     validate_shapes,
 };
 
+/// Main language tower_lsp server implementation.
+///
+/// [`Backend`](struct@backend::Backend) implements [`LanguageServer`](tower_lsp::LanguageServer).
+/// Each incoming request a schedule is ran on the main [`World`]. 
+///
 pub mod backend;
+
+/// Handle platform specific implementations for fetching and spawning tasks.
+///
 pub mod client;
+
+/// Defines all common [`Component`]s and [`Resource`]s
+///
+/// In this [`World`], [Entity]s are documents and [`Component`]s are derived from these documents.
+/// Different [`System`]s derive new [`Component`]s from existing [`Component`]s, that are added to
+/// the [`Entity`].
+/// For example, if [`Triples`](components::Triples) are defined, [systems::derive_classes] will
+/// derive [`DefinedClass`](struct@systems::DefinedClass) from them and add them to the [`Entity`].
+///
 pub mod components;
+pub mod features;
+/// 
 pub mod lang;
 pub mod model;
 pub mod ns;

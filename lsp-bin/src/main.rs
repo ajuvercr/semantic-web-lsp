@@ -8,7 +8,7 @@ use lsp_core::client::Client;
 use lsp_core::client::ClientSync;
 use lsp_core::components::CommandSender;
 use lsp_core::components::SemanticTokensDict;
-use lsp_core::lang::OtherPublisher;
+use lsp_core::features::diagnostic::DiagnosticPublisher;
 use lsp_core::setup_schedule_labels;
 use lsp_types::SemanticTokenType;
 use std::fs::File;
@@ -26,7 +26,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
 
     setup_schedule_labels::<C>(&mut world);
 
-    let (publisher, mut rx) = OtherPublisher::new();
+    let (publisher, mut rx) = DiagnosticPublisher::new();
     world.insert_resource(publisher);
 
     let c = client.clone();

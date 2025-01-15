@@ -9,7 +9,7 @@ use bevy_ecs::observer::Trigger;
 use bevy_ecs::system::{Commands, Resource};
 use bevy_ecs::world::World;
 use lsp_core::components::{DynLang, SemanticTokensDict};
-use lsp_core::systems::publish_diagnostics;
+use lsp_core::features::diagnostic::systems::publish_diagnostics;
 use lsp_core::token::semantic_token;
 use lsp_core::CreateEvent;
 pub use parser2::parse_turtle;

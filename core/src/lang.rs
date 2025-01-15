@@ -1,42 +1,16 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
-use crate::model::Spanned;
+use crate::{features::diagnostic::SimpleDiagnostic, model::Spanned};
 use bevy_ecs::system::Resource;
 use chumsky::prelude::Simple;
 use futures::{channel::mpsc, StreamExt};
 use lsp_types::{
     CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit, Diagnostic,
-    DiagnosticSeverity, Documentation, InsertTextFormat, SemanticTokenType, TextDocumentItem,
-    TextEdit, Url,
+    Documentation, InsertTextFormat, SemanticTokenType, TextDocumentItem, TextEdit, Url,
 };
 use ropey::Rope;
 
 use crate::{client::Client, utils::offset_to_position};
-
-#[derive(Debug)]
-pub struct SimpleDiagnostic {
-    pub range: Range<usize>,
-    pub msg: String,
-    pub severity: Option<DiagnosticSeverity>,
-}
-
-impl SimpleDiagnostic {
-    pub fn new(range: Range<usize>, msg: String) -> Self {
-        Self {
-            range,
-            msg,
-            severity: None,
-        }
-    }
-
-    pub fn new_severity(range: Range<usize>, msg: String, severity: DiagnosticSeverity) -> Self {
-        Self {
-            range,
-            msg,
-            severity: Some(severity),
-        }
-    }
-}
 
 pub fn head() -> lsp_types::Range {
     let start = lsp_types::Position {
@@ -168,77 +142,6 @@ impl Into<CompletionItem> for SimpleCompletion {
     }
 }
 
-impl<T: Display + Eq + Hash> From<Simple<T>> for SimpleDiagnostic {
-    fn from(e: Simple<T>) -> Self {
-        let msg = if let chumsky::error::SimpleReason::Custom(msg) = e.reason() {
-            msg.clone()
-        } else {
-            format!(
-                "{}{}, expected {}",
-                if e.found().is_some() {
-                    "Unexpected token"
-                } else {
-                    "Unexpected end of input"
-                },
-                if let Some(label) = e.label() {
-                    format!(" while parsing {}", label)
-                } else {
-                    String::new()
-                },
-                if e.expected().len() == 0 {
-                    "something else".to_string()
-                } else {
-                    e.expected()
-                        .map(|expected| match expected {
-                            Some(expected) => format!("'{}'", expected),
-                            None => "end of input".to_string(),
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" or ")
-                },
-            )
-        };
-
-        SimpleDiagnostic::new(e.span(), msg)
-    }
-}
-
-impl<T: Display + Eq + Hash> From<(usize, Simple<T>)> for SimpleDiagnostic {
-    fn from(this: (usize, Simple<T>)) -> Self {
-        let (len, e) = this;
-        let msg = if let chumsky::error::SimpleReason::Custom(msg) = e.reason() {
-            msg.clone()
-        } else {
-            format!(
-                "{}{}, expected {}",
-                if e.found().is_some() {
-                    "Unexpected token"
-                } else {
-                    "Unexpected end of input"
-                },
-                if let Some(label) = e.label() {
-                    format!(" while parsing {}", label)
-                } else {
-                    String::new()
-                },
-                if e.expected().len() == 0 {
-                    "something else".to_string()
-                } else {
-                    e.expected()
-                        .map(|expected| match expected {
-                            Some(expected) => format!("'{}'", expected),
-                            None => "end of input".to_string(),
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" or ")
-                },
-            )
-        };
-
-        let range = (len - e.span().end)..(len - e.span().start);
-        SimpleDiagnostic::new(range, msg)
-    }
-}
 
 pub trait Token: Sized {
     fn token(&self) -> Option<SemanticTokenType>;
@@ -283,117 +186,3 @@ pub trait LangHelper: std::fmt::Debug {
     fn keyword(&self) -> &[&'static str];
 }
 
-#[derive(Clone)]
-pub struct DiagnosticSender {
-    tx: mpsc::UnboundedSender<Vec<SimpleDiagnostic>>,
-}
-
-#[derive(Debug)]
-pub struct DiagnosticItem {
-    pub diagnostics: Vec<Diagnostic>,
-    pub uri: Url,
-    pub version: Option<i32>,
-}
-impl DiagnosticSender {
-    pub fn push(&self, diagnostic: SimpleDiagnostic) -> Option<()> {
-        let out = self.tx.unbounded_send(vec![diagnostic]).ok();
-        out
-    }
-
-    pub fn push_all(&self, diagnostics: Vec<SimpleDiagnostic>) -> Option<()> {
-        self.tx.unbounded_send(diagnostics).ok()
-    }
-}
-
-#[derive(Resource)]
-pub struct OtherPublisher {
-    tx: mpsc::UnboundedSender<DiagnosticItem>,
-    diagnostics: HashMap<lsp_types::Url, Vec<(Diagnostic, &'static str)>>,
-}
-
-impl OtherPublisher {
-    pub fn new() -> (Self, mpsc::UnboundedReceiver<DiagnosticItem>) {
-        let (tx, rx) = mpsc::unbounded();
-        (
-            Self {
-                tx,
-                diagnostics: HashMap::new(),
-            },
-            rx,
-        )
-    }
-
-    pub fn publish(
-        &mut self,
-        params: &TextDocumentItem,
-        diagnostics: Vec<Diagnostic>,
-        reason: &'static str,
-    ) -> Option<()> {
-        let items = self.diagnostics.entry(params.uri.clone()).or_default();
-        items.retain(|(_, r)| *r != reason);
-        items.extend(diagnostics.into_iter().map(|x| (x, reason)));
-        let diagnostics: Vec<_> = items.iter().map(|(x, _)| x).cloned().collect();
-        let uri = params.uri.clone();
-        let version = Some(params.version);
-        let item = DiagnosticItem {
-            diagnostics,
-            uri,
-            version,
-        };
-        self.tx.unbounded_send(item).ok()
-    }
-}
-
-// pub struct Publisher<C: Client + Send + Sync + 'static> {
-//     version: i32,
-//     uri: Url,
-//     client: C,
-//     diagnostics: Vec<Diagnostic>,
-//     rope: Rope,
-//     rx: mpsc::UnboundedReceiver<Vec<SimpleDiagnostic>>,
-// }
-//
-// impl<C: Client + Send + Sync + 'static> Publisher<C> {
-//     pub fn new(uri: Url, version: i32, client: C, rope: Rope) -> (Self, DiagnosticSender) {
-//         let (tx, rx) = mpsc::unbounded();
-//         (
-//             Self {
-//                 version,
-//                 uri,
-//                 client,
-//                 diagnostics: Vec::new(),
-//                 rx,
-//                 rope,
-//             },
-//             DiagnosticSender { tx },
-//         )
-//     }
-//
-//     pub async fn spawn(mut self) {
-//         loop {
-//             if let Some(x) = self.rx.next().await {
-//                 self.diagnostics.extend(x.into_iter().flat_map(|item| {
-//                     let (span, message) = (item.range, item.msg);
-//                     let start_position = offset_to_position(span.start, &self.rope)?;
-//                     let end_position = offset_to_position(span.end, &self.rope)?;
-//                     Some(Diagnostic {
-//                         range: lsp_types::Range::new(start_position, end_position),
-//                         message,
-//                         severity: item.severity,
-//                         ..Default::default()
-//                     })
-//                 }));
-//
-//                 self.client
-//                     .publish_diagnostics(
-//                         self.uri.clone(),
-//                         self.diagnostics.clone(),
-//                         Some(self.version),
-//                     )
-//                     .await;
-//             } else {
-//                 return;
-//             }
-//         }
-//     }
-// }
