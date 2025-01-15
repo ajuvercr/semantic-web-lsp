@@ -4,6 +4,7 @@ use bevy_ecs::{prelude::*, world::World};
 use lang_turtle::TriplesBuilder;
 use lsp_core::{
     components::*,
+    prelude::*,
     systems::{get_current_token, prefix::prefix_completion_helper, prefixes, triples},
     Parse,
 };
@@ -117,7 +118,7 @@ pub fn variable_completion(
 
             for x in token_set {
                 let t = format!("?{}", x);
-                let completion = lsp_core::lang::SimpleCompletion::new(
+                let completion = SimpleCompletion::new(
                     CompletionItemKind::VARIABLE,
                     t.clone(),
                     lsp_types::TextEdit {

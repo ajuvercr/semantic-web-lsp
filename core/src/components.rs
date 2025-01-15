@@ -5,8 +5,9 @@ use std::{
 };
 
 use crate::{
-    lang::{Lang, LangHelper, SimpleCompletion},
+    lang::{Lang, LangHelper},
     model::Spanned,
+    prelude::*,
     systems::TypeId,
     token::Token,
     triples::{MyQuad, MyTerm},

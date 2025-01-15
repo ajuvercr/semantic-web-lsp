@@ -47,6 +47,7 @@ pub mod prefix;
 pub mod systems;
 pub mod token;
 pub mod triples;
+pub mod prelude;
 pub mod utils;
 
 pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
