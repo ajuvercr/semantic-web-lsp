@@ -6,7 +6,7 @@ mod utils;
 
 use bevy_ecs::component::Component;
 use bevy_ecs::observer::Trigger;
-use bevy_ecs::system::{Commands, Resource};
+use bevy_ecs::system::Commands;
 use bevy_ecs::world::World;
 use lsp_core::components::{DynLang, SemanticTokensDict};
 use lsp_core::features::diagnostic::systems::publish_diagnostics;
@@ -24,7 +24,6 @@ pub use model::*;
 
 pub use parser2::*;
 
-use lsp_core::client::{Client, ClientSync};
 
 use lsp_core::lang::{Lang, LangHelper};
 

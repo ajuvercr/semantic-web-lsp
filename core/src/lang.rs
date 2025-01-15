@@ -1,16 +1,9 @@
-use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
+use std::{hash::Hash, ops::Range};
 
 use crate::{features::diagnostic::SimpleDiagnostic, prelude::*};
-use bevy_ecs::system::Resource;
-use chumsky::prelude::Simple;
-use futures::{channel::mpsc, StreamExt};
-use lsp_types::{
-    CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit, Diagnostic,
-    Documentation, InsertTextFormat, SemanticTokenType, TextDocumentItem, TextEdit, Url,
-};
+use lsp_types::SemanticTokenType;
 use ropey::Rope;
 
-use crate::{client::Client, utils::offset_to_position};
 
 pub fn head() -> lsp_types::Range {
     let start = lsp_types::Position {

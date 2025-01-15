@@ -1,5 +1,5 @@
 use sophia_iri::resolve::{BaseIri, IriParseError};
-use tracing::{debug, info};
+use tracing::info;
 
 use super::token::StringStyle;
 

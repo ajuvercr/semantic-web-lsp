@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use lov::LocalPrefix;
 use lsp_types::{CompletionItemKind, TextEdit};
 
 use crate::{

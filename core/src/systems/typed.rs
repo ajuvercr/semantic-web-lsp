@@ -7,11 +7,10 @@ use sophia_api::{
 };
 
 use bevy_ecs::prelude::*;
-use tracing::info;
 
 use crate::{
     components::{
-        Dirty, HoverRequest, Prefixes, TokenComponent, TripleComponent, Triples, TypeHierarchy,
+        Dirty, HoverRequest, Prefixes, TokenComponent, Triples, TypeHierarchy,
         Types,
     },
     ns::rdfs,

@@ -1,6 +1,5 @@
 use std::{
-    borrow::{BorrowMut, Cow},
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     ops::{Deref, DerefMut},
 };
 
@@ -10,19 +9,19 @@ use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
 use rudof_lib::{
     shacl_ast::{
-        compiled::{schema::CompiledSchema, shape::CompiledShape},
+        compiled::schema::CompiledSchema,
         ShaclParser,
     },
     shacl_validation::{
         shacl_processor::{GraphValidation, ShaclProcessor},
-        shape::{FocusNodesOps, Validate},
+        shape::Validate,
         store::graph::Graph,
     },
     srdf::{Object, SRDFGraph},
-    RdfData, Rudof, RudofConfig, SRDFSparql,
+    RdfData, Rudof,
 };
 use sophia_api::prelude::Quad as _;
-use tracing::{error, info};
+use tracing::info;
 
 #[derive(Debug, Component)]
 pub struct Shapes {
