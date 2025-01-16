@@ -471,7 +471,7 @@ mod tests {
     use std::str::FromStr;
 
     use chumsky::{Parser, Stream};
-    use lsp_core::model::{spanned, Spanned};
+    use lsp_core::prelude::{spanned, Spanned};
     use ropey::Rope;
 
     use crate::{formatter::format_turtle, parser2::turtle, tokenizer, Turtle};

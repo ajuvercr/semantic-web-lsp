@@ -741,7 +741,7 @@ mod test {
 
     use chumsky::Parser;
     use lsp_core::{
-        model::{spanned, Spanned},
+        prelude::{spanned, Spanned},
         triples::MyQuad,
     };
 

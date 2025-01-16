@@ -70,9 +70,7 @@ fn derive_prefixes(
             })
             .unwrap_or(url.0.clone());
 
-        commands
-            .entity(entity)
-            .insert(Prefixes(prefixes, base));
+        commands.entity(entity).insert(Prefixes(prefixes, base));
     }
 }
 
@@ -80,7 +78,7 @@ fn derive_prefixes(
 mod tests {
     use chumsky::chain::Chain;
     use futures::executor::block_on;
-    use lsp_core::{components::*, lang::DiagnosticItem, Diagnostics, Parse};
+    use lsp_core::{components::*, prelude::DiagnosticItem, Diagnostics, Parse};
     use ropey::Rope;
     use test_utils::{create_file, setup_world, TestClient};
 
@@ -94,7 +92,7 @@ mod tests {
 
         let t2 = "
 @prefix foaf: <>.
-foa:foaf
+foaf:foaf
             ";
 
         let t3 = "
@@ -123,11 +121,9 @@ foa
         world.run_schedule(Diagnostics);
 
         let items = get_diagnostics();
-        assert_eq!(items.len(), 1);
+        assert_eq!(items.len(), 2);
         assert_eq!(items[0].diagnostics.len(), 2);
         let msgs: Vec<_> = items[0].diagnostics.iter().map(|x| &x.message).collect();
-        println!("t2 Diagnostics {:?}", msgs);
-
         world
             .entity_mut(entity)
             .insert((Source(t3.to_string()), RopeC(Rope::from_str(t2))));
@@ -136,8 +132,7 @@ foa
 
         let items = get_diagnostics();
         let msgs: Vec<_> = items[0].diagnostics.iter().map(|x| &x.message).collect();
-        println!("t2 Diagnostics {:?}", msgs);
-        assert_eq!(items.len(), 1);
+        assert_eq!(items.len(), 2);
         assert_eq!(items[0].diagnostics.len(), 5);
     }
 

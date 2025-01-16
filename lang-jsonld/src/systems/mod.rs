@@ -188,6 +188,8 @@ mod tests {
                 character: 6,
             }),
         ));
+        world.run_schedule(Tasks);
+        world.run_schedule(Tasks);
         world.run_schedule(Completion);
 
         let _ = world
@@ -249,6 +251,8 @@ mod tests {
                 character: 6,
             }),
         ));
+        world.run_schedule(Tasks);
+        world.run_schedule(Tasks);
         world.run_schedule(Completion);
 
         let _ = world

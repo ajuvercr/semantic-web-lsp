@@ -31,6 +31,13 @@ pub struct Prefix {
 
 #[derive(Component, Debug)]
 pub struct Prefixes(pub Vec<Prefix>, pub lsp_types::Url);
+impl Deref for Prefixes {
+    type Target = Vec<Prefix>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 impl Prefixes {
     pub fn shorten(&self, value: &str) -> Option<String> {
         let try_shorten = |prefix: &Prefix| {

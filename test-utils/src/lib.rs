@@ -18,7 +18,7 @@ use futures::{
 use lsp_core::{
     client::{Client, ClientSync, Resp},
     components::*,
-    lang::{DiagnosticItem, OtherPublisher},
+    prelude::{DiagnosticItem, DiagnosticPublisher},
     setup_schedule_labels,
     systems::{handle_tasks, spawn_or_insert},
 };
@@ -138,7 +138,7 @@ pub fn setup_world(
 
     f(&mut world);
 
-    let (publisher, rx) = OtherPublisher::new();
+    let (publisher, rx) = DiagnosticPublisher::new();
     world.insert_resource(publisher);
 
     (world, rx)
@@ -166,6 +166,7 @@ pub fn create_file(
             RopeC(ropey::Rope::from_str(content)),
             Label(url), // this might crash
             Wrapped(item),
+            Types(HashMap::new()),
         ),
         Some(lang.into()),
         bundle,
