@@ -169,14 +169,11 @@ fn derive_triples_sub(
             // get value
             let object = match mem.json_value() {
                 None => MyTerm::invalid(0..0),
-                Some(Spanned(Json::Token(tok), span)) => {
-                    if let Some(st) = prefixes.expand_json(&tok) {
-                        // TODO: this might not be a literal, should look it up in the context
-                        MyTerm::literal(st, span.clone())
-                    } else {
-                        MyTerm::invalid(span.clone())
-                    }
-                }
+                // TODO: this might not be a literal, should look it up in the context
+                Some(Spanned(Json::Token(tok), span)) => match tok {
+                    Token::Str(x, _) => MyTerm::literal(x.clone(), span.clone()),
+                    _ => MyTerm::invalid(span.clone()),
+                },
                 Some(json) => derive_triples_sub(json, prefixes, out, bn_f)
                     .unwrap_or_else(|| MyTerm::invalid(json.span().clone())),
             };
@@ -209,7 +206,7 @@ pub fn derive_triples(json: &Spanned<Json>, prefixes: &Prefixes) -> Vec<MyQuad<'
 #[cfg(test)]
 mod tests {
 
-    use lsp_core::{model::Spanned, triples::MyQuad};
+    use lsp_core::{prelude::Spanned, triples::MyQuad};
     use sophia_api::term::{Term, TermKind};
 
     use crate::{
@@ -238,9 +235,10 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
 
         assert_eq!(prefixes.0.len(), 1);
         let foaf_prefix = prefixes
@@ -257,9 +255,10 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
 
         assert_eq!(prefixes.0.len(), 1);
 
@@ -277,9 +276,10 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "name": "Arthur"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
 
         assert_eq!(prefixes.0.len(), 2);
         let name_prefix = prefixes
@@ -302,9 +302,10 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
 
         assert_eq!(prefixes.0.len(), 1);
         let foaf_prefix = prefixes
@@ -321,9 +322,10 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "foaf:name": "Arthur"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
         let triples = derive_triples(&json, &prefixes);
 
         assert_eq!(triples.len(), 1);
@@ -349,9 +351,10 @@ mod tests {
             "@id": "http://example.com/ns#me",
             "@type": "http://example.com/ns#my_type"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
         let triples = derive_triples(&json, &prefixes);
 
         assert_eq!(triples.len(), 1);
@@ -379,9 +382,10 @@ mod tests {
             "@context": {"foaf": "http://xmlns.com/foaf/0.1/"} ,
             "foaf:name": "Arthur"
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
         let triples = derive_triples(&json, &prefixes);
 
         assert_eq!(triples.len(), 1);
@@ -408,9 +412,10 @@ mod tests {
                 "foaf:name": "Arthur"
             } ]
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
         let triples = derive_triples(&json, &prefixes);
 
         assert_eq!(triples.len(), 1);
@@ -437,9 +442,10 @@ mod tests {
                 "foaf:name": "Arthur"
             } ]
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
         let triples = derive_triples(&json, &prefixes);
 
         assert_eq!(triples.len(), 1);
@@ -469,9 +475,10 @@ mod tests {
                 }
             }
         } "#;
+        let url = lsp_types::Url::parse("memory://test.jsonld").unwrap();
 
         let json = parse_json(st).expect("valid json");
-        let prefixes = derive_prefixes(&json);
+        let prefixes = derive_prefixes(&json, &url);
         let triples = derive_triples(&json, &prefixes);
 
         assert_eq!(triples.len(), 4);

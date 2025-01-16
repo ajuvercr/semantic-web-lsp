@@ -234,6 +234,7 @@ pub fn complete_properties(
     other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
     hierarchy: Res<TypeHierarchy<'static>>,
 ) {
+    debug!("Complete properties");
     for (token, triple, prefixes, links, this_label, types, mut request) in &mut query {
         debug!("target {:?} text {}", triple.target, token.text);
         if triple.target == TripleTarget::Predicate {

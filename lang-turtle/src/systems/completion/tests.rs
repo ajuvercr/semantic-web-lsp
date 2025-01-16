@@ -1,9 +1,12 @@
+use chumsky::chain::Chain;
 use futures::executor::block_on;
-use lsp_core::{components::*, Completion, Parse, Tasks};
+use lsp_core::{components::*, lang::LangHelper, Completion, Parse, Tasks};
 use ropey::Rope;
 use test_log::test;
 use test_utils::{create_file, setup_world, TestClient};
 use tracing::info;
+
+use crate::{TurtleHelper, TurtleLang};
 
 #[test]
 fn completion_event_works() {
@@ -40,10 +43,7 @@ foa
 
     assert!(m_completions.is_some());
     let completions = m_completions.unwrap().0;
-    for c in &completions {
-        println!("c {:?}\n\n", c);
-    }
-    assert_eq!(completions.len(), 1);
+    assert_eq!(completions.len(), 4 + TurtleHelper.keyword().len());
 }
 
 #[test_log::test]
@@ -102,7 +102,7 @@ foaf:me foaf:friend <#me>.
         .expect("Completions exists")
         .0;
 
-    assert_eq!(completions.len(), 1);
+    assert_eq!(completions.len(), 1 + TurtleHelper.keyword().len());
 }
 
 #[test_log::test]
@@ -141,7 +141,14 @@ fn test_autocomplete_classes() {
         .take::<CompletionRequest>()
         .expect("competion request")
         .0;
-    assert_eq!(completions.len(), 14);
+
+    for c in &completions {
+        println!("c {:?} {:?}\n\n", c.label, c._documentation);
+    }
+    assert_eq!(
+        completions.len(),
+        4 /* prefix.cc */ + 13 /*completions */ + TurtleHelper.keyword().len()
+    );
 }
 
 #[test_log::test]
@@ -181,7 +188,7 @@ fn test_autocomplete_properties() {
         .expect("competion request")
         .0;
 
-    assert_eq!(completions.len(), 62);
+    assert_eq!(completions.len(), 62 + TurtleHelper.keyword().len());
 }
 
 #[test_log::test]
@@ -225,5 +232,5 @@ fn test_autocomplete_properties_2() {
         .expect("competion request")
         .0;
 
-    assert_eq!(completions.len(), 0);
+    assert_eq!(completions.len(), 0 + TurtleHelper.keyword().len());
 }
