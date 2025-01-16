@@ -3,3 +3,7 @@ pub use crate::features::diagnostic::{
     systems as diagnostic_systems, DiagnosticItem, DiagnosticPublisher, DiagnosticSender,
 };
 pub use crate::utils::*;
+
+pub mod systems {
+    pub use crate::systems::*;
+}

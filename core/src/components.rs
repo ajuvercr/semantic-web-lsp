@@ -17,18 +17,31 @@ use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use lsp_types::{Position, Range, SemanticToken, SemanticTokenType};
 use sophia_api::{prelude::Dataset, quad::Quad as _, term::matcher::TermMatcher};
 
+/// [`Component`] that contains the parsed tokens.
+///
+/// [`crate`] defines systems (like [`get_current_token`](crate::prelude::systems::get_current_token)) that depend
+/// on Tokens to deduce [`TokenComponent`] during the [`Completion`](crate::Completion) schedule.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Tokens(pub Vec<Spanned<crate::token::Token>>);
 
+/// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Element<L: Lang>(pub Spanned<L::Element>);
 
+/// One defined prefix, maps prefix to url
 #[derive(Debug, Clone)]
 pub struct Prefix {
     pub prefix: String,
     pub url: lsp_types::Url,
 }
 
+/// [`Component`] that containing defined prefixes and base URL.
+///
+/// [`lsp_core`](crate) uses [`Prefixes`] in different systems, for example
+/// - to check for undefined prefixes diagnostics with
+/// [`undefined_prefix`](crate::prelude::systems::undefined_prefix)
+/// - derive linked documents [`DocumentLinks`] with
+/// [`derive_prefix_links`](crate::prelude::systems::derive_prefix_links)
 #[derive(Component, Debug)]
 pub struct Prefixes(pub Vec<Prefix>, pub lsp_types::Url);
 impl Deref for Prefixes {
@@ -89,48 +102,76 @@ impl Prefixes {
     }
 }
 
+/// [`Resource`] mapping a ['SemanticTokenType'] to their used index.
+///
+/// This index is important because with LSP, are retrieved during startup, then only indexes are
+/// used to indicate semantic token types.
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
 pub struct SemanticTokensDict(pub HashMap<SemanticTokenType, usize>);
 
+/// Simple wrapper structure that derives [`Component`]
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Wrapped<E>(pub E);
 
+/// Simple wrapper for errors that derives [`Component`]
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Errors<E>(pub Vec<E>);
 
+/// [`Component`] containing the current source code as [`String`]
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Source(pub String);
 
+/// [`Component`] containing the current source code as [`ropey::Rope`]
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct RopeC(pub ropey::Rope);
 
+/// [`Component`] that allows for language specific implementation for certain things, reducing
+/// code duplication.
 #[derive(Component, Debug, AsRef, Deref)]
 pub struct DynLang(pub Box<dyn LangHelper + 'static + Send + Sync>);
 
+/// [`Component`] indicating whether or not the document is actually open.
+///
+/// Documents that are not [`Open`] don't publish diagnostics for example
 #[derive(Component, Debug)]
 pub struct Open;
 
+/// [`Component`] indicating whether or not the document is dirty, a dirty document parsed with
+/// errors.
+///
+/// A document is often Dirty, computational intens calculation can be done on documents that are
+/// not dirty, like [`derive_classes`](crate::prelude::systems::derive_classes) and [`derive_properties`](crate::prelude::systems::derive_properties).
 #[derive(Component, Debug)]
 pub struct Dirty;
 
+/// [`Component`] containing the [`lsp_types::URL`] of the current document.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Label(pub lsp_types::Url);
 
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct HighlightRequest(pub Vec<SemanticToken>);
-
+/// [`Resource`] used to receive command queues. These command queues are handled with [`handle_tasks`](crate::prelude::systems::handle_tasks).
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct CommandReceiver(pub UnboundedReceiver<CommandQueue>);
 
+/// [`Resource`] used to send command queues, allowing for async operations.
 #[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Clone)]
 pub struct CommandSender(pub UnboundedSender<CommandQueue>);
 
+/// [`Component`] used to remember the linked documents.
+///
+/// This is used, for example, to only suggest properties defined in a linked document.
+/// Or only validate with shapes found in linked documents.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug, Clone)]
 pub struct DocumentLinks(pub Vec<(lsp_types::Url, &'static str)>);
 
+/// [`Component`] used to wrap an incoming [`lsp_types::Position`].
+///
+/// This component is translated into [`TokenComponent`] and [`TripleComponent`]
+/// with [`get_current_token`](crate::prelude::systems::get_current_token)
+/// and [get_current_triple](crate::prelude::systems::get_current_triple) respectively.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct PositionComponent(pub Position);
 
+/// [`Component`] used to indicate the currently targeted [`Token`] during a request.
 #[derive(Component, Debug)]
 pub struct TokenComponent {
     pub token: Spanned<crate::token::Token>,
@@ -138,6 +179,7 @@ pub struct TokenComponent {
     pub text: String,
 }
 
+/// [`Component`] used to indicate the term type of currently targeted [`Token`] in the Triple.
 #[derive(Debug, PartialEq)]
 pub enum TripleTarget {
     Subject,
@@ -145,44 +187,71 @@ pub enum TripleTarget {
     Object,
     Graph,
 }
+
+/// [`Component`] used to indicate the currently targeted [`MyQuad<'static>`] during a request.
 #[derive(Component, Debug)]
 pub struct TripleComponent {
     pub triple: MyQuad<'static>,
     pub target: TripleTarget,
 }
 
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct CompletionRequest(pub Vec<SimpleCompletion>);
-
+/// [`Component`] containing the typical keywords for the current language.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct KeyWords(pub Vec<&'static str>);
 
+/// [`Component`] indicating that the current document is currently handling a Completion request.
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct CompletionRequest(pub Vec<SimpleCompletion>);
+
+/// [`Component`] indicating that the current document is currently handling a Hightlight request.
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct HighlightRequest(pub Vec<SemanticToken>);
+
+/// [`Component`] indicating that the current document is currently handling a Hover request.
 #[derive(Component, Debug, Default)]
 pub struct HoverRequest(pub Vec<String>, pub Option<lsp_types::Range>);
 
+/// [`Component`] indicating that the current document is currently handling a Format request.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct FormatRequest(pub Option<Vec<lsp_types::TextEdit>>);
 
+/// [`Component`] indicating that the current document is currently handling a Inlay request.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct InlayRequest(pub Option<Vec<lsp_types::InlayHint>>);
 
+/// [`Component`] indicating that the current document is currently handling a PrepareRename request.
 #[derive(Component, Debug)]
 pub struct PrepareRenameRequest {
     pub range: Range,
     pub placeholder: String,
 }
 
+/// [`Component`] indicating that the current document is currently handling a Rename request,
+/// collecting [TextEdits](`lsp_types::TextEdit`).
 #[derive(Component, Debug)]
 pub struct RenameEdits(pub Vec<(lsp_types::Url, lsp_types::TextEdit)>, pub String);
-// #[derive(Component, Debug)]
-// pub struct PrepareRenameRequest {
-//     range: Range,
-//     placeholder: String,
-// }
 
+/// maps terms to all known correct types.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Types(pub HashMap<Cow<'static, str>, Vec<TypeId>>);
 
+/// [`Resource`] used to set and get all super and subtypes starting from a [`TypeId`]
+///
+/// Example
+/// ```
+/// use lsp_core::components::TypeHierarchy;
+///
+/// let mut hierarchy = TypeHierarchy::default();
+/// let image_id = hierarchy.get_id("http://xmlns.com/foaf/0.1/Image");
+/// let document_id = hierarchy.get_id("http://xmlns.com/foaf/0.1/Document");
+/// hierarchy.set_subclass_of(image_id, document_id);
+///
+/// for ty in hierarchy.iter_superclass(document_id) {
+///     // first "http://xmlns.com/foaf/0.1/Document"
+///     // then "http://xmlns.com/foaf/0.1/Image"
+///     println!("Type {}", ty);
+/// }
+/// ```
 #[derive(Resource, Debug, Default)]
 pub struct TypeHierarchy<'a> {
     numbers: HashMap<Cow<'a, str>, TypeId>,
@@ -260,6 +329,9 @@ impl<'a> TypeHierarchy<'a> {
     }
 }
 
+/// [`Component`] containing all derived Triples from the documents.
+///
+/// These triples are used to derive properties and classes and other things.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Triples(pub Vec<MyQuad<'static>>);
 
