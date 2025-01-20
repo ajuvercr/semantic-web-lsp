@@ -8,13 +8,10 @@ use bevy_ecs::component::Component;
 use bevy_ecs::observer::Trigger;
 use bevy_ecs::system::Commands;
 use bevy_ecs::world::World;
-use lsp_core::components::{DynLang, SemanticTokensDict};
-use lsp_core::features::diagnostic::systems::publish_diagnostics;
-use lsp_core::token::semantic_token;
+use diagnostics::publish_diagnostics;
+use lsp_core::prelude::*;
 use lsp_core::CreateEvent;
 pub use parser2::parse_turtle;
-// pub mod shacl;
-pub use lsp_core::token;
 pub mod tokenizer;
 use lsp_types::SemanticTokenType;
 use systems::{setup_completion, setup_formatting, setup_parsing};
@@ -68,7 +65,7 @@ pub fn setup_world(world: &mut World) {
         }
     });
 
-    world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
+    world.schedule_scope(lsp_core::feature::DiagnosticsLabel, |_, schedule| {
         schedule.add_systems(publish_diagnostics::<TurtleLang>);
     });
 
@@ -78,13 +75,13 @@ pub fn setup_world(world: &mut World) {
 }
 
 impl Lang for TurtleLang {
-    type Token = token::Token;
+    type Token = Token;
 
     type TokenError = Simple<char>;
 
     type Element = model::Turtle;
 
-    type ElementError = (usize, Simple<token::Token>);
+    type ElementError = (usize, Simple<Token>);
 
     const LANG: &'static str = "turtle";
 

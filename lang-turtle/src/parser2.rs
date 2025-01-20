@@ -1,14 +1,10 @@
 use chumsky::prelude::*;
 use tracing::info;
 
-use crate::Variable;
+use crate::{TurtlePrefix, Variable};
 
-use super::{
-    token::{StringStyle, Token},
-    Base, BlankNode, Literal, NamedNode, Prefix, RDFLiteral, Term, Triple, Turtle, PO,
-};
-
-use lsp_core::prelude::{spanned, Spanned};
+use super::{Base, BlankNode, Literal, NamedNode, Prefix, RDFLiteral, Term, Triple, Turtle, PO};
+use lsp_core::prelude::*;
 
 type S = std::ops::Range<usize>;
 
@@ -309,12 +305,12 @@ fn base() -> impl Parser<Token, Base, Error = Simple<Token>> + Clone {
         .map(|(x, s)| Base(s, x))
 }
 
-fn prefix() -> impl Parser<Token, Prefix, Error = Simple<Token>> {
+fn prefix() -> impl Parser<Token, TurtlePrefix, Error = Simple<Token>> {
     expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
         .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::PrefixTag).map_with_span(|_, s| s))
-        .map(|((value, prefix), span)| Prefix {
+        .map(|((value, prefix), span)| TurtlePrefix {
             span,
             prefix,
             value,
@@ -324,7 +320,7 @@ fn prefix() -> impl Parser<Token, Prefix, Error = Simple<Token>> {
 // Makes it easier to handle parts that are not ordered
 enum Statement {
     Base(Spanned<Base>),
-    Prefix(Spanned<Prefix>),
+    Prefix(Spanned<TurtlePrefix>),
     Triple(Spanned<Triple>),
 }
 

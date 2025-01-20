@@ -7,9 +7,11 @@ use lsp_types::FormattingOptions;
 use ropey::Rope;
 use tracing::info;
 
-use lsp_core::prelude::{spanned, Spanned};
+use lsp_core::prelude::*;
 
-use super::{token::Token, Base, BlankNode, Prefix, Term, Triple, Turtle, PO};
+use crate::TurtlePrefix;
+
+use super::{Base, BlankNode, Prefix, Term, Triple, Turtle, PO};
 
 #[allow(unused)]
 pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
@@ -265,7 +267,7 @@ impl FormatState<'_> {
         Ok(())
     }
 
-    fn write_prefix(&mut self, prefix: &Prefix) -> io::Result<()> {
+    fn write_prefix(&mut self, prefix: &TurtlePrefix) -> io::Result<()> {
         write!(self.buf, "@prefix {}: {}.", prefix.prefix.0, prefix.value.0)
     }
 

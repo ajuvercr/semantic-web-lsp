@@ -1,6 +1,7 @@
 use bevy_ecs::prelude::*;
 
-use lsp_core::{components::*, systems::prefix::prefix_completion_helper};
+use completion::CompletionRequest;
+use lsp_core::{prelude::*, systems::prefix::prefix_completion_helper};
 
 use crate::TurtleLang;
 
