@@ -1,4 +1,3 @@
-use chumsky::chain::Chain;
 use completion::CompletionRequest;
 use futures::executor::block_on;
 use lsp_core::{components::*, lang::LangHelper, prelude::*, Tasks};
@@ -7,7 +6,7 @@ use test_log::test;
 use test_utils::{create_file, setup_world, TestClient};
 use tracing::info;
 
-use crate::{TurtleHelper, TurtleLang};
+use crate::TurtleHelper;
 
 #[test]
 fn completion_event_works() {
