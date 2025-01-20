@@ -1,15 +1,16 @@
 use crate::components::{
-    CommandSender, CompletionRequest, FormatRequest, HighlightRequest, HoverRequest, InlayRequest,
-    Label, Open, PositionComponent, PrepareRenameRequest, RenameEdits, RopeC, Source, Types,
-    Wrapped,
+    CommandSender, FormatRequest, HighlightRequest, HoverRequest, InlayRequest, Label, Open,
+    PositionComponent, PrepareRenameRequest, RenameEdits, RopeC, Source, Types, Wrapped,
 };
+
+use crate::prelude::*;
 use crate::systems::spawn_or_insert;
-use crate::{Completion, Diagnostics, Format, Hover, Inlay, OnSave, Parse, PrepareRename, Rename};
 use bevy_ecs::bundle::Bundle;
 use bevy_ecs::component::Component;
 use bevy_ecs::entity::Entity;
 use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::{CommandQueue, World};
+use completion::CompletionRequest;
 use lsp_types::*;
 
 use futures::lock::Mutex;
@@ -198,11 +199,7 @@ impl LanguageServer for Backend {
         };
 
         if let Some(res) = self
-            .run_schedule::<HighlightRequest>(
-                entity,
-                crate::systems::SemanticTokensSchedule,
-                HighlightRequest(vec![]),
-            )
+            .run_schedule::<HighlightRequest>(entity, SemanticLabel, HighlightRequest(vec![]))
             .await
         {
             info!("resulitng in {} tokens", res.0.len());
@@ -246,7 +243,11 @@ impl LanguageServer for Backend {
         };
 
         let resp = self
-            .run_schedule::<PrepareRenameRequest>(entity, PrepareRename, PositionComponent(pos))
+            .run_schedule::<PrepareRenameRequest>(
+                entity,
+                PrepareRenameLabel,
+                PositionComponent(pos),
+            )
             .await
             .map(|x| PrepareRenameResponse::RangeWithPlaceholder {
                 range: x.range,
@@ -279,7 +280,7 @@ impl LanguageServer for Backend {
         if let Some(changes) = self
             .run_schedule::<RenameEdits>(
                 entity,
-                Rename,
+                RenameLabel,
                 (
                     PositionComponent(pos),
                     RenameEdits(Vec::new(), params.new_name),
@@ -321,7 +322,7 @@ impl LanguageServer for Backend {
         };
 
         if let Some(hover) = self
-            .run_schedule::<HoverRequest>(entity, Hover, (request, PositionComponent(pos)))
+            .run_schedule::<HoverRequest>(entity, HoverLabel, (request, PositionComponent(pos)))
             .await
         {
             if hover.0.len() > 0 {
@@ -351,7 +352,7 @@ impl LanguageServer for Backend {
         };
 
         let request = self
-            .run_schedule::<InlayRequest>(entity, Inlay, InlayRequest(None))
+            .run_schedule::<InlayRequest>(entity, InlayLabel, InlayRequest(None))
             .await;
 
         Ok(request.and_then(|x| x.0))
@@ -407,7 +408,7 @@ impl LanguageServer for Backend {
         };
 
         let request = self
-            .run_schedule::<FormatRequest>(entity, Format, FormatRequest(None))
+            .run_schedule::<FormatRequest>(entity, FormatLabel, FormatRequest(None))
             .await;
         Ok(request.and_then(|x| x.0))
     }
@@ -435,10 +436,10 @@ impl LanguageServer for Backend {
         let entity = self
             .run(|world| {
                 let id = spawn(world);
-                world.run_schedule(Parse);
+                world.run_schedule(ParseLabel);
                 world.flush();
                 info!("Running diagnostics");
-                world.run_schedule(Diagnostics);
+                world.run_schedule(DiagnosticsLabel);
                 id
             })
             .await;
@@ -473,10 +474,10 @@ impl LanguageServer for Backend {
             world
                 .entity_mut(entity)
                 .insert((Source(change.text), rope_c));
-            world.run_schedule(Parse);
+            world.run_schedule(ParseLabel);
             world.flush();
             info!("Running diagnostics");
-            world.run_schedule(Diagnostics);
+            world.run_schedule(DiagnosticsLabel);
         })
         .await;
     }
@@ -487,7 +488,7 @@ impl LanguageServer for Backend {
 
         info!("Did save");
         self.run(move |world| {
-            world.run_schedule(OnSave);
+            world.run_schedule(SaveLabel);
 
             info!("Ran OnSave Schedule");
         })
@@ -517,7 +518,7 @@ impl LanguageServer for Backend {
         let completions: Option<Vec<lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(
                 entity,
-                Completion,
+                CompletionLabel,
                 (CompletionRequest(vec![]), PositionComponent(pos)),
             )
             .await

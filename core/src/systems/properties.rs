@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
-use crate::prelude::*;
 use crate::components::*;
 use crate::ns::*;
-use crate::triples::MyTerm;
+use crate::prelude::*;
+use crate::util::triple::MyTerm;
 use bevy_ecs::prelude::*;
+use completion::CompletionRequest;
+use completion::SimpleCompletion;
 use lsp_types::CompletionItemKind;
 use lsp_types::TextEdit;
 use sophia_api::ns::rdfs;
@@ -110,7 +112,7 @@ pub fn complete_class(
 
                     if to_beat.starts_with(&token.text) {
                         request.push(
-                            crate::features::completion::SimpleCompletion::new(
+                            SimpleCompletion::new(
                                 CompletionItemKind::CLASS,
                                 format!("{}", to_beat),
                                 TextEdit {

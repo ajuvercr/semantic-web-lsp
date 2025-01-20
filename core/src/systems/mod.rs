@@ -1,27 +1,25 @@
 use crate::prelude::*;
 use crate::{
     components::{
-        CommandReceiver, CompletionRequest, DocumentLinks, DynLang, InlayRequest, Label,
-        PositionComponent, Prefixes, PrepareRenameRequest, RenameEdits, RopeC, TokenComponent,
-        Tokens, TripleComponent, TripleTarget, Triples, Wrapped,
+        CommandReceiver, DocumentLinks, DynLang, InlayRequest, Label, PositionComponent, Prefixes,
+        PrepareRenameRequest, RenameEdits, RopeC, Wrapped,
     },
     utils::{offset_to_position, position_to_offset, range_to_range},
-    CreateEvent, Parse,
+    CreateEvent,
 };
 use bevy_ecs::prelude::*;
 
 mod shapes;
+use completion::{CompletionRequest, SimpleCompletion};
+use diagnostics::DiagnosticPublisher;
 pub use shapes::*;
 mod typed;
 pub use typed::*;
 // mod diagnostics;
 pub mod prefix;
-// pub use diagnostics::publish_diagnostics;
 mod semantics;
 use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
-pub use semantics::{
-    basic_semantic_tokens, semantic_tokens_system, SemanticTokensSchedule, TokenTypesComponent,
-};
+pub use semantics::{basic_semantic_tokens, semantic_tokens_system, TokenTypesComponent};
 mod properties;
 pub use properties::{
     complete_class, complete_properties, derive_classes, derive_properties, hover_class,
@@ -54,7 +52,7 @@ pub fn spawn_or_insert(
         };
 
         world.flush_commands();
-        world.run_schedule(Parse);
+        world.run_schedule(ParseLabel);
         out
     }
 }
@@ -99,112 +97,6 @@ pub fn keyword_complete(
     }
 }
 
-#[instrument(skip(query, commands))]
-pub fn get_current_token(
-    mut query: Query<(Entity, &Tokens, &PositionComponent, &RopeC, &DynLang)>,
-    mut commands: Commands,
-) {
-    for (entity, tokens, position, rope, helper) in &mut query {
-        commands.entity(entity).remove::<TokenComponent>();
-        let Some(offset) = position_to_offset(position.0, &rope.0) else {
-            debug!("Couldn't transform to an offset");
-            continue;
-        };
-
-        let Some(token) = tokens
-            .0
-            .iter()
-            .filter(|x| x.span().contains(&offset))
-            .min_by_key(|x| x.span().end - x.span().start)
-        else {
-            let closest = tokens.0.iter().min_by_key(|x| {
-                let start = if offset > x.span().start {
-                    offset - x.span().start
-                } else {
-                    x.span().start - offset
-                };
-
-                let end = if offset > x.span().end {
-                    offset - x.span().end
-                } else {
-                    x.span().end - offset
-                };
-
-                if start > end {
-                    end
-                } else {
-                    start
-                }
-            });
-            debug!(
-                "Failed to find a token, offset {} closest {:?}",
-                offset, closest
-            );
-            continue;
-        };
-
-        let (text, range) = helper.get_relevant_text(token, rope);
-        let Some(range) = range_to_range(&range, &rope.0) else {
-            debug!("Failed to transform span to range");
-            continue;
-        };
-
-        debug!("Current token {:?} {}", token, text);
-        commands.entity(entity).insert(TokenComponent {
-            token: token.clone(),
-            range,
-            text,
-        });
-    }
-}
-
-#[instrument(skip(query, commands))]
-pub fn get_current_triple(
-    query: Query<(Entity, &PositionComponent, &Triples, &RopeC)>,
-    mut commands: Commands,
-) {
-    for (e, position, triples, rope) in &query {
-        commands.entity(e).remove::<TripleComponent>();
-
-        for t in triples.iter() {
-            debug!("Triple {}", t);
-        }
-
-        let Some(offset) = position_to_offset(position.0, &rope.0) else {
-            debug!("Couldn't transform to an offset");
-            continue;
-        };
-
-        if let Some(t) = triples
-            .0
-            .iter()
-            .filter(|triple| triple.span.contains(&offset))
-            .min_by_key(|x| x.span.end - x.span.start)
-        {
-            let target = [
-                (TripleTarget::Subject, &t.subject.span),
-                (TripleTarget::Predicate, &t.predicate.span),
-                (TripleTarget::Object, &t.object.span),
-            ]
-            .into_iter()
-            .filter(|x| x.1.contains(&offset))
-            .min_by_key(|x| x.1.end - x.1.start)
-            .map(|x| x.0)
-            .unwrap_or(TripleTarget::Subject);
-
-            debug!("Current triple {} {:?}", t, target);
-            commands.entity(e).insert(TripleComponent {
-                triple: t.clone(),
-                target,
-            });
-        } else {
-            debug!("No current triple found");
-            for t in &triples.0 {
-                println!("triple {}", t);
-            }
-        }
-    }
-}
 
 pub fn derive_prefix_links(
     mut query: Query<(Entity, &Prefixes, Option<&mut DocumentLinks>), Changed<Prefixes>>,
@@ -280,7 +172,7 @@ pub fn undefined_prefix(
         let mut diagnostics: Vec<Diagnostic> = Vec::new();
         for t in &tokens.0 {
             match t.value() {
-                crate::token::Token::PNameLN(x, _) => {
+                Token::PNameLN(x, _) => {
                     let pref = x.as_ref().map(|x| x.as_str()).unwrap_or("");
                     let found = prefixes.0.iter().find(|x| x.prefix == pref).is_some();
                     if !found {
@@ -326,19 +218,16 @@ pub fn inlay_triples(mut query: Query<(&Triples, &RopeC, &mut InlayRequest)>) {
     }
 }
 
-pub fn triples() {}
-pub fn prefixes() {}
-
 #[instrument(skip(query, commands,))]
 pub fn prepare_rename(query: Query<(Entity, Option<&TokenComponent>)>, mut commands: Commands) {
     for (e, m_token) in &query {
         commands.entity(e).remove::<(PrepareRenameRequest,)>();
         if let Some(token) = m_token {
             let renameable = match token.token.value() {
-                crate::token::Token::Variable(_) => true,
-                crate::token::Token::IRIRef(_) => true,
-                crate::token::Token::PNameLN(_, _) => true,
-                crate::token::Token::BlankNodeLabel(_) => true,
+                Token::Variable(_) => true,
+                Token::IRIRef(_) => true,
+                Token::PNameLN(_, _) => true,
+                Token::BlankNodeLabel(_) => true,
                 _ => false,
             };
 

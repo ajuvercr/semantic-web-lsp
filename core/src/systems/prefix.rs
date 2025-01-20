@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
+use completion::SimpleCompletion;
 use lsp_types::{CompletionItemKind, TextEdit};
 
 use crate::{
-    components::{Prefixes, TokenComponent},
+    components::Prefixes,
     prelude::*,
-    token::Token,
+    util::token::{Token, TokenComponent},
 };
 
 const JSONLD: &'static str = include_str!("./jsonld.json");
@@ -38,7 +39,8 @@ pub fn prefix_completion_helper(
     }
 
     completions.extend(
-        HASHMAP.iter()
+        HASHMAP
+            .iter()
             .filter(|(name, _)| name.starts_with(&word.text))
             .filter(|(_, location)| !defined.contains(location))
             .flat_map(|(name, location)| {

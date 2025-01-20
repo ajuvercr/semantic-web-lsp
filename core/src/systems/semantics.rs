@@ -1,14 +1,12 @@
 use crate::{
-    components::{HighlightRequest, RopeC, SemanticTokensDict, Tokens, Wrapped},
-    lang::Token,
+    components::{HighlightRequest, RopeC, SemanticTokensDict, Wrapped},
+    lang::TokenTrait,
     prelude::{spanned, Spanned},
+    util::token::{Token, Tokens},
 };
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 use lsp_types::{SemanticToken, SemanticTokenType};
-
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct SemanticTokensSchedule;
 
 struct T {
     start: usize,

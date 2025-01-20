@@ -1,16 +1,41 @@
-use lsp_types::Documentation;
-
-use lsp_types::InsertTextFormat;
-
-use lsp_types::CompletionTextEdit;
-
+use bevy_ecs::prelude::*;
+use bevy_ecs::schedule::ScheduleLabel;
+use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use lsp_types::CompletionItem;
-
+use lsp_types::CompletionItemKind;
+use lsp_types::CompletionItemLabelDetails;
+use lsp_types::CompletionTextEdit;
+use lsp_types::Documentation;
+use lsp_types::InsertTextFormat;
 use lsp_types::TextEdit;
 
-use lsp_types::CompletionItemLabelDetails;
+pub use crate::systems::complete_class;
+pub use crate::systems::complete_properties;
+pub use crate::systems::defined_prefix_completion;
+pub use crate::util::token::get_current_token;
+pub use crate::util::triple::get_current_triple;
+pub use crate::systems::keyword_complete;
 
-use lsp_types::CompletionItemKind;
+/// [`ScheduleLabel`] related to the Completion schedule
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Label;
+
+/// [`Component`] indicating that the current document is currently handling a Completion request.
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct CompletionRequest(pub Vec<SimpleCompletion>);
+
+pub fn setup_schedule(world: &mut World) {
+    let mut completion = Schedule::new(Label);
+    completion.add_systems((
+        get_current_token,
+        keyword_complete.after(get_current_token),
+        get_current_triple.after(get_current_token),
+        complete_class.after(get_current_triple),
+        complete_properties.after(get_current_triple),
+        defined_prefix_completion.after(get_current_token),
+    ));
+    world.add_schedule(completion);
+}
 
 #[derive(Debug)]
 pub struct SimpleCompletion {

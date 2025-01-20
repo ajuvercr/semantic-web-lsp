@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{components::*, features::diagnostic::DiagnosticPublisher, utils::range_to_range};
+use crate::{components::*, feature::diagnostics::DiagnosticPublisher, util::triple::Triples, utils::range_to_range};
 use bevy_ecs::prelude::*;
 use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
@@ -16,6 +16,8 @@ use rudof_lib::{
 };
 use sophia_api::prelude::Quad as _;
 use tracing::info;
+
+// use super::diagnostics::DiagnosticPublisher;
 
 fn get_reader<'a>(rope: &'a Rope) -> impl std::io::Read + 'a {
     use std::io::prelude::*;
