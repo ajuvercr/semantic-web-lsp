@@ -5,16 +5,17 @@ use std::io::Write;
 
 use bevy_ecs::{system::Resource, world::World};
 use client::WebClient;
-use futures::{channel::mpsc::unbounded, stream::TryStreamExt, AsyncWriteExt, StreamExt};
+use futures::{channel::mpsc::unbounded, stream::TryStreamExt, StreamExt};
 use lsp_core::{
     backend::Backend,
     client::{Client, ClientSync},
     components::{CommandSender, SemanticTokensDict},
-    lang::DiagnosticPublisher,
+    prelude::diagnostics::DiagnosticPublisher,
     setup_schedule_labels,
 };
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
+use tracing::level_filters::LevelFilter;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::stream::JsStream;
 
@@ -25,10 +26,19 @@ extern "C" {
 }
 
 struct LogItWriter;
+impl LogItWriter {
+    fn new() -> Self {
+        logit("building self");
+        LogItWriter
+    }
+}
 impl Write for LogItWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        if let Ok(st) = std::str::from_utf8(buf) {
-            logit(st);
+        match std::str::from_utf8(buf) {
+            Ok(st) => {
+                logit(st);
+            }
+            Err(e) => logit(&format!("Invalid string logged {:?}", e)),
         }
 
         Ok(buf.len())
@@ -43,19 +53,17 @@ fn setup_global_subscriber(logit: bool) {
     use tracing_subscriber::fmt;
     use tracing_subscriber::fmt::format::Pretty;
     use tracing_subscriber::prelude::*;
-    use tracing_web::{performance_layer, MakeWebConsoleWriter};
+    use tracing_web::performance_layer;
 
     if logit {
         let fmt_layer = tracing_subscriber::fmt::layer()
-            .with_ansi(false) // Only partially supported across browsers
-            .without_time() // std::time is not available in browsers, see note below
-            .with_writer(MakeWebConsoleWriter::new()); // write events to the console
-        let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
+            .pretty()
+            .with_ansi(false)
+            .without_time() // std::time is not available in browsers
+            .with_writer(std::sync::Mutex::new(LogItWriter::new()))
+            .with_filter(LevelFilter::DEBUG);
 
-        tracing_subscriber::registry()
-            .with(fmt_layer)
-            .with(perf_layer)
-            .init(); // Install these as subscribers to tracing events
+        tracing_subscriber::registry().with(fmt_layer).init();
     } else {
         let fmt_layer = fmt::Layer::default().with_writer(std::sync::Mutex::new(LogItWriter));
         let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
@@ -164,6 +172,7 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     })
     .finish();
 
+    logit("Testing logit, I'm serve 1");
     Server::new(input, output, socket).serve(service).await;
 
     Ok(())
@@ -197,12 +206,13 @@ pub async fn serve2(config: ServerConfig) -> Result<(), JsValue> {
 
     let output = JsCast::unchecked_into::<wasm_streams::writable::sys::WritableStream>(from_server);
     let output = wasm_streams::WritableStream::from_raw(output);
-    let mut output = output.try_into_async_write().map_err(|err| err.0)?;
+    let output = output.try_into_async_write().map_err(|err| err.0)?;
     let (service, socket) = LspService::build(|client| {
         let (sender, rt) = setup_world(WebClient::new(client.clone()));
         Backend::new(sender, client, rt)
     })
     .finish();
+    logit("Testing logit, I'm serve 2");
 
     Server::new(input, output, socket).serve(service).await;
 

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
-const _global = global /* node */ as any;
 export const logger = vscode.window.createOutputChannel("Orange"); // This method is called when your extension is activated
-_global.logit = (st: string) => logger.appendLine(st);
 
+const logItLogger = vscode.window.createOutputChannel("logger"); // This method is called when your extension is activated
+const _global = global /* node */ as any;
+_global.logit = (st: string) => logItLogger.append(st);

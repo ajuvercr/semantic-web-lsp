@@ -2,7 +2,7 @@ use bevy_ecs::system::Resource;
 use futures::FutureExt;
 use lsp_core::client::{Client, ClientSync, Resp};
 use lsp_types::{Diagnostic, MessageType, Url};
-use std::{collections::HashMap, fmt::Display, pin::Pin};
+use std::{collections::HashMap, fmt::Display, future::Future, pin::Pin, task::{Context, Poll}};
 use tracing::info;
 
 use crate::fetch::local_fetch;
@@ -14,6 +14,23 @@ pub struct WebClient {
 impl WebClient {
     pub fn new(client: tower_lsp::Client) -> Self {
         Self { client }
+    }
+}
+
+struct Sendable<T>(pub T);
+
+// Safety: WebAssembly will only ever run in a single-threaded context.
+unsafe impl<T> Send for Sendable<T> {}
+impl<O, T> Future for Sendable<T>
+where
+    T: Future<Output = O>,
+{
+    type Output = O;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // Safely access the inner future
+        let inner = unsafe { self.map_unchecked_mut(|s| &mut s.0) };
+        inner.poll(cx)
     }
 }
 
@@ -37,7 +54,7 @@ impl ClientSync for WebClient {
         let fut = async move {
             let _ = local_fetch(url, headers, tx).await;
         };
-        self.spawn(fut);
+        self.spawn(Sendable(fut));
         async move {
             match rx.await {
                 Ok(x) => x,
