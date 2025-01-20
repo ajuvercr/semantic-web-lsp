@@ -1,4 +1,4 @@
-use bevy_ecs::schedule::{IntoSystemConfigs, ScheduleLabel};
+use bevy_ecs::schedule::ScheduleLabel;
 use bevy_ecs::world::World;
 
 pub use crate::systems::validate_shapes;

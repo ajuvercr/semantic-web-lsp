@@ -11,7 +11,7 @@ use lsp_core::prelude::*;
 
 use crate::TurtlePrefix;
 
-use super::{Base, BlankNode, Prefix, Term, Triple, Turtle, PO};
+use super::{Base, BlankNode, Term, Triple, Turtle, PO};
 
 #[allow(unused)]
 pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {

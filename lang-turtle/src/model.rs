@@ -1,7 +1,7 @@
 use sophia_iri::resolve::{BaseIri, IriParseError};
 use tracing::info;
 
-use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, Triples, Triples2};
+use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, Triples2};
 use std::collections::HashSet;
 use std::{fmt::Display, ops::Range};
 

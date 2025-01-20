@@ -3,7 +3,7 @@ use tracing::info;
 
 use crate::{TurtlePrefix, Variable};
 
-use super::{Base, BlankNode, Literal, NamedNode, Prefix, RDFLiteral, Term, Triple, Turtle, PO};
+use super::{Base, BlankNode, Literal, NamedNode, RDFLiteral, Term, Triple, Turtle, PO};
 use lsp_core::prelude::*;
 
 type S = std::ops::Range<usize>;

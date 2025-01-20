@@ -7,10 +7,10 @@ use sophia_api::{
     MownStr,
 };
 use std::{borrow::Cow, hash::Hash, usize};
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 use crate::{
-    components::{self, PositionComponent, RopeC},
+    components::{PositionComponent, RopeC},
     util::ns::{owl, rdfs},
     util::position_to_offset,
 };
