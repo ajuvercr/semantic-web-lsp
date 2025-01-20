@@ -1,10 +1,7 @@
 use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Query, world::World};
 use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use formatting::format_turtle_system;
-use lsp_core::{
-    systems::{get_current_token, prefixes, triples},
-    Parse,
-};
+use lsp_core::feature::*;
 use parsing::{derive_triples, parse_source, parse_turtle_system};
 
 mod completion;
@@ -12,7 +9,8 @@ mod formatting;
 mod parsing;
 
 pub fn setup_parsing(world: &mut World) {
-    world.schedule_scope(Parse, |_, schedule| {
+    use lsp_core::feature::parse::*;
+    world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse_source,
             parse_turtle_system.after(parse_source),
@@ -23,13 +21,14 @@ pub fn setup_parsing(world: &mut World) {
 }
 
 pub fn setup_formatting(world: &mut World) {
-    world.schedule_scope(lsp_core::Format, |_, schedule| {
+    world.schedule_scope(FormatLabel, |_, schedule| {
         schedule.add_systems(format_turtle_system);
     });
 }
 
 pub fn setup_completion(world: &mut World) {
-    world.schedule_scope(lsp_core::Completion, |_, schedule| {
+    use lsp_core::feature::completion::*;
+    world.schedule_scope(CompletionLabel, |_, schedule| {
         schedule.add_systems((
             turtle_lov_undefined_prefix_completion.after(get_current_token),
             subject_completion.after(get_current_token),

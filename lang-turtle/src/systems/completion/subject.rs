@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::*;
-use lsp_core::{components::*, prelude::*, token::Token};
+use completion::{CompletionRequest, SimpleCompletion};
+use lsp_core::{components::*, prelude::*};
 use lsp_types::CompletionItemKind;
 use tracing::debug;
 

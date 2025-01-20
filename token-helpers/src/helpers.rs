@@ -1,7 +1,7 @@
 use chumsky::chain::Chain;
 use chumsky::prelude::*;
 use chumsky::Parser;
-use lsp_core::token::{StringStyle, Token};
+use lsp_core::util::token::{StringStyle, Token};
 
 #[macro_export]
 macro_rules! t {

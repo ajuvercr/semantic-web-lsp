@@ -1,16 +1,13 @@
 use sophia_iri::resolve::{BaseIri, IriParseError};
 use tracing::info;
 
-use super::token::StringStyle;
-
-use lsp_core::prelude::Spanned;
-use lsp_core::triples::{MyQuad, MyTerm, Triples};
+use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, Triples, Triples2};
 use std::collections::HashSet;
 use std::{fmt::Display, ops::Range};
 
 pub trait Based {
     fn get_base(&self) -> &lsp_types::Url;
-    fn prefixes(&self) -> &[Spanned<Prefix>];
+    fn prefixes(&self) -> &[Spanned<TurtlePrefix>];
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -349,12 +346,12 @@ impl Base {
     }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Prefix {
+pub struct TurtlePrefix {
     pub span: Range<usize>,
     pub prefix: Spanned<String>,
     pub value: Spanned<NamedNode>,
 }
-impl Prefix {
+impl TurtlePrefix {
     fn shorten<T: Based>(&self, turtle: &T, url: &str) -> Option<String> {
         let prefix_url = self.value.expand(turtle)?;
         let short = url.strip_prefix(&prefix_url)?;
@@ -367,7 +364,7 @@ impl Prefix {
         self.value.1 = rev_range(&self.value.1, len);
     }
 }
-impl Display for Prefix {
+impl Display for TurtlePrefix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -389,7 +386,7 @@ pub enum TurtleSimpleError {
 pub struct Turtle {
     pub base: Option<Spanned<Base>>,
     pub set_base: lsp_types::Url,
-    pub prefixes: Vec<Spanned<Prefix>>,
+    pub prefixes: Vec<Spanned<TurtlePrefix>>,
     pub triples: Vec<Spanned<Triple>>,
 }
 impl Based for Turtle {
@@ -397,7 +394,7 @@ impl Based for Turtle {
         &self.set_base
     }
 
-    fn prefixes(&self) -> &[Spanned<Prefix>] {
+    fn prefixes(&self) -> &[Spanned<TurtlePrefix>] {
         &self.prefixes
     }
 }
@@ -418,7 +415,7 @@ impl Turtle {
         });
     }
 
-    pub fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples<'a> {
+    pub fn into_triples<'a>(&self, triples: Vec<MyQuad<'a>>) -> Triples2<'a> {
         let base = match &self.base {
             Some(Spanned(Base(_, Spanned(named_node, span)), _)) => named_node
                 .expand_step(self, HashSet::new())
@@ -427,7 +424,7 @@ impl Turtle {
         };
 
         let base_url = self.set_base.to_string();
-        Triples {
+        Triples2 {
             triples,
             base,
             base_url,
@@ -663,7 +660,7 @@ impl Turtle {
         Self::new(None, Vec::new(), Vec::new(), location)
     }
 
-    pub fn get_simple_triples<'a>(&'a self) -> Result<Triples<'a>, TurtleSimpleError> {
+    pub fn get_simple_triples<'a>(&'a self) -> Result<Triples2<'a>, TurtleSimpleError> {
         let base = match &self.base {
             Some(Spanned(Base(_, Spanned(named_node, _)), _)) => {
                 let nn = named_node.expand_step(self, HashSet::new()).ok_or(
@@ -688,7 +685,7 @@ impl Turtle {
 impl Turtle {
     pub fn new(
         mut base: Option<Spanned<Base>>,
-        prefixes: Vec<Spanned<Prefix>>,
+        prefixes: Vec<Spanned<TurtlePrefix>>,
         triples: Vec<Spanned<Triple>>,
         location: &lsp_types::Url,
     ) -> Self {

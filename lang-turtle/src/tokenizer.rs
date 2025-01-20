@@ -1,8 +1,5 @@
 use chumsky::prelude::*;
-use lsp_core::{
-    prelude::{spanned, Spanned},
-    token::Token,
-};
+use lsp_core::prelude::{spanned, Spanned, Token};
 use token_helpers::*;
 
 pub fn parse_token() -> t!(Token) {
