@@ -8,7 +8,7 @@ use lsp_core::client::Client;
 use lsp_core::client::ClientSync;
 use lsp_core::components::CommandSender;
 use lsp_core::components::SemanticTokensDict;
-use lsp_core::features::diagnostic::DiagnosticPublisher;
+use lsp_core::prelude::diagnostics::DiagnosticPublisher;
 use lsp_core::setup_schedule_labels;
 use lsp_types::SemanticTokenType;
 use std::fs::File;

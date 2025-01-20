@@ -1,20 +1,17 @@
 use std::collections::HashSet;
 
 use bevy_ecs::{prelude::*, world::World};
+use completion::{CompletionRequest, SimpleCompletion};
 use lang_turtle::TriplesBuilder;
-use lsp_core::{
-    components::*,
-    prelude::*,
-    systems::{get_current_token, prefix::prefix_completion_helper, prefixes, triples},
-    Parse,
-};
+use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
 
 use crate::{parsing::parse, tokenizer::tokenize, Sparql};
 
 pub fn setup_parse(world: &mut World) {
-    world.schedule_scope(Parse, |_, schedule| {
+    use lsp_core::feature::parse::*;
+    world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems((
             parse_source,
             parse_sparql_system.after(parse_source),
@@ -27,7 +24,8 @@ pub fn setup_parse(world: &mut World) {
 }
 
 pub fn setup_completion(world: &mut World) {
-    world.schedule_scope(lsp_core::Completion, |_, schedule| {
+    use lsp_core::feature::completion::*;
+    world.schedule_scope(Label, |_, schedule| {
         schedule.add_systems((
             sparql_lov_undefined_prefix_completion.after(get_current_token),
             variable_completion.after(get_current_token),
@@ -111,7 +109,7 @@ pub fn variable_completion(
                 .0
                 .iter()
                 .flat_map(|x| match x.value() {
-                    lsp_core::token::Token::Variable(x) => Some(x.as_str()),
+                    Token::Variable(x) => Some(x.as_str()),
                     _ => None,
                 })
                 .collect();

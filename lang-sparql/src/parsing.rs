@@ -1,9 +1,6 @@
 use chumsky::{prelude::*, Error};
-use lang_turtle::{named_node, triple, Prefix};
-use lsp_core::{
-    prelude::{spanned, Spanned},
-    token::{SparqlExpr, SparqlKeyword, Token},
-};
+use lang_turtle::{named_node, triple, TurtlePrefix};
+use lsp_core::prelude::{spanned, Spanned, SparqlExpr, SparqlKeyword, Token};
 
 use crate::model::{
     Base, Bind, DatasetClause, Expression, GroupGraphPattern, GroupGraphPatternSub, Modifier,
@@ -29,7 +26,7 @@ fn prologue() -> impl Parser<Token, Prologue, Error = Simple<Token>> + Clone {
         .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::SparqlPrefix).map_with_span(|_, s| s))
         .map(|((value, prefix), span)| {
-            Prologue::Prefix(Prefix {
+            Prologue::Prefix(TurtlePrefix {
                 span,
                 prefix,
                 value,
