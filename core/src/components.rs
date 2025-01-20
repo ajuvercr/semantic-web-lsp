@@ -8,16 +8,12 @@ use crate::{
     lang::{Lang, LangHelper},
     prelude::*,
     systems::TypeId,
-    util::{
-        token::Token,
-        triple::{MyQuad, MyTerm},
-    },
+    util::token::Token,
 };
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use lsp_types::{Position, Range, SemanticToken, SemanticTokenType};
-use sophia_api::{prelude::Dataset, quad::Quad as _, term::matcher::TermMatcher};
 
 /// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]

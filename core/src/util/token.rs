@@ -3,7 +3,7 @@ use std::ops::Range;
 
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
-use tracing::{debug, info, instrument};
+use tracing::{debug, instrument};
 
 use crate::components::*;
 use crate::lang::TokenTrait;

@@ -4,7 +4,7 @@ use crate::{
         CommandReceiver, DocumentLinks, DynLang, InlayRequest, Label, PositionComponent, Prefixes,
         PrepareRenameRequest, RenameEdits, RopeC, Wrapped,
     },
-    util::{offset_to_position, position_to_offset, range_to_range},
+    util::{offset_to_position, range_to_range},
     CreateEvent,
 };
 use bevy_ecs::prelude::*;
