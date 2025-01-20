@@ -51,7 +51,7 @@ pub fn format_turtle_system(
 #[cfg(test)]
 mod test {
     use super::*;
-    use lsp_core::Format;
+    use lsp_core::prelude::FormatLabel;
     use test_utils::{create_file, setup_world, TestClient};
 
     // crate::setup_world::<TestClient>(&mut world);
@@ -68,7 +68,7 @@ mod test {
         );
 
         world.entity_mut(entity).insert(FormatRequest(None));
-        world.run_schedule(Format);
+        world.run_schedule(FormatLabel);
         let m_formatted: Option<FormatRequest> = world.entity_mut(entity).take();
         let m_formatted = m_formatted.and_then(|x| x.0);
 

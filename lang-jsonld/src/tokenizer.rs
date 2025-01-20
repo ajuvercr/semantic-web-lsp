@@ -125,7 +125,7 @@ fn parse_string() -> impl Parser<char, String, Error = Simple<char>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lsp_core::token::Token::*;
+    use lsp_core::prelude::Token::*;
 
     #[test]
     fn parse_simple() {

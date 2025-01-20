@@ -1,6 +1,7 @@
 use chumsky::chain::Chain;
+use completion::CompletionRequest;
 use futures::executor::block_on;
-use lsp_core::{components::*, lang::LangHelper, Completion, Parse, Tasks};
+use lsp_core::{components::*, lang::LangHelper, prelude::*, Tasks};
 use ropey::Rope;
 use test_log::test;
 use test_utils::{create_file, setup_world, TestClient};
@@ -27,7 +28,7 @@ foa
     world
         .entity_mut(entity)
         .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2))));
-    world.run_schedule(Parse);
+    world.run_schedule(ParseLabel);
 
     // start call completion
     world.entity_mut(entity).insert((
@@ -38,7 +39,7 @@ foa
         }),
     ));
 
-    world.run_schedule(Completion);
+    world.run_schedule(CompletionLabel);
     let m_completions = world.entity_mut(entity).take::<CompletionRequest>();
 
     assert!(m_completions.is_some());
@@ -84,7 +85,7 @@ foaf:me foaf:friend <#me>.
     world
         .entity_mut(entity)
         .insert((Source(t1_2.to_string()), RopeC(Rope::from_str(t1_2)), Open));
-    world.run_schedule(Parse);
+    world.run_schedule(ParseLabel);
 
     // start call completion
     world.entity_mut(entity).insert((
@@ -94,7 +95,7 @@ foaf:me foaf:friend <#me>.
             character: 0,
         }),
     ));
-    world.run_schedule(Completion);
+    world.run_schedule(CompletionLabel);
 
     let completions = world
         .entity_mut(entity)
@@ -123,7 +124,7 @@ fn test_autocomplete_classes() {
     world
         .entity_mut(entity)
         .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-    world.run_schedule(Parse);
+    world.run_schedule(ParseLabel);
 
     block_on(c.await_futures(|| world.run_schedule(Tasks)));
 
@@ -135,7 +136,7 @@ fn test_autocomplete_classes() {
             character: 6,
         }),
     ));
-    world.run_schedule(Completion);
+    world.run_schedule(CompletionLabel);
     let completions = world
         .entity_mut(entity)
         .take::<CompletionRequest>()
@@ -169,7 +170,7 @@ fn test_autocomplete_properties() {
     world
         .entity_mut(entity)
         .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-    world.run_schedule(Parse);
+    world.run_schedule(ParseLabel);
 
     block_on(c.await_futures(|| world.run_schedule(Tasks)));
 
@@ -181,7 +182,7 @@ fn test_autocomplete_properties() {
             character: 4,
         }),
     ));
-    world.run_schedule(Completion);
+    world.run_schedule(CompletionLabel);
     let completions = world
         .entity_mut(entity)
         .take::<CompletionRequest>()
@@ -213,7 +214,7 @@ fn test_autocomplete_properties_2() {
     world
         .entity_mut(entity)
         .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-    world.run_schedule(Parse);
+    world.run_schedule(ParseLabel);
 
     block_on(c.await_futures(|| world.run_schedule(Tasks)));
 
@@ -225,7 +226,7 @@ fn test_autocomplete_properties_2() {
             character: 5,
         }),
     ));
-    world.run_schedule(Completion);
+    world.run_schedule(CompletionLabel);
     let completions = world
         .entity_mut(entity)
         .take::<CompletionRequest>()

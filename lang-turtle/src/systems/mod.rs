@@ -77,7 +77,7 @@ fn derive_prefixes(
 mod tests {
     use chumsky::chain::Chain;
     use futures::executor::block_on;
-    use lsp_core::{components::*, prelude::DiagnosticItem, Diagnostics, Parse};
+    use lsp_core::{components::*, prelude::diagnostics::DiagnosticItem, prelude::*};
     use ropey::Rope;
     use test_utils::{create_file, setup_world, TestClient};
 
@@ -100,8 +100,8 @@ foa
             ";
 
         let entity = create_file(&mut world, t1, "http://example.com/ns#", "turtle", Open);
-        world.run_schedule(Parse);
-        world.run_schedule(Diagnostics);
+        world.run_schedule(ParseLabel);
+        world.run_schedule(DiagnosticsLabel);
 
         let mut get_diagnostics = move || {
             let mut out: Vec<DiagnosticItem> = Vec::new();
@@ -116,8 +116,8 @@ foa
         world
             .entity_mut(entity)
             .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2))));
-        world.run_schedule(Parse);
-        world.run_schedule(Diagnostics);
+        world.run_schedule(ParseLabel);
+        world.run_schedule(DiagnosticsLabel);
 
         let items = get_diagnostics();
         assert_eq!(items.len(), 2);
@@ -126,8 +126,8 @@ foa
         world
             .entity_mut(entity)
             .insert((Source(t3.to_string()), RopeC(Rope::from_str(t2))));
-        world.run_schedule(Parse);
-        world.run_schedule(Diagnostics);
+        world.run_schedule(ParseLabel);
+        world.run_schedule(DiagnosticsLabel);
 
         let items = get_diagnostics();
         let msgs: Vec<_> = items[0].diagnostics.iter().map(|x| &x.message).collect();
@@ -146,7 +146,7 @@ foa
 
         // assert_eq!(world.entities().len(), 1);
         let c = world.resource::<TestClient>().clone();
-        block_on(c.await_futures(|| world.run_schedule(lsp_core::Parse)));
+        block_on(c.await_futures(|| world.run_schedule(lsp_core::feature::ParseLabel)));
 
         assert_eq!(world.entities().len(), 2);
     }
