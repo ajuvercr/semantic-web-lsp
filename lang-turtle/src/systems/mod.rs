@@ -122,7 +122,6 @@ foa
         let items = get_diagnostics();
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].diagnostics.len(), 2);
-        let msgs: Vec<_> = items[0].diagnostics.iter().map(|x| &x.message).collect();
         world
             .entity_mut(entity)
             .insert((Source(t3.to_string()), RopeC(Rope::from_str(t2))));
@@ -130,7 +129,6 @@ foa
         world.run_schedule(DiagnosticsLabel);
 
         let items = get_diagnostics();
-        let msgs: Vec<_> = items[0].diagnostics.iter().map(|x| &x.message).collect();
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].diagnostics.len(), 5);
     }
