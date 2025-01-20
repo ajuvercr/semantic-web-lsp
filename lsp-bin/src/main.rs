@@ -86,15 +86,13 @@ fn setup_global_subscriber() -> impl Drop {
     let (flame_layer, _guard) = FlameLayer::with_file("/tmp/tracing.folded").unwrap();
     let fmt_layer = fmt::Layer::default().with_writer(Mutex::new(target));
 
-    let subscriber = Registry::default()
-        .with(fmt_layer)
-        .with(
-            flame_layer
-                .with_empty_samples(false)
-                .with_file_and_line(false)
-                .with_threads_collapsed(true)
-                .with_module_path(false),
-        );
+    let subscriber = Registry::default().with(fmt_layer).with(
+        flame_layer
+            .with_empty_samples(false)
+            .with_file_and_line(false)
+            .with_threads_collapsed(true)
+            .with_module_path(false),
+    );
 
     tracing::subscriber::set_global_default(subscriber).expect("Could not set global default");
     _guard

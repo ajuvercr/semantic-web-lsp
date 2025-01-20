@@ -1,17 +1,18 @@
 use bevy_ecs::prelude::*;
+use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
     term::{matcher::TermMatcher, BnodeId, GraphName, IriRef, Term, TermKind},
     MownStr,
 };
-use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use tracing::{debug, info, instrument};
 use std::{borrow::Cow, hash::Hash, usize};
+use tracing::{debug, info, instrument};
 
 use crate::{
     components::{self, PositionComponent, RopeC},
-    ns::{owl, rdfs}, utils::position_to_offset,
+    util::ns::{owl, rdfs},
+    util::position_to_offset,
 };
 
 /// [`Component`] used to indicate the term type of currently targeted [`Token`] in the Triple.
@@ -258,7 +259,8 @@ impl<'a> MyTerm<'a> {
 }
 
 impl<'a> Term for MyTerm<'a> {
-    type BorrowTerm<'x> = &'x Self
+    type BorrowTerm<'x>
+        = &'x Self
     where
         Self: 'x;
 

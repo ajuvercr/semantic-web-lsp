@@ -3,12 +3,6 @@ use bevy_ecs::schedule::ScheduleLabel;
 use client::Client;
 use components::{SemanticTokensDict, TypeHierarchy};
 use feature::{completion, diagnostics, format, hover, inlay, parse, rename, save, semantic};
-use systems::{
-    basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
-    derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
-    fetch_lov_properties, hover_class, hover_property, hover_types, infer_types, keyword_complete,
-    semantic_tokens_system, validate_shapes,
-};
 
 /// Main language tower_lsp server implementation.
 ///
@@ -18,6 +12,10 @@ pub mod backend;
 
 /// Handle platform specific implementations for fetching and spawning tasks.
 pub mod client;
+/// Common utils
+///
+/// Includes range transformations between [`std::ops::Range`] and [`lsp_types::Range`].
+/// And commonly used [`Spanned`](crate::prelude::Spanned).
 pub mod util;
 
 /// Defines all common [`Component`]s and [`Resource`]s
@@ -32,17 +30,8 @@ pub mod components;
 pub mod feature;
 /// Defines common language traits
 pub mod lang;
-/// Commonly used RDF prefixes
-pub mod ns;
 pub mod prelude;
 pub mod systems;
-/// All token definitions, for all semantic languages
-pub mod token;
-/// Common utils
-///
-/// Includes range transformations between [`std::ops::Range`] and [`lsp_types::Range`].
-/// And commonly used [`Spanned`](crate::prelude::Spanned).
-pub mod utils;
 
 /// Initializes a [`World`], including [`Resources`](`Resource`) and [`Schedules`].
 /// All systems defined in [`crate`] are added to the [`World`].

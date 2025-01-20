@@ -9,13 +9,10 @@ use sophia_api::{
 use bevy_ecs::prelude::*;
 
 use crate::{
-    components::{
-        Dirty, HoverRequest, Prefixes, TypeHierarchy,
-        Types,
-    },
+    components::{Dirty, HoverRequest, Prefixes, TypeHierarchy, Types},
+    util::ns::rdfs,
     util::token::TokenComponent,
     util::triple::Triples,
-    ns::rdfs,
 };
 
 #[derive(Default, Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]

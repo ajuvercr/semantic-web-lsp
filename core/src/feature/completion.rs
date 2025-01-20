@@ -12,9 +12,9 @@ use lsp_types::TextEdit;
 pub use crate::systems::complete_class;
 pub use crate::systems::complete_properties;
 pub use crate::systems::defined_prefix_completion;
+pub use crate::systems::keyword_complete;
 pub use crate::util::token::get_current_token;
 pub use crate::util::triple::get_current_triple;
-pub use crate::systems::keyword_complete;
 
 /// [`ScheduleLabel`] related to the Completion schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

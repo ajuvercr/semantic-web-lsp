@@ -18,7 +18,7 @@ impl WebClient {
 }
 
 impl ClientSync for WebClient {
-    fn spawn<F:  std::future::Future<Output = ()> + 'static>(&self, fut: F) {
+    fn spawn<F: std::future::Future<Output = ()> + 'static>(&self, fut: F) {
         let _ = wasm_bindgen_futures::future_to_promise(async {
             fut.await;
             Ok("Good".into())
@@ -60,7 +60,12 @@ impl Client for WebClient {
         diags: Vec<Diagnostic>,
         version: Option<i32>,
     ) -> () {
-        info!("Publishing {} diagnostics {} (version {:?})", diags.len(), uri, version);
+        info!(
+            "Publishing {} diagnostics {} (version {:?})",
+            diags.len(),
+            uri,
+            version
+        );
         self.client.publish_diagnostics(uri, diags, version).await;
     }
 }
