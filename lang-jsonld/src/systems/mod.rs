@@ -1,8 +1,5 @@
 use bevy_ecs::{schedule::IntoSystemConfigs as _, world::World};
-use lsp_core::{
-    systems::{prefixes, triples},
-    Parse,
-};
+use lsp_core::prelude::*;
 
 mod highlight;
 pub use highlight::*;
@@ -12,7 +9,8 @@ use parse::derive_triples;
 pub use parse::{parse_jsonld_system, parse_source};
 
 pub fn setup_parse(world: &mut World) {
-    world.schedule_scope(Parse, |_, schedule| {
+    use lsp_core::prelude::parse::*;
+    world.schedule_scope(ParseLabel, |_, schedule| {
         schedule.add_systems((
             parse_source,
             parse_jsonld_system.after(parse_source),
