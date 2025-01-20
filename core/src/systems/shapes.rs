@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{components::*, feature::diagnostics::DiagnosticPublisher, util::triple::Triples, utils::range_to_range};
+use crate::{
+    components::*, feature::diagnostics::DiagnosticPublisher, util::range_to_range,
+    util::triple::Triples,
+};
 use bevy_ecs::prelude::*;
 use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;

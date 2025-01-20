@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
-use crate::{components::*, lang::Lang, utils::offset_to_position};
+use crate::{components::*, lang::Lang, util::offset_to_position};
 use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 use chumsky::prelude::Simple;

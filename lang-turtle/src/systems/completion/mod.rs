@@ -6,5 +6,3 @@ pub use subject::subject_completion;
 
 #[cfg(test)]
 mod tests;
-
-

@@ -1,8 +1,6 @@
-use std::borrow::Cow;
-
 use crate::components::*;
-use crate::ns::*;
 use crate::prelude::*;
+use crate::util::ns::*;
 use crate::util::triple::MyTerm;
 use bevy_ecs::prelude::*;
 use completion::CompletionRequest;
@@ -13,6 +11,7 @@ use sophia_api::ns::rdfs;
 use sophia_api::prelude::{Any, Dataset};
 use sophia_api::quad::Quad as _;
 use sophia_api::term::Term;
+use std::borrow::Cow;
 use tracing::debug;
 use tracing::info;
 use tracing::instrument;

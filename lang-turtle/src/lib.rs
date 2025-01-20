@@ -24,22 +24,16 @@ pub use model::*;
 
 pub use parser2::*;
 
-
 use lsp_core::lang::{Lang, LangHelper};
 
 #[derive(Component)]
 pub struct TurtleLang;
 
-
 #[derive(Debug)]
 pub struct TurtleHelper;
 impl LangHelper for TurtleHelper {
     fn keyword(&self) -> &[&'static str] {
-        &[
-            "@prefix",
-            "@base",
-            "a",
-        ]
+        &["@prefix", "@base", "a"]
     }
 }
 

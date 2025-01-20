@@ -27,7 +27,7 @@ impl TowerClient {
 }
 
 impl ClientSync for TowerClient {
-    fn spawn<F: std::future::Future<Output = ()> + Send +  'static>(&self, fut: F) {
+    fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
         let handle = std::thread::current();
         info!("Spawn threaad name {:?}", handle.id());
         self.handle.spawn(fut);

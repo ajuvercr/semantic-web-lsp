@@ -4,7 +4,7 @@ use crate::{
         CommandReceiver, DocumentLinks, DynLang, InlayRequest, Label, PositionComponent, Prefixes,
         PrepareRenameRequest, RenameEdits, RopeC, Wrapped,
     },
-    utils::{offset_to_position, position_to_offset, range_to_range},
+    util::{offset_to_position, position_to_offset, range_to_range},
     CreateEvent,
 };
 use bevy_ecs::prelude::*;
@@ -15,11 +15,8 @@ use diagnostics::DiagnosticPublisher;
 pub use shapes::*;
 mod typed;
 pub use typed::*;
-// mod diagnostics;
 pub mod prefix;
-mod semantics;
 use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
-pub use semantics::{basic_semantic_tokens, semantic_tokens_system, TokenTypesComponent};
 mod properties;
 pub use properties::{
     complete_class, complete_properties, derive_classes, derive_properties, hover_class,
@@ -96,7 +93,6 @@ pub fn keyword_complete(
         }
     }
 }
-
 
 pub fn derive_prefix_links(
     mut query: Query<(Entity, &Prefixes, Option<&mut DocumentLinks>), Changed<Prefixes>>,

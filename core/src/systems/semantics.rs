@@ -8,7 +8,7 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 use lsp_types::{SemanticToken, SemanticTokenType};
 
-struct T {
+struct TokenHelper {
     start: usize,
     length: usize,
     ty: usize,
@@ -52,7 +52,7 @@ pub fn semantic_tokens_system(
         for (i, ty) in ts.into_iter().enumerate() {
             if last != ty {
                 if let Some(t) = last {
-                    out_tokens.push(T {
+                    out_tokens.push(TokenHelper {
                         start,
                         length: i - start,
                         ty: res.get(&t).cloned().unwrap_or(0),
@@ -65,7 +65,7 @@ pub fn semantic_tokens_system(
         }
 
         if let Some(t) = last {
-            out_tokens.push(T {
+            out_tokens.push(TokenHelper {
                 start,
                 length: rope.len_chars() - start,
                 ty: res.get(&t).cloned().unwrap_or(0),
