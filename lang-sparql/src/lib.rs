@@ -5,9 +5,8 @@ use bevy_ecs::prelude::*;
 use chumsky::error::Simple;
 use lsp_core::{
     components::{DynLang, SemanticTokensDict},
-    features::diagnostic::systems::publish_diagnostics,
     lang::{Lang, LangHelper},
-    token::Membered,
+    prelude::*,
     CreateEvent,
 };
 use lsp_types::SemanticTokenType;
@@ -52,8 +51,8 @@ pub fn setup_world(world: &mut World) {
         }
     });
 
-    world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
-        schedule.add_systems(publish_diagnostics::<Sparql>);
+    world.schedule_scope(DiagnosticsLabel, |_, schedule| {
+        schedule.add_systems(diagnostics::publish_diagnostics::<Sparql>);
     });
 
     setup_parse(world);
@@ -65,13 +64,13 @@ pub fn setup_world(world: &mut World) {
 pub struct Sparql;
 
 impl Lang for Sparql {
-    type Token = lsp_core::token::Token;
+    type Token = Token;
 
     type TokenError = Simple<char>;
 
     type Element = Query;
 
-    type ElementError = (usize, Simple<lsp_core::token::Token>);
+    type ElementError = (usize, Simple<Token>);
 
     const PATTERN: Option<&'static str> = None;
 
@@ -95,8 +94,8 @@ lazy_static::lazy_static! {
         let mut m = Vec::new();
 
         // lsp_core::token::SparqlCall::ITEMS.iter().for_each(|x| m.push(x.complete()));
-        lsp_core::token::SparqlKeyword::ITEMS.iter().for_each(|x| m.push(x.complete()));
-        lsp_core::token::SparqlAggregate::ITEMS.iter().for_each(|x| m.push(x.complete()));
+        SparqlKeyword::ITEMS.iter().for_each(|x| m.push(x.complete()));
+        SparqlAggregate::ITEMS.iter().for_each(|x| m.push(x.complete()));
 
         m
     };

@@ -1,8 +1,5 @@
-use lang_turtle::{Based, NamedNode, Prefix, Triple, TriplesBuilder, TurtleSimpleError};
-use lsp_core::{
-    prelude::Spanned,
-    token::{SparqlKeyword, Token},
-};
+use lang_turtle::{Based, NamedNode, Triple, TriplesBuilder, TurtlePrefix, TurtleSimpleError};
+use lsp_core::prelude::{Spanned, SparqlKeyword, Token};
 
 fn rev_range(range: &std::ops::Range<usize>, len: usize) -> std::ops::Range<usize> {
     (len - range.end)..(len - range.start)
@@ -31,7 +28,7 @@ pub enum Prologue {
         token: Spanned<Token>,
         iri: Spanned<NamedNode>,
     },
-    Prefix(Prefix),
+    Prefix(TurtlePrefix),
 }
 impl Prologue {
     pub fn fix_spans(&mut self, len: usize) {
@@ -369,7 +366,7 @@ impl Modifier {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Query {
     pub base: lsp_types::Url,
-    pub prefixes: Vec<Spanned<Prefix>>,
+    pub prefixes: Vec<Spanned<TurtlePrefix>>,
     pub base_statement: Option<Spanned<Base>>,
     pub kwds: QueryClause,
     pub datasets: Vec<Spanned<DatasetClause>>,
@@ -429,7 +426,7 @@ impl Based for Query {
         &self.base
     }
 
-    fn prefixes(&self) -> &[Spanned<Prefix>] {
+    fn prefixes(&self) -> &[Spanned<TurtlePrefix>] {
         &self.prefixes
     }
 }

@@ -1,9 +1,8 @@
 use std::{ops::Range, str::FromStr as _};
 
 use chumsky::{prelude::*, Error};
-use lsp_core::{
-    prelude::{spanned, Spanned},
-    token::{Membered, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword, Token},
+use lsp_core::prelude::{
+    spanned, Membered, Spanned, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword, Token,
 };
 use text::ident;
 use token_helpers::*;
