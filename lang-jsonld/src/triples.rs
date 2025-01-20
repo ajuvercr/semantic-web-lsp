@@ -204,7 +204,7 @@ pub fn derive_triples(json: &Spanned<Json>, prefixes: &Prefixes) -> Vec<MyQuad<'
 #[cfg(test)]
 mod tests {
 
-    use lsp_core::{prelude::Spanned, triples::MyQuad};
+    use lsp_core::prelude::{MyQuad, Spanned};
     use sophia_api::term::{Term, TermKind};
 
     use crate::{

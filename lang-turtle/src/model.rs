@@ -737,10 +737,7 @@ mod test {
     use std::{collections::HashSet, str::FromStr};
 
     use chumsky::Parser;
-    use lsp_core::{
-        prelude::{spanned, Spanned},
-        triples::MyQuad,
-    };
+    use lsp_core::prelude::{spanned, MyQuad, Spanned};
 
     use crate::{parser2, tokenizer, Turtle};
 

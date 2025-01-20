@@ -18,7 +18,7 @@ use futures::{
 use lsp_core::{
     client::{Client, ClientSync, Resp},
     components::*,
-    prelude::{DiagnosticItem, DiagnosticPublisher},
+    prelude::diagnostics::{DiagnosticItem, DiagnosticPublisher},
     setup_schedule_labels,
     systems::{handle_tasks, spawn_or_insert},
 };

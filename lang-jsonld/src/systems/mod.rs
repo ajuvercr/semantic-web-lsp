@@ -24,8 +24,9 @@ pub fn setup_parse(world: &mut World) {
 
 #[cfg(test)]
 mod tests {
+    use completion::CompletionRequest;
     use futures::executor::block_on;
-    use lsp_core::{components::*, utils::lsp_range_to_range, Completion, Parse, Tasks};
+    use lsp_core::{components::*, prelude::*, util::lsp_range_to_range, Tasks};
     use ropey::Rope;
     use test_utils::{create_file, setup_world, TestClient};
     use tracing::info;
@@ -82,7 +83,7 @@ mod tests {
                 character: 6,
             }),
         ));
-        world.run_schedule(Completion);
+        world.run_schedule(CompletionLabel);
 
         let _ = world
             .entity_mut(entity)
@@ -102,7 +103,7 @@ mod tests {
                 character: 22,
             }),
         ));
-        world.run_schedule(Completion);
+        world.run_schedule(CompletionLabel);
 
         let _ = world
             .entity_mut(entity)
@@ -139,7 +140,7 @@ mod tests {
                 character: 6,
             }),
         ));
-        world.run_schedule(Completion);
+        world.run_schedule(CompletionLabel);
 
         let _ = world
             .entity_mut(entity)
@@ -176,7 +177,7 @@ mod tests {
         world
             .entity_mut(entity)
             .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-        world.run_schedule(Parse);
+        world.run_schedule(ParseLabel);
 
         // start call completion
         world.entity_mut(entity).insert((
@@ -188,7 +189,7 @@ mod tests {
         ));
         world.run_schedule(Tasks);
         world.run_schedule(Tasks);
-        world.run_schedule(Completion);
+        world.run_schedule(CompletionLabel);
 
         let _ = world
             .entity_mut(entity)
@@ -239,7 +240,7 @@ mod tests {
         world
             .entity_mut(entity)
             .insert((Source(t2.to_string()), RopeC(Rope::from_str(t2)), Open));
-        world.run_schedule(Parse);
+        world.run_schedule(ParseLabel);
 
         // start call completion
         world.entity_mut(entity).insert((
@@ -251,7 +252,7 @@ mod tests {
         ));
         world.run_schedule(Tasks);
         world.run_schedule(Tasks);
-        world.run_schedule(Completion);
+        world.run_schedule(CompletionLabel);
 
         let _ = world
             .entity_mut(entity)
