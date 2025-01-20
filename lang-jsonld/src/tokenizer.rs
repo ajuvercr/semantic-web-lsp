@@ -1,8 +1,7 @@
 use chumsky::chain::Chain as _;
 use chumsky::prelude::*;
 
-use lsp_core::prelude::{spanned, Spanned};
-use lsp_core::token::{StringStyle, Token};
+use lsp_core::prelude::{spanned, Spanned, StringStyle, Token};
 
 pub fn tokenize(st: &str) -> (Vec<Spanned<Token>>, Vec<Simple<char>>) {
     let parser = parser()

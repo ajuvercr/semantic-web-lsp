@@ -6,11 +6,8 @@ use std::{
 use chumsky::{prelude::*, Error, Parser, Stream};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 
-use lsp_core::{
-    prelude::{spanned, Spanned},
-    token::Token,
-    triples::MyTerm,
-};
+use lsp_core::prelude::{spanned, MyTerm, Spanned, Token};
+use Token::*;
 
 struct ObjectMemberManager<'a> {
     out: Vec<Spanned<ObjectMember>>,
@@ -321,7 +318,6 @@ fn expect_token(
 }
 
 fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
-    use lsp_core::token::Token::*;
     recursive(|value| {
         let array = value
             .clone()

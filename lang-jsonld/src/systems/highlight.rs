@@ -1,12 +1,11 @@
 use bevy_ecs::prelude::*;
 use lsp_core::{
-    components::{Element, HighlightRequest, Triples},
-    prelude::Spanned,
-    systems::TokenTypesComponent,
-    token::Token,
-    triples::MyQuad,
+    components::{Element, HighlightRequest},
+    prelude::*,
+    feature::semantic::TokenTypesComponent,
 };
 use lsp_types::SemanticTokenType;
+// use semantic::TokenTypesComponent;
 use sophia_api::term::{Term, TermKind};
 
 use crate::{parser, JsonLd};

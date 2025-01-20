@@ -4,6 +4,7 @@ use crate::{parser::parse, JsonLd};
 use bevy_ecs::prelude::*;
 
 use lsp_core::components::*;
+use lsp_core::prelude::{Tokens, Triples};
 use tracing::{info, instrument};
 
 #[instrument(skip(query, commands))]

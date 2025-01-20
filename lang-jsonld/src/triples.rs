@@ -2,9 +2,7 @@ use std::{borrow::Cow, ops::Range};
 
 use lsp_core::{
     components::{Prefix, Prefixes},
-    prelude::Spanned,
-    token::Token,
-    triples::{MyQuad, MyTerm},
+    prelude::*,
 };
 
 use crate::parser::{Json, ObjectMember};

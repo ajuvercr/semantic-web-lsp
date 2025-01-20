@@ -2,11 +2,8 @@ use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
 use lsp_core::{
     components::{DynLang, SemanticTokensDict},
-    features::diagnostic::systems::publish_diagnostics,
     lang::{Lang, LangHelper},
-    systems::{basic_semantic_tokens, semantic_tokens_system},
-    token::Token,
-    utils::Spanned,
+    prelude::*,
     CreateEvent,
 };
 use lsp_types::SemanticTokenType;
@@ -52,7 +49,8 @@ pub fn setup_world(world: &mut World) {
         }
     });
 
-    world.schedule_scope(lsp_core::systems::SemanticTokensSchedule, |_, schedule| {
+    world.schedule_scope(SemanticLabel, |_, schedule| {
+        use semantic::*;
         schedule.add_systems((
             highlight_named_nodes
                 .before(keyword_highlight)
@@ -63,7 +61,8 @@ pub fn setup_world(world: &mut World) {
         ));
     });
 
-    world.schedule_scope(lsp_core::Diagnostics, |_, schedule| {
+    world.schedule_scope(DiagnosticsLabel, |_, schedule| {
+        use diagnostics::*;
         schedule.add_systems(publish_diagnostics::<JsonLd>);
     });
 
@@ -74,13 +73,13 @@ pub fn setup_world(world: &mut World) {
 pub struct JsonLd;
 
 impl Lang for JsonLd {
-    type Token = lsp_core::token::Token;
+    type Token = Token;
 
     type TokenError = Simple<char>;
 
     type Element = Json;
 
-    type ElementError = Simple<lsp_core::token::Token>;
+    type ElementError = Simple<Token>;
 
     const PATTERN: Option<&'static str> = None;
 
