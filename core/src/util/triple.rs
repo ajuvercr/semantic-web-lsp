@@ -1,12 +1,123 @@
+use bevy_ecs::prelude::*;
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
-    term::{BnodeId, GraphName, IriRef, Term, TermKind},
+    term::{matcher::TermMatcher, BnodeId, GraphName, IriRef, Term, TermKind},
     MownStr,
 };
-use std::{borrow::Cow, hash::Hash, ops::Deref, usize};
+use derive_more::{AsMut, AsRef, Deref, DerefMut};
+use tracing::{debug, info, instrument};
+use std::{borrow::Cow, hash::Hash, usize};
 
-use crate::ns::{owl, rdfs};
+use crate::{
+    components::{self, PositionComponent, RopeC},
+    ns::{owl, rdfs}, utils::position_to_offset,
+};
+
+/// [`Component`] used to indicate the term type of currently targeted [`Token`] in the Triple.
+#[derive(Debug, PartialEq)]
+pub enum TripleTarget {
+    Subject,
+    Predicate,
+    Object,
+    Graph,
+}
+
+/// [`Component`] used to indicate the currently targeted [`MyQuad<'static>`] during a request.
+#[derive(Component, Debug)]
+pub struct TripleComponent {
+    pub triple: MyQuad<'static>,
+    pub target: TripleTarget,
+}
+
+/// [`Component`] containing all derived Triples from the documents.
+///
+/// These triples are used to derive properties and classes and other things.
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct Triples(pub Vec<MyQuad<'static>>);
+
+impl Triples {
+    pub fn object<'s, S, P>(&'s self, subj: S, pred: P) -> Option<&MyTerm<'_>>
+    where
+        S: TermMatcher + 's,
+        P: TermMatcher + 's,
+    {
+        self.0
+            .quads_matching(
+                subj,
+                pred,
+                sophia_api::prelude::Any,
+                sophia_api::prelude::Any,
+            )
+            .flatten()
+            .next()
+            .map(|x| x.o())
+    }
+
+    pub fn objects<'s, S, P>(&'s self, subj: S, pred: P) -> impl Iterator<Item = &MyTerm<'_>>
+    where
+        S: TermMatcher + 's,
+        P: TermMatcher + 's,
+    {
+        self.0
+            .quads_matching(
+                subj,
+                pred,
+                sophia_api::prelude::Any,
+                sophia_api::prelude::Any,
+            )
+            .flatten()
+            .map(|x| x.o())
+    }
+}
+
+#[instrument(skip(query, commands))]
+pub fn get_current_triple(
+    query: Query<(Entity, &PositionComponent, &Triples, &RopeC)>,
+    mut commands: Commands,
+) {
+    for (e, position, triples, rope) in &query {
+        commands.entity(e).remove::<TripleComponent>();
+
+        for t in triples.iter() {
+            debug!("Triple {}", t);
+        }
+
+        let Some(offset) = position_to_offset(position.0, &rope.0) else {
+            debug!("Couldn't transform to an offset");
+            continue;
+        };
+
+        if let Some(t) = triples
+            .0
+            .iter()
+            .filter(|triple| triple.span.contains(&offset))
+            .min_by_key(|x| x.span.end - x.span.start)
+        {
+            let target = [
+                (TripleTarget::Subject, &t.subject.span),
+                (TripleTarget::Predicate, &t.predicate.span),
+                (TripleTarget::Object, &t.object.span),
+            ]
+            .into_iter()
+            .filter(|x| x.1.contains(&offset))
+            .min_by_key(|x| x.1.end - x.1.start)
+            .map(|x| x.0)
+            .unwrap_or(TripleTarget::Subject);
+
+            debug!("Current triple {} {:?}", t, target);
+            commands.entity(e).insert(TripleComponent {
+                triple: t.clone(),
+                target,
+            });
+        } else {
+            debug!("No current triple found");
+            for t in &triples.0 {
+                println!("triple {}", t);
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct MyQuad<'a> {
@@ -198,18 +309,18 @@ impl<'a> Term for MyTerm<'a> {
 }
 
 #[derive(Default, Debug)]
-pub struct Triples<'a> {
+pub struct Triples2<'a> {
     pub base_url: String,
     pub triples: Vec<MyQuad<'a>>,
     pub base: Option<MyTerm<'a>>,
 }
 
-impl<'a> Triples<'a> {
-    pub fn to_owned(&self) -> Triples<'static> {
+impl<'a> Triples2<'a> {
+    pub fn to_owned(&self) -> Triples2<'static> {
         let triples = self.triples.iter().map(|q| q.to_owned()).collect();
         let base: Option<MyTerm<'static>> = self.base.as_ref().map(|x| x.to_owned());
 
-        Triples {
+        Triples2 {
             base,
             triples,
             base_url: self.base_url.clone(),
@@ -238,198 +349,10 @@ impl<'a> Triples<'a> {
     }
 }
 
-impl<'a> Deref for Triples<'a> {
+impl<'a> Deref for Triples2<'a> {
     type Target = Vec<MyQuad<'a>>;
 
     fn deref(&self) -> &Self::Target {
         &self.triples
     }
 }
-
-// impl<'a> SRDFBasic for Triples<'a> {
-//     type Subject;
-//
-//     type IRI;
-//
-//     type BNode;
-//
-//     type Literal;
-//
-//     type Term;
-//
-//     type Err;
-//
-//     fn subject_as_iri(subject: &Self::Subject) -> Option<Self::IRI> {
-//         todo!()
-//     }
-//
-//     fn subject_as_bnode(subject: &Self::Subject) -> Option<Self::BNode> {
-//         todo!()
-//     }
-//
-//     fn subject_is_iri(subject: &Self::Subject) -> bool {
-//         todo!()
-//     }
-//
-//     fn subject_is_bnode(subject: &Self::Subject) -> bool {
-//         todo!()
-//     }
-//
-//     fn term_as_iri(object: &Self::Term) -> Option<&Self::IRI> {
-//         todo!()
-//     }
-//
-//     fn term_as_bnode(object: &Self::Term) -> Option<Self::BNode> {
-//         todo!()
-//     }
-//
-//     fn term_as_literal(object: &Self::Term) -> Option<Self::Literal> {
-//         todo!()
-//     }
-//
-//     fn term_as_object(term: &Self::Term) -> rudof_lib::srdf::Object {
-//         todo!()
-//     }
-//
-//     fn object_as_term(obj: &rudof_lib::srdf::Object) -> Self::Term {
-//         todo!()
-//     }
-//
-//     fn term_is_iri(object: &Self::Term) -> bool {
-//         todo!()
-//     }
-//
-//     fn term_is_bnode(object: &Self::Term) -> bool {
-//         todo!()
-//     }
-//
-//     fn term_is_literal(object: &Self::Term) -> bool {
-//         todo!()
-//     }
-//
-//     fn term_as_subject(object: &Self::Term) -> Option<Self::Subject> {
-//         todo!()
-//     }
-//
-//     fn subject_as_term(subject: &Self::Subject) -> Self::Term {
-//         todo!()
-//     }
-//
-//     fn lexical_form(literal: &Self::Literal) -> &str {
-//         todo!()
-//     }
-//
-//     fn lang(literal: &Self::Literal) -> Option<String> {
-//         todo!()
-//     }
-//
-//     fn datatype(literal: &Self::Literal) -> Self::IRI {
-//         todo!()
-//     }
-//
-//     fn iri_s2iri(iri_s: &IriS) -> Self::IRI {
-//         todo!()
-//     }
-//
-//     fn term_s2term(term: &OxTerm) -> Self::Term {
-//         todo!()
-//     }
-//
-//     fn bnode_id2bnode(id: &str) -> Self::BNode {
-//         todo!()
-//     }
-//
-//     fn iri_as_term(iri: Self::IRI) -> Self::Term {
-//         todo!()
-//     }
-//
-//     fn iri_as_subject(iri: Self::IRI) -> Self::Subject {
-//         todo!()
-//     }
-//
-//     fn bnode_as_term(bnode: Self::BNode) -> Self::Term {
-//         todo!()
-//     }
-//
-//     fn bnode_as_subject(bnode: Self::BNode) -> Self::Subject {
-//         todo!()
-//     }
-//
-//     fn iri2iri_s(iri: &Self::IRI) -> IriS {
-//         todo!()
-//     }
-//
-//     fn qualify_iri(&self, iri: &Self::IRI) -> String {
-//         todo!()
-//     }
-//
-//     fn qualify_subject(&self, subj: &Self::Subject) -> String {
-//         todo!()
-//     }
-//
-//     fn qualify_term(&self, term: &Self::Term) -> String {
-//         todo!()
-//     }
-//
-//     fn prefixmap(&self) -> Option<rudof_lib::PrefixMap> {
-//         todo!()
-//     }
-//
-//     fn resolve_prefix_local(&self, prefix: &str, local: &str) -> Result<IriS, PrefixMapError> {
-//         todo!()
-//     }
-// }
-//
-// impl<'a> SRDF for Triples<'a> {
-//     fn predicates_for_subject(
-//         &self,
-//         subject: &Self::Subject,
-//     ) -> Result<std::collections::HashSet<Self::IRI>, Self::Err> {
-//         todo!()
-//     }
-//
-//     fn objects_for_subject_predicate(
-//         &self,
-//         subject: &Self::Subject,
-//         pred: &Self::IRI,
-//     ) -> Result<std::collections::HashSet<Self::Term>, Self::Err> {
-//         todo!()
-//     }
-//
-//     fn subjects_with_predicate_object(
-//         &self,
-//         pred: &Self::IRI,
-//         object: &Self::Term,
-//     ) -> Result<std::collections::HashSet<Self::Subject>, Self::Err> {
-//         todo!()
-//     }
-//
-//     fn triples_with_predicate(
-//         &self,
-//         pred: &Self::IRI,
-//     ) -> Result<Vec<rudof_lib::srdf::Triple<Self>>, Self::Err> {
-//         todo!()
-//     }
-//
-//     fn outgoing_arcs(
-//         &self,
-//         subject: &Self::Subject,
-//     ) -> Result<rudof_lib::srdf::HasMapOfIriAndItem<Self::IRI, Self::Term>, Self::Err> {
-//         todo!()
-//     }
-//
-//     fn incoming_arcs(
-//         &self,
-//         object: &Self::Term,
-//     ) -> Result<rudof_lib::srdf::HasMapOfIriAndItem<Self::IRI, Self::Subject>, Self::Err> {
-//         todo!()
-//     }
-//
-//     fn outgoing_arcs_from_list(
-//         &self,
-//         subject: &Self::Subject,
-//         preds: &[Self::IRI],
-//     ) -> Result<OutgoingArcs<Self::IRI, Self::Term>, Self::Err> {
-//         todo!()
-//     }
-// }

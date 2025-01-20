@@ -1,9 +1,8 @@
 use std::{hash::Hash, ops::Range};
 
-use crate::{features::diagnostic::SimpleDiagnostic, prelude::*};
+use crate::{feature::diagnostics::SimpleDiagnostic, prelude::*};
 use lsp_types::SemanticTokenType;
 use ropey::Rope;
-
 
 pub fn head() -> lsp_types::Range {
     let start = lsp_types::Position {
@@ -16,7 +15,7 @@ pub fn head() -> lsp_types::Range {
     }
 }
 
-pub trait Token: Sized {
+pub trait TokenTrait: Sized {
     fn token(&self) -> Option<SemanticTokenType>;
 
     fn span_tokens(Spanned(this, span): &Spanned<Self>) -> Vec<(SemanticTokenType, Range<usize>)> {
@@ -30,7 +29,7 @@ pub trait Token: Sized {
 
 pub trait Lang: 'static {
     /// Type of tokens after tokenization
-    type Token: PartialEq + Hash + Clone + Send + Sync + Token;
+    type Token: PartialEq + Hash + Clone + Send + Sync + TokenTrait;
     type TokenError: Into<SimpleDiagnostic> + Send + Sync + std::fmt::Debug;
 
     /// Type of Element inside a ParentingSystem
@@ -46,12 +45,12 @@ pub trait Lang: 'static {
 }
 
 pub trait LangHelper: std::fmt::Debug {
-    fn _get_relevant_text(&self, token: &Spanned<crate::token::Token>, rope: &Rope) -> String {
+    fn _get_relevant_text(&self, token: &Spanned<Token>, rope: &Rope) -> String {
         rope.slice(token.span().clone()).to_string()
     }
     fn get_relevant_text(
         &self,
-        token: &Spanned<crate::token::Token>,
+        token: &Spanned<Token>,
         rope: &Rope,
     ) -> (String, std::ops::Range<usize>) {
         (self._get_relevant_text(token, rope), token.span().clone())

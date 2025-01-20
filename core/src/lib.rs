@@ -2,11 +2,12 @@ use bevy_ecs::prelude::*;
 use bevy_ecs::schedule::ScheduleLabel;
 use client::Client;
 use components::{SemanticTokensDict, TypeHierarchy};
+use feature::{completion, diagnostics, format, hover, inlay, parse, rename, save, semantic};
 use systems::{
     basic_semantic_tokens, complete_class, complete_properties, defined_prefix_completion,
     derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
-    fetch_lov_properties, get_current_token, get_current_triple, hover_class, hover_property,
-    hover_types, infer_types, keyword_complete, prefixes, semantic_tokens_system, validate_shapes,
+    fetch_lov_properties, hover_class, hover_property, hover_types, infer_types, keyword_complete,
+    semantic_tokens_system, validate_shapes,
 };
 
 /// Main language tower_lsp server implementation.
@@ -17,6 +18,7 @@ pub mod backend;
 
 /// Handle platform specific implementations for fetching and spawning tasks.
 pub mod client;
+pub mod util;
 
 /// Defines all common [`Component`]s and [`Resource`]s
 ///
@@ -27,7 +29,7 @@ pub mod client;
 /// derive [`DefinedClass`](struct@systems::DefinedClass) from them and add them to the [`Entity`].
 pub mod components;
 /// Hosts all common features of the semantic language server.
-pub mod features;
+pub mod feature;
 /// Defines common language traits
 pub mod lang;
 /// Commonly used RDF prefixes
@@ -36,8 +38,6 @@ pub mod prelude;
 pub mod systems;
 /// All token definitions, for all semantic languages
 pub mod token;
-/// Custom triple implementation.
-pub mod triples;
 /// Common utils
 ///
 /// Includes range transformations between [`std::ops::Range`] and [`lsp_types::Range`].
@@ -50,78 +50,17 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.init_resource::<SemanticTokensDict>();
     world.init_resource::<TypeHierarchy<'static>>();
 
-    let mut parse = Schedule::new(Parse);
-    parse.add_systems((
-        prefixes,
-        systems::triples,
-        derive_prefix_links.after(prefixes),
-        derive_classes.after(systems::triples),
-        derive_properties.after(systems::triples),
-        fetch_lov_properties::<C>.after(prefixes),
-        extract_type_hierarchy.after(systems::triples),
-        infer_types.after(systems::triples),
-        derive_shapes.after(systems::triples),
-    ));
-    world.add_schedule(parse);
-
-    let mut completion = Schedule::new(Completion);
-    println!("Setting completion systems");
-    completion.add_systems((
-        get_current_token,
-        keyword_complete.after(get_current_token),
-        get_current_triple.after(get_current_token),
-        complete_class.after(get_current_triple),
-        complete_properties.after(get_current_triple),
-        defined_prefix_completion.after(get_current_token),
-    ));
-    world.add_schedule(completion);
-
-    let mut hover = Schedule::new(Hover);
-    hover.add_systems((
-        infer_types,
-        get_current_token,
-        get_current_triple.after(get_current_token),
-        hover_types
-            .before(hover_class)
-            .before(hover_property)
-            .after(get_current_token)
-            .after(infer_types),
-        hover_class.after(get_current_token),
-        hover_property.after(get_current_token),
-    ));
-    world.add_schedule(hover);
-
-    let mut diagnostics = Schedule::new(Diagnostics);
-    diagnostics.add_systems((systems::undefined_prefix,));
-    world.add_schedule(diagnostics);
-
-    let mut on_save = Schedule::new(OnSave);
-    on_save.add_systems((validate_shapes,));
-    world.add_schedule(on_save);
-
-    let mut prepare_rename = Schedule::new(PrepareRename);
-    prepare_rename.add_systems((
-        get_current_token,
-        systems::prepare_rename.after(get_current_token),
-    ));
-    world.add_schedule(prepare_rename);
-
-    let mut rename = Schedule::new(Rename);
-    rename.add_systems((get_current_token, systems::rename.after(get_current_token)));
-    world.add_schedule(rename);
+    parse::setup_schedule::<C>(world);
+    hover::setup_schedule(world);
+    completion::setup_schedule(world);
+    rename::setup_schedules(world);
+    diagnostics::setup_schedule(world);
+    save::setup_schedule(world);
+    format::setup_schedule(world);
+    inlay::setup_schedule(world);
+    semantic::setup_world(world);
 
     world.add_schedule(Schedule::new(Tasks));
-    world.add_schedule(Schedule::new(Format));
-    let inlay = Schedule::new(Inlay);
-    // inlay.add_systems(inlay_triples);
-    world.add_schedule(inlay);
-
-    let mut semantic_tokens = Schedule::new(systems::SemanticTokensSchedule);
-    semantic_tokens.add_systems((
-        basic_semantic_tokens,
-        semantic_tokens_system.after(basic_semantic_tokens),
-    ));
-    world.add_schedule(semantic_tokens);
 }
 
 /// Event triggers when a document is opened
@@ -149,7 +88,7 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
 /// }
 ///
 /// let mut world = World::new();
-/// // This example tells the ECS system that the document is Turtle, 
+/// // This example tells the ECS system that the document is Turtle,
 /// // adding Turtle specific components
 /// world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
 ///     match &trigger.event().language_id {
@@ -176,26 +115,6 @@ pub struct CreateEvent {
     pub language_id: Option<String>,
 }
 
-/// [`ScheduleLabel`] related to the Hover schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Hover;
-
-/// [`ScheduleLabel`] related to the Parse schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Parse;
-
-/// [`ScheduleLabel`] related to the Completion schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Completion;
-
-/// [`ScheduleLabel`] related to the Diagnostics schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Diagnostics;
-
-/// [`ScheduleLabel`] related to the OnSave schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct OnSave;
-
 /// [`ScheduleLabel`] related to the Tasks schedule
 /// This schedule is used for async tasks, things that should be done at some point.
 ///
@@ -203,19 +122,3 @@ pub struct OnSave;
 /// [`CommandSender`](components::CommandSender)
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Tasks;
-
-/// [`ScheduleLabel`] related to the Format schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Format;
-
-/// [`ScheduleLabel`] related to the PrepareRename schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct PrepareRename;
-
-/// [`ScheduleLabel`] related to the Rename schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Rename;
-
-/// [`ScheduleLabel`] related to the Inlay schedule
-#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
-pub struct Inlay;

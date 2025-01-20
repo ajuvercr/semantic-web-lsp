@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr as _};
 
-use crate::{client::Client, components::*, systems::spawn_or_insert, Parse};
+use crate::{client::Client, components::*, prelude::ParseLabel, systems::spawn_or_insert};
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
 use lsp_types::TextDocumentItem;
@@ -109,7 +109,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
                     command_queue.push(move |world: &mut World| {
                         spawn(world);
-                        world.run_schedule(Parse);
+                        world.run_schedule(ParseLabel);
                     });
 
                     let _ = sender.0.clone().start_send(command_queue);
@@ -155,7 +155,7 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
                                 command_queue.push(move |world: &mut World| {
                                     spawn(world);
-                                    world.run_schedule(Parse);
+                                    world.run_schedule(ParseLabel);
                                 });
 
                                 let _ = sender.start_send(command_queue);

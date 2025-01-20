@@ -10,9 +10,11 @@ use bevy_ecs::prelude::*;
 
 use crate::{
     components::{
-        Dirty, HoverRequest, Prefixes, TokenComponent, Triples, TypeHierarchy,
+        Dirty, HoverRequest, Prefixes, TypeHierarchy,
         Types,
     },
+    util::token::TokenComponent,
+    util::triple::Triples,
     ns::rdfs,
 };
 

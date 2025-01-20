@@ -1,8 +1,8 @@
-pub use crate::features::completion::SimpleCompletion;
-pub use crate::features::diagnostic::{
-    systems as diagnostic_systems, DiagnosticItem, DiagnosticPublisher, DiagnosticSender,
-};
 pub use crate::utils::*;
+
+pub use crate::feature::*;
+pub use crate::util::token::*;
+pub use crate::util::triple::*;
 
 pub mod systems {
     pub use crate::systems::*;

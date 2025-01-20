@@ -8,21 +8,16 @@ use crate::{
     lang::{Lang, LangHelper},
     prelude::*,
     systems::TypeId,
-    token::Token,
-    triples::{MyQuad, MyTerm},
+    util::{
+        token::Token,
+        triple::{MyQuad, MyTerm},
+    },
 };
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use lsp_types::{Position, Range, SemanticToken, SemanticTokenType};
 use sophia_api::{prelude::Dataset, quad::Quad as _, term::matcher::TermMatcher};
-
-/// [`Component`] that contains the parsed tokens.
-///
-/// [`crate`] defines systems (like [`get_current_token`](crate::prelude::systems::get_current_token)) that depend
-/// on Tokens to deduce [`TokenComponent`] during the [`Completion`](crate::Completion) schedule.
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Tokens(pub Vec<Spanned<crate::token::Token>>);
 
 /// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
@@ -171,37 +166,9 @@ pub struct DocumentLinks(pub Vec<(lsp_types::Url, &'static str)>);
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct PositionComponent(pub Position);
 
-/// [`Component`] used to indicate the currently targeted [`Token`] during a request.
-#[derive(Component, Debug)]
-pub struct TokenComponent {
-    pub token: Spanned<crate::token::Token>,
-    pub range: lsp_types::Range,
-    pub text: String,
-}
-
-/// [`Component`] used to indicate the term type of currently targeted [`Token`] in the Triple.
-#[derive(Debug, PartialEq)]
-pub enum TripleTarget {
-    Subject,
-    Predicate,
-    Object,
-    Graph,
-}
-
-/// [`Component`] used to indicate the currently targeted [`MyQuad<'static>`] during a request.
-#[derive(Component, Debug)]
-pub struct TripleComponent {
-    pub triple: MyQuad<'static>,
-    pub target: TripleTarget,
-}
-
 /// [`Component`] containing the typical keywords for the current language.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct KeyWords(pub Vec<&'static str>);
-
-/// [`Component`] indicating that the current document is currently handling a Completion request.
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct CompletionRequest(pub Vec<SimpleCompletion>);
 
 /// [`Component`] indicating that the current document is currently handling a Hightlight request.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
@@ -326,46 +293,5 @@ impl<'a> TypeHierarchy<'a> {
 
             None
         })
-    }
-}
-
-/// [`Component`] containing all derived Triples from the documents.
-///
-/// These triples are used to derive properties and classes and other things.
-#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
-pub struct Triples(pub Vec<MyQuad<'static>>);
-
-impl Triples {
-    pub fn object<'s, S, P>(&'s self, subj: S, pred: P) -> Option<&MyTerm<'_>>
-    where
-        S: TermMatcher + 's,
-        P: TermMatcher + 's,
-    {
-        self.0
-            .quads_matching(
-                subj,
-                pred,
-                sophia_api::prelude::Any,
-                sophia_api::prelude::Any,
-            )
-            .flatten()
-            .next()
-            .map(|x| x.o())
-    }
-
-    pub fn objects<'s, S, P>(&'s self, subj: S, pred: P) -> impl Iterator<Item = &MyTerm<'_>>
-    where
-        S: TermMatcher + 's,
-        P: TermMatcher + 's,
-    {
-        self.0
-            .quads_matching(
-                subj,
-                pred,
-                sophia_api::prelude::Any,
-                sophia_api::prelude::Any,
-            )
-            .flatten()
-            .map(|x| x.o())
     }
 }
