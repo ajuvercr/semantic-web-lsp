@@ -841,6 +841,7 @@ dependencies = [
 [[package]]
 name = "dctap"
 version = "0.1.43"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "calamine",
  "csv",
@@ -1616,7 +1617,8 @@ checksum = "ddc24109865250148c2e0f3d25d4f0f479571723792d3802153c60922a4fb708"
 
 [[package]]
 name = "iri_s"
-version = "0.1.32"
+version = "0.1.58"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "lazy_static",
  "oxiri",
@@ -2422,6 +2424,7 @@ dependencies = [
 [[package]]
 name = "prefixmap"
 version = "0.1.53"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "colored",
  "indexmap 2.7.0",
@@ -2564,6 +2567,7 @@ dependencies = [
 [[package]]
 name = "rbe"
 version = "0.1.29"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "hashbag",
  "indexmap 2.7.0",
@@ -2744,7 +2748,8 @@ dependencies = [
 
 [[package]]
 name = "rudof_lib"
-version = "0.1.57"
+version = "0.1.58"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "dctap",
  "iri_s",
@@ -3050,6 +3055,7 @@ dependencies = [
 [[package]]
 name = "shacl_ast"
 version = "0.1.53"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "const_format",
  "iri_s",
@@ -3072,6 +3078,7 @@ dependencies = [
 [[package]]
 name = "shacl_validation"
 version = "0.1.52"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "clap",
  "colored",
@@ -3091,6 +3098,7 @@ dependencies = [
 [[package]]
 name = "shapemap"
 version = "0.1.53"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "colored",
  "indexmap 2.7.0",
@@ -3108,7 +3116,8 @@ dependencies = [
 
 [[package]]
 name = "shapes_converter"
-version = "0.1.40"
+version = "0.1.59"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "chrono",
  "colored",
@@ -3147,7 +3156,8 @@ dependencies = [
 
 [[package]]
 name = "shex_ast"
-version = "0.1.49"
+version = "0.1.58"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "const_format",
  "iri_s",
@@ -3170,6 +3180,7 @@ dependencies = [
 [[package]]
 name = "shex_compact"
 version = "0.1.52"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "colored",
  "iri_s",
@@ -3193,6 +3204,7 @@ dependencies = [
 [[package]]
 name = "shex_validation"
 version = "0.1.39"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "async-recursion",
  "colored",
@@ -3341,6 +3353,7 @@ dependencies = [
 [[package]]
 name = "sparql_service"
 version = "0.1.55"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "colored",
  "const_format",
@@ -3375,7 +3388,8 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "srdf"
-version = "0.1.57"
+version = "0.1.58"
+source = "git+https://github.com/ajuvercr/rudof.git#e24c023a6a588fa239801ad4a178036d59a0c30e"
 dependencies = [
  "async-trait",
  "colored",

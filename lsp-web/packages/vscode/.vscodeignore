@@ -4,7 +4,7 @@ src/**
 out/**
 node_modules/**
 dist/test/**
-.gitignore
+**/.gitignore
 vsc-extension-quickstart.md
 esbuild.js
 .yarnrc

@@ -136,7 +136,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ language: "turtle" }],
+    documentSelector: [
+      { language: "turtle" },
+      { language: "jsonld" },
+      {
+        language: "sparql",
+      },
+    ],
     synchronize: {},
     initializationOptions: {},
   };

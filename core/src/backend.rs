@@ -125,23 +125,23 @@ impl LanguageServer for Backend {
                                         DocumentFilter {
                                             language: Some(String::from("turtle")),
                                             scheme: None,
-                                            pattern: Some(String::from("*.ttl")),
+                                            pattern: None,
                                         },
                                         DocumentFilter {
                                             language: Some(String::from("jsonld")),
                                             scheme: None,
-                                            pattern: Some(String::from("*.jsonld")),
+                                            pattern: None,
                                         },
                                         DocumentFilter {
                                             language: Some(String::from("sparql")),
                                             scheme: None,
-                                            pattern: Some(String::from("*.sq")),
+                                            pattern: None,
                                         },
-                                        DocumentFilter {
-                                            language: Some(String::from("sparql")),
-                                            scheme: None,
-                                            pattern: Some(String::from("*.rq")),
-                                        },
+                                        // DocumentFilter {
+                                        //     language: Some(String::from("sparql")),
+                                        //     scheme: None,
+                                        //     pattern: Some(String::from("*.rq")),
+                                        // },
                                     ]),
                                 }
                             },
