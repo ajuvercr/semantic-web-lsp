@@ -1,14 +1,15 @@
 use bevy_ecs::prelude::*;
 use lsp_core::{
     components::{Element, HighlightRequest},
-    prelude::*,
     feature::semantic::TokenTypesComponent,
+    prelude::*,
 };
 use lsp_types::SemanticTokenType;
 // use semantic::TokenTypesComponent;
 use sophia_api::term::{Term, TermKind};
 
-use crate::{parser, JsonLd};
+use crate::lang::parser;
+use crate::JsonLd;
 
 fn walk_json(json: &Spanned<parser::Json>, ttc: &mut Vec<Spanned<SemanticTokenType>>) {
     let check_token =

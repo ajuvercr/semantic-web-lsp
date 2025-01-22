@@ -5,13 +5,13 @@
   "license": "MIT",
   "displayName": "semantic web lsp",
   "description": "A language server for semantic web standards",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.90.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ajuvercr/seamntic-web-lsp.git"
+    "url": "git+https://github.com/ajuvercr/semantic-web-lsp.git"
   },
   "categories": [
     "Programming Languages",
@@ -105,7 +105,7 @@
   "devDependencies": {
     "@types/assert": "^1.5.11",
     "@types/mocha": "^10.0.10",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "^1.90.0",
     "@types/webpack-env": "^1.18.5",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
@@ -127,7 +127,7 @@
     "vscode-languageserver-protocol": "^3.17.5"
   },
   "bugs": {
-    "url": "https://github.com/ajuvercr/seamntic-web-lsp/issues"
+    "url": "https://github.com/ajuvercr/semantic-web-lsp/issues"
   },
-  "homepage": "https://github.com/ajuvercr/seamntic-web-lsp#readme"
+  "homepage": "https://github.com/ajuvercr/semantic-web-lsp#readme"
 }

@@ -396,9 +396,9 @@ fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
 
 #[cfg(test)]
 mod tests {
-    use lsp_core::prelude::StringStyle;
-    use crate::tokenizer::tokenize;
     use super::*;
+    use crate::tokenizer::tokenize;
+    use lsp_core::prelude::StringStyle;
 
     #[test]
     fn parse_json_simple() {

@@ -8,14 +8,11 @@ use lsp_core::{
 };
 use lsp_types::SemanticTokenType;
 use ropey::Rope;
-use systems::{highlight_named_nodes, keyword_highlight, setup_parse};
 
-use self::parser::Json;
-
-pub mod parser;
-pub mod systems;
-pub mod tokenizer;
-pub mod triples;
+pub mod ecs;
+pub mod lang;
+use crate::ecs::{highlight_named_nodes, keyword_highlight, setup_parse};
+use crate::lang::parser::Json;
 
 pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();

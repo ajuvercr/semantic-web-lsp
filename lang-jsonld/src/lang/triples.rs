@@ -5,7 +5,7 @@ use lsp_core::{
     prelude::*,
 };
 
-use crate::parser::{Json, ObjectMember};
+use crate::lang::parser::{Json, ObjectMember};
 
 fn visit_obj(json: &Spanned<Json>, f: &mut dyn FnMut(&[Spanned<ObjectMember>], &Range<usize>)) {
     match json.value() {

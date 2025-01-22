@@ -2,7 +2,13 @@ use bevy_ecs::system::Resource;
 use futures::FutureExt;
 use lsp_core::client::{Client, ClientSync, Resp};
 use lsp_types::{Diagnostic, MessageType, Url};
-use std::{collections::HashMap, fmt::Display, future::Future, pin::Pin, task::{Context, Poll}};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 use tracing::info;
 
 use crate::fetch::local_fetch;
