@@ -3,7 +3,7 @@ use lang_turtle::lang::model::TurtlePrefix;
 use lang_turtle::lang::parser::{named_node, triple};
 use lsp_core::prelude::{spanned, Spanned, SparqlExpr, SparqlKeyword, Token};
 
-use crate::model::{
+use crate::lang::model::{
     Base, Bind, DatasetClause, Expression, GroupGraphPattern, GroupGraphPatternSub, Modifier,
     Prologue, Query, QueryClause, SelectClause, Solution, SubSelect, Variable, WhereClause,
 };

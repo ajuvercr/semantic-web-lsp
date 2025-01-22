@@ -7,7 +7,8 @@ use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_hel
 use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
 
-use crate::{parsing::parse, tokenizer::tokenize, Sparql};
+use crate::lang::{parsing::parse, tokenizer::tokenize};
+use crate::Sparql;
 
 pub fn setup_parse(world: &mut World) {
     use lsp_core::feature::parse::*;

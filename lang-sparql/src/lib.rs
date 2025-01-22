@@ -10,14 +10,14 @@ use lsp_core::{
     CreateEvent,
 };
 use lsp_types::SemanticTokenType;
-use model::Query;
-use systems::{setup_completion, setup_parse};
 
-pub mod parsing;
-pub mod tokenizer;
-
-pub mod model;
-pub mod systems;
+pub mod ecs;
+use crate::ecs::{setup_completion, setup_parse};
+pub mod lang;
+// pub mod model;
+// use crate::model::Query;
+// pub mod parsing;
+// pub mod tokenizer;
 
 pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();
@@ -68,7 +68,7 @@ impl Lang for Sparql {
 
     type TokenError = Simple<char>;
 
-    type Element = Query;
+    type Element = crate::lang::model::Query;
 
     type ElementError = (usize, Simple<Token>);
 
