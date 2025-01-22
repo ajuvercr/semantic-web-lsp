@@ -1,9 +1,8 @@
-use sophia_iri::resolve::{BaseIri, IriParseError};
-use tracing::info;
+use std::{collections::HashSet, fmt::Display, ops::Range};
 
 use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, Triples2};
-use std::collections::HashSet;
-use std::{fmt::Display, ops::Range};
+use sophia_iri::resolve::{BaseIri, IriParseError};
+use tracing::info;
 
 pub trait Based {
     fn get_base(&self) -> &lsp_types::Url;

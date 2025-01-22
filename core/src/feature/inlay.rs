@@ -1,5 +1,4 @@
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::world::World;
+use bevy_ecs::{schedule::ScheduleLabel, world::World};
 
 /// [`ScheduleLabel`] related to the Inlay schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

@@ -1,14 +1,12 @@
-use bevy_ecs::schedule::IntoSystemConfigs;
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::world::World;
+use bevy_ecs::{
+    schedule::{IntoSystemConfigs, Schedule, ScheduleLabel},
+    world::World,
+};
 
-pub use crate::systems::hover_class;
-pub use crate::systems::hover_property;
-pub use crate::systems::hover_types;
-pub use crate::systems::infer_types;
-pub use crate::util::token::get_current_token;
-pub use crate::util::triple::get_current_triple;
+pub use crate::{
+    systems::{hover_class, hover_property, hover_types, infer_types},
+    util::{token::get_current_token, triple::get_current_triple},
+};
 
 /// [`ScheduleLabel`] related to the Parse schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

@@ -1,6 +1,5 @@
 use bevy_ecs::{schedule::IntoSystemConfigs as _, world::World};
 use lsp_core::prelude::*;
-
 mod highlight;
 pub use highlight::*;
 

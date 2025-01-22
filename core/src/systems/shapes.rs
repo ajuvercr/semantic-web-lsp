@@ -1,9 +1,5 @@
 use std::collections::HashMap;
 
-use crate::{
-    components::*, feature::diagnostics::DiagnosticPublisher, util::range_to_range,
-    util::triple::Triples,
-};
 use bevy_ecs::prelude::*;
 use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
@@ -19,6 +15,12 @@ use rudof_lib::{
 };
 use sophia_api::prelude::Quad as _;
 use tracing::info;
+
+use crate::{
+    components::*,
+    feature::diagnostics::DiagnosticPublisher,
+    util::{range_to_range, triple::Triples},
+};
 
 // use super::diagnostics::DiagnosticPublisher;
 

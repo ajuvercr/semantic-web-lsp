@@ -1,8 +1,9 @@
 use std::{hash::Hash, ops::Range};
 
-use crate::{feature::diagnostics::SimpleDiagnostic, prelude::*};
 use lsp_types::SemanticTokenType;
 use ropey::Rope;
+
+use crate::{feature::diagnostics::SimpleDiagnostic, prelude::*};
 
 pub fn head() -> lsp_types::Range {
     let start = lsp_types::Position {

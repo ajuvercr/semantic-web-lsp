@@ -1,5 +1,4 @@
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::world::World;
+use bevy_ecs::{schedule::ScheduleLabel, world::World};
 
 pub use crate::systems::validate_shapes;
 

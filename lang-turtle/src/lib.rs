@@ -1,12 +1,11 @@
-use bevy_ecs::component::Component;
-use bevy_ecs::observer::Trigger;
-use bevy_ecs::system::Commands;
-use bevy_ecs::world::World;
+use bevy_ecs::{component::Component, observer::Trigger, system::Commands, world::World};
 use chumsky::prelude::Simple;
-use lsp_core::feature::diagnostics::publish_diagnostics;
-use lsp_core::lang::{Lang, LangHelper};
-use lsp_core::prelude::*;
-use lsp_core::CreateEvent;
+use lsp_core::{
+    feature::diagnostics::publish_diagnostics,
+    lang::{Lang, LangHelper},
+    prelude::*,
+    CreateEvent,
+};
 use lsp_types::SemanticTokenType;
 
 pub mod ecs;

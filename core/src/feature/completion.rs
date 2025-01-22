@@ -1,20 +1,14 @@
-use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::ScheduleLabel;
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use lsp_types::CompletionItem;
-use lsp_types::CompletionItemKind;
-use lsp_types::CompletionItemLabelDetails;
-use lsp_types::CompletionTextEdit;
-use lsp_types::Documentation;
-use lsp_types::InsertTextFormat;
-use lsp_types::TextEdit;
+use lsp_types::{
+    CompletionItem, CompletionItemKind, CompletionItemLabelDetails, CompletionTextEdit,
+    Documentation, InsertTextFormat, TextEdit,
+};
 
-pub use crate::systems::complete_class;
-pub use crate::systems::complete_properties;
-pub use crate::systems::defined_prefix_completion;
-pub use crate::systems::keyword_complete;
-pub use crate::util::token::get_current_token;
-pub use crate::util::triple::get_current_triple;
+pub use crate::{
+    systems::{complete_class, complete_properties, defined_prefix_completion, keyword_complete},
+    util::{token::get_current_token, triple::get_current_triple},
+};
 
 /// [`ScheduleLabel`] related to the Completion schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

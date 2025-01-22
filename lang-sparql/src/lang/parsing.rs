@@ -1,6 +1,8 @@
 use chumsky::{prelude::*, Error};
-use lang_turtle::lang::model::TurtlePrefix;
-use lang_turtle::lang::parser::{named_node, triple};
+use lang_turtle::lang::{
+    model::TurtlePrefix,
+    parser::{named_node, triple},
+};
 use lsp_core::prelude::{spanned, Spanned, SparqlExpr, SparqlKeyword, Token};
 
 use crate::lang::model::{
@@ -263,9 +265,8 @@ pub fn parse(
 mod tests {
     use chumsky::Stream;
 
-    use crate::{parsing::select_clause, tokenizer};
-
     use super::*;
+    use crate::{parsing::select_clause, tokenizer};
     pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(
         turtle: &str,
         parser: P,

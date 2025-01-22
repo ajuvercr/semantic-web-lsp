@@ -1,12 +1,10 @@
-use bevy_ecs::prelude::*;
-use bevy_ecs::{system::Query, world::World};
-use lsp_core::components::*;
-use lsp_core::feature::*;
-
-use crate::TurtleLang;
+use bevy_ecs::{prelude::*, system::Query, world::World};
 use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use format::format_turtle_system;
+use lsp_core::{components::*, feature::*};
 use parse::{derive_triples, parse_source, parse_turtle_system};
+
+use crate::TurtleLang;
 
 mod completion;
 mod format;
@@ -76,7 +74,10 @@ fn derive_prefixes(
 mod tests {
     use chumsky::chain::Chain;
     use futures::executor::block_on;
-    use lsp_core::{components::*, prelude::diagnostics::DiagnosticItem, prelude::*};
+    use lsp_core::{
+        components::*,
+        prelude::{diagnostics::DiagnosticItem, *},
+    };
     use ropey::Rope;
     use test_utils::{create_file, setup_world, TestClient};
 

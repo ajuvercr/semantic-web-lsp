@@ -8,8 +8,7 @@ use lsp_types::SemanticTokenType;
 // use semantic::TokenTypesComponent;
 use sophia_api::term::{Term, TermKind};
 
-use crate::lang::parser;
-use crate::JsonLd;
+use crate::{lang::parser, JsonLd};
 
 fn walk_json(json: &Spanned<parser::Json>, ttc: &mut Vec<Spanned<SemanticTokenType>>) {
     let check_token =

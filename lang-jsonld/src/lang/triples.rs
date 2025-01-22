@@ -207,12 +207,11 @@ mod tests {
     use lsp_core::prelude::{MyQuad, Spanned};
     use sophia_api::term::{Term, TermKind};
 
+    use super::{derive_prefixes, derive_triples};
     use crate::{
         parser::{parse, Json},
         tokenizer::tokenize,
     };
-
-    use super::{derive_prefixes, derive_triples};
 
     fn parse_json(st: &str) -> Option<Spanned<Json>> {
         let (tok, es) = tokenize(st);

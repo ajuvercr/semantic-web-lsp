@@ -50,9 +50,7 @@ impl Write for LogItWriter {
 }
 
 fn setup_global_subscriber(logit: bool) {
-    use tracing_subscriber::fmt;
-    use tracing_subscriber::fmt::format::Pretty;
-    use tracing_subscriber::prelude::*;
+    use tracing_subscriber::{fmt, fmt::format::Pretty, prelude::*};
     use tracing_web::performance_layer;
 
     if logit {

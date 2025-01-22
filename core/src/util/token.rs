@@ -1,13 +1,11 @@
-use bevy_ecs::prelude::*;
 use std::ops::Range;
 
+use bevy_ecs::prelude::*;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
 use tracing::{debug, instrument};
 
-use crate::components::*;
-use crate::lang::TokenTrait;
-use crate::prelude::*;
+use crate::{components::*, lang::TokenTrait, prelude::*};
 
 /// [`Component`] used to indicate the currently targeted [`Token`] during a request.
 #[derive(Component, Debug)]

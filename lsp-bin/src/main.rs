@@ -1,23 +1,18 @@
-use bevy_ecs::system::Resource;
-use bevy_ecs::world::World;
-use futures::channel::mpsc::unbounded;
-use futures::StreamExt as _;
+use std::{fs::File, io, sync::Mutex};
+
+use bevy_ecs::{system::Resource, world::World};
+use futures::{channel::mpsc::unbounded, StreamExt as _};
 use lsp_bin::TowerClient;
-use lsp_core::backend::Backend;
-use lsp_core::client::Client;
-use lsp_core::client::ClientSync;
-use lsp_core::components::CommandSender;
-use lsp_core::components::SemanticTokensDict;
-use lsp_core::prelude::diagnostics::DiagnosticPublisher;
-use lsp_core::setup_schedule_labels;
+use lsp_core::{
+    backend::Backend,
+    client::{Client, ClientSync},
+    components::{CommandSender, SemanticTokensDict},
+    prelude::diagnostics::DiagnosticPublisher,
+    setup_schedule_labels,
+};
 use lsp_types::SemanticTokenType;
-use std::fs::File;
-use std::io;
-use std::sync::Mutex;
-use tower_lsp::LspService;
-use tower_lsp::Server;
-use tracing::info;
-use tracing::Level;
+use tower_lsp::{LspService, Server};
+use tracing::{info, Level};
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,

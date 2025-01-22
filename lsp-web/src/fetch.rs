@@ -6,7 +6,6 @@ use std::collections::HashMap;
 //     pub use reqwest::StatusCode;
 //     pub use reqwest::Url;
 // }
-
 use lsp_core::{
     // client::reqwest::{HeaderMap, HeaderName, HeaderValue, Url},
     client::Resp,

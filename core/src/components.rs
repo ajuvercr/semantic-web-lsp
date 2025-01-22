@@ -4,16 +4,17 @@ use std::{
     fmt::Debug,
 };
 
+use bevy_ecs::{prelude::*, world::CommandQueue};
+use derive_more::{AsMut, AsRef, Deref, DerefMut};
+use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
+use lsp_types::{Position, Range, SemanticToken, SemanticTokenType};
+
 use crate::{
     lang::{Lang, LangHelper},
     prelude::*,
     systems::TypeId,
     util::token::Token,
 };
-use bevy_ecs::{prelude::*, world::CommandQueue};
-use derive_more::{AsMut, AsRef, Deref, DerefMut};
-use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use lsp_types::{Position, Range, SemanticToken, SemanticTokenType};
 
 /// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]

@@ -1,11 +1,10 @@
 use bevy_ecs::prelude::*;
-
-use crate::lang::model::NamedNode;
-use crate::TurtleLang;
 use completion::{CompletionRequest, SimpleCompletion};
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_types::CompletionItemKind;
 use tracing::debug;
+
+use crate::{lang::model::NamedNode, TurtleLang};
 
 pub fn turtle_lov_undefined_prefix_completion(
     mut query: Query<(

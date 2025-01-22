@@ -1,8 +1,10 @@
-use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::ScheduleLabel;
-use client::Client;
-use components::{SemanticTokensDict, TypeHierarchy};
-use feature::{completion, diagnostics, format, hover, inlay, parse, rename, save, semantic};
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
+
+use crate::{
+    client::Client,
+    components::{SemanticTokensDict, TypeHierarchy},
+    feature::{completion, diagnostics, format, hover, inlay, parse, rename, save, semantic},
+};
 
 /// Main language tower_lsp server implementation.
 ///

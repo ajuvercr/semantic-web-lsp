@@ -1,13 +1,14 @@
-use crate::prelude::*;
+use bevy_ecs::prelude::*;
+
 use crate::{
     components::{
         CommandReceiver, DocumentLinks, DynLang, InlayRequest, Label, PositionComponent, Prefixes,
         PrepareRenameRequest, RenameEdits, RopeC, Wrapped,
     },
+    prelude::*,
     util::{offset_to_position, range_to_range},
     CreateEvent,
 };
-use bevy_ecs::prelude::*;
 
 mod shapes;
 use completion::{CompletionRequest, SimpleCompletion};
@@ -24,7 +25,6 @@ pub use properties::{
 };
 mod lov;
 pub use lov::fetch_lov_properties;
-
 use tracing::{debug, instrument};
 
 pub fn spawn_or_insert(

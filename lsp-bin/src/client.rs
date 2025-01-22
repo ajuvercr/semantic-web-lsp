@@ -1,15 +1,16 @@
+use std::{collections::HashMap, fmt::Display, pin::Pin};
+
 use bevy_ecs::system::Resource;
 use futures::FutureExt;
 use lsp_core::client::{Client, ClientSync, Resp};
 use lsp_types::{Diagnostic, MessageType, Url};
-use std::{collections::HashMap, fmt::Display, pin::Pin};
 use tracing::info;
 
 pub mod reqwest {
-    pub use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-    pub use reqwest::Error;
-    pub use reqwest::StatusCode;
-    pub use reqwest::Url;
+    pub use reqwest::{
+        header::{HeaderMap, HeaderName, HeaderValue},
+        Error, StatusCode, Url,
+    };
 }
 
 #[derive(Resource, Clone)]

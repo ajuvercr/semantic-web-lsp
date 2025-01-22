@@ -1,17 +1,14 @@
-use bevy_ecs::schedule::IntoSystemConfigs;
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::system::Resource;
-use bevy_ecs::world::World;
+use bevy_ecs::{
+    schedule::{IntoSystemConfigs, ScheduleLabel},
+    system::Resource,
+    world::World,
+};
 
 use crate::client::Client;
-
-pub use crate::systems::derive_classes;
-pub use crate::systems::derive_prefix_links;
-pub use crate::systems::derive_properties;
-pub use crate::systems::derive_shapes;
-pub use crate::systems::extract_type_hierarchy;
-pub use crate::systems::fetch_lov_properties;
-pub use crate::systems::infer_types;
+pub use crate::systems::{
+    derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
+    fetch_lov_properties, infer_types,
+};
 
 /// Parse schedule barrier, after this system, triples should be derived
 pub fn triples() {}

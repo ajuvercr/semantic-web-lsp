@@ -1,11 +1,11 @@
 use chumsky::prelude::*;
+use lsp_core::prelude::*;
 use tracing::info;
 
 use crate::lang::model::{
     Base, BlankNode, Literal, NamedNode, RDFLiteral, Term, Triple, Turtle, TurtlePrefix, Variable,
     PO,
 };
-use lsp_core::prelude::*;
 
 type S = std::ops::Range<usize>;
 
@@ -403,12 +403,11 @@ pub mod turtle_tests {
     use chumsky::{prelude::Simple, Parser, Stream};
     use lsp_core::prelude::{Spanned, Token};
 
+    use super::literal;
     use crate::{
         parser2::{blank_node, named_node, prefix, triple, turtle},
         tokenizer, BlankNode,
     };
-
-    use super::literal;
 
     pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(
         turtle: &str,

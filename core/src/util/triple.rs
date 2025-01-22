@@ -1,3 +1,5 @@
+use std::{borrow::Cow, hash::Hash, usize};
+
 use bevy_ecs::prelude::*;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use sophia_api::{
@@ -6,13 +8,14 @@ use sophia_api::{
     term::{matcher::TermMatcher, BnodeId, GraphName, IriRef, Term, TermKind},
     MownStr,
 };
-use std::{borrow::Cow, hash::Hash, usize};
 use tracing::{debug, instrument};
 
 use crate::{
     components::{PositionComponent, RopeC},
-    util::ns::{owl, rdfs},
-    util::position_to_offset,
+    util::{
+        ns::{owl, rdfs},
+        position_to_offset,
+    },
 };
 
 /// [`Component`] used to indicate the term type of currently targeted [`Token`] in the Triple.

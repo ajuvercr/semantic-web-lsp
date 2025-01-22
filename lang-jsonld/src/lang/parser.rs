@@ -5,7 +5,6 @@ use std::{
 
 use chumsky::{prelude::*, Error, Parser, Stream};
 use enum_methods::{EnumIntoGetters, EnumIsA, EnumToGetters};
-
 use lsp_core::prelude::{spanned, MyTerm, Spanned, Token};
 use Token::*;
 
@@ -396,9 +395,10 @@ fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
 
 #[cfg(test)]
 mod tests {
+    use lsp_core::prelude::StringStyle;
+
     use super::*;
     use crate::tokenizer::tokenize;
-    use lsp_core::prelude::StringStyle;
 
     #[test]
     fn parse_json_simple() {

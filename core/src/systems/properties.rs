@@ -1,19 +1,20 @@
-use crate::prelude::*;
-use crate::util::ns::*;
-use crate::util::triple::MyTerm;
-use bevy_ecs::prelude::*;
-use completion::CompletionRequest;
-use completion::SimpleCompletion;
-use lsp_types::CompletionItemKind;
-use lsp_types::TextEdit;
-use sophia_api::ns::rdfs;
-use sophia_api::prelude::{Any, Dataset};
-use sophia_api::quad::Quad as _;
-use sophia_api::term::Term;
 use std::borrow::Cow;
-use tracing::debug;
-use tracing::info;
-use tracing::instrument;
+
+use bevy_ecs::prelude::*;
+use completion::{CompletionRequest, SimpleCompletion};
+use lsp_types::{CompletionItemKind, TextEdit};
+use sophia_api::{
+    ns::rdfs,
+    prelude::{Any, Dataset},
+    quad::Quad as _,
+    term::Term,
+};
+use tracing::{debug, info, instrument};
+
+use crate::{
+    prelude::*,
+    util::{ns::*, triple::MyTerm},
+};
 
 pub struct DefinedClass {
     pub term: MyTerm<'static>,

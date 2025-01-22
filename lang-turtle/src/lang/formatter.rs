@@ -3,11 +3,10 @@ use std::{
     ops::Range,
 };
 
+use lsp_core::prelude::*;
 use lsp_types::FormattingOptions;
 use ropey::Rope;
 use tracing::info;
-
-use lsp_core::prelude::*;
 
 use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 

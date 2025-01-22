@@ -1,11 +1,12 @@
-use bevy_ecs::schedule::IntoSystemConfigs;
-use bevy_ecs::schedule::Schedule;
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::world::World;
+use bevy_ecs::{
+    schedule::{IntoSystemConfigs, Schedule, ScheduleLabel},
+    world::World,
+};
 
-pub use crate::systems::prepare_rename;
-pub use crate::systems::rename;
-pub use crate::util::token::get_current_token;
+pub use crate::{
+    systems::{prepare_rename, rename},
+    util::token::get_current_token,
+};
 
 /// [`ScheduleLabel`] related to the PrepareRename schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

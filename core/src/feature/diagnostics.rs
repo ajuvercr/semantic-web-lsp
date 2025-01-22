@@ -1,13 +1,12 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Range};
 
-use crate::{components::*, lang::Lang, util::offset_to_position};
-use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::ScheduleLabel;
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use chumsky::prelude::Simple;
 use futures::channel::mpsc;
 use lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url};
 
 pub use crate::systems::undefined_prefix;
+use crate::{components::*, lang::Lang, util::offset_to_position};
 /// [`ScheduleLabel`] related to the PrepareRename schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;

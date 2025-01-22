@@ -1,26 +1,27 @@
-use crate::components::{
-    CommandSender, FormatRequest, HighlightRequest, HoverRequest, InlayRequest, Label, Open,
-    PositionComponent, PrepareRenameRequest, RenameEdits, RopeC, Source, Types, Wrapped,
+use std::{collections::HashMap, sync::Arc};
+
+use bevy_ecs::{
+    bundle::Bundle,
+    component::Component,
+    entity::Entity,
+    schedule::ScheduleLabel,
+    world::{CommandQueue, World},
 };
-
-use crate::prelude::*;
-use crate::systems::spawn_or_insert;
-use bevy_ecs::bundle::Bundle;
-use bevy_ecs::component::Component;
-use bevy_ecs::entity::Entity;
-use bevy_ecs::schedule::ScheduleLabel;
-use bevy_ecs::world::{CommandQueue, World};
 use completion::CompletionRequest;
-use lsp_types::*;
-
 use futures::lock::Mutex;
+use lsp_types::*;
 use ropey::Rope;
+use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
-use std::collections::HashMap;
-use std::sync::Arc;
-use tower_lsp::jsonrpc::Result;
-use tower_lsp::LanguageServer;
+use crate::{
+    components::{
+        CommandSender, FormatRequest, HighlightRequest, HoverRequest, InlayRequest, Label, Open,
+        PositionComponent, PrepareRenameRequest, RenameEdits, RopeC, Source, Types, Wrapped,
+    },
+    prelude::*,
+    systems::spawn_or_insert,
+};
 
 #[derive(Debug)]
 pub struct Backend {

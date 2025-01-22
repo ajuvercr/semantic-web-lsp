@@ -1,6 +1,7 @@
-use bevy_ecs::prelude::*;
-use bevy_ecs::schedule::IntoSystemConfigs;
-use bevy_ecs::schedule::ScheduleLabel;
+use bevy_ecs::{
+    prelude::*,
+    schedule::{IntoSystemConfigs, ScheduleLabel},
+};
 use lsp_types::{SemanticToken, SemanticTokenType};
 
 use crate::{

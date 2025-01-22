@@ -1,11 +1,12 @@
 use std::{collections::HashMap, str::FromStr as _};
 
-use crate::{client::Client, components::*, prelude::ParseLabel, systems::spawn_or_insert};
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
 use lsp_types::TextDocumentItem;
 use serde::Deserialize;
 use tracing::info;
+
+use crate::{client::Client, components::*, prelude::ParseLabel, systems::spawn_or_insert};
 
 #[derive(Deserialize, Debug)]
 struct Version {

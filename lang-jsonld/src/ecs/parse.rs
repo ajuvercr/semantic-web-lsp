@@ -1,12 +1,14 @@
 use bevy_ecs::prelude::*;
-use lsp_core::components::*;
-use lsp_core::prelude::{Tokens, Triples};
+use lsp_core::{
+    components::*,
+    prelude::{Tokens, Triples},
+};
 use tracing::{info, instrument};
 
-use crate::lang::parser::parse;
-use crate::lang::tokenizer::tokenize;
-use crate::lang::triples;
-use crate::JsonLd;
+use crate::{
+    lang::{parser::parse, tokenizer::tokenize, triples},
+    JsonLd,
+};
 
 #[instrument(skip(query, commands))]
 pub fn parse_source(

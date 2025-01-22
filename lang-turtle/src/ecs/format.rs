@@ -1,12 +1,12 @@
 use bevy_ecs::prelude::*;
-
-use lsp_core::components::*;
-use lsp_core::prelude::{Spanned, Tokens};
+use lsp_core::{
+    components::*,
+    prelude::{Spanned, Tokens},
+};
 use lsp_types::{Position, Range};
 use tracing::info;
 
-use crate::lang::formatter::format_turtle;
-use crate::TurtleLang;
+use crate::{lang::formatter::format_turtle, TurtleLang};
 
 pub fn format_turtle_system(
     mut query: Query<(&RopeC, &Element<TurtleLang>, &Tokens, &mut FormatRequest), Without<Dirty>>,
@@ -50,9 +50,10 @@ pub fn format_turtle_system(
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use lsp_core::prelude::FormatLabel;
     use test_utils::{create_file, setup_world, TestClient};
+
+    use super::*;
 
     // crate::setup_world::<TestClient>(&mut world);
     #[test]

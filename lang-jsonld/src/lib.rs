@@ -11,8 +11,10 @@ use ropey::Rope;
 
 pub mod ecs;
 pub mod lang;
-use crate::ecs::{highlight_named_nodes, keyword_highlight, setup_parse};
-use crate::lang::parser::Json;
+use crate::{
+    ecs::{highlight_named_nodes, keyword_highlight, setup_parse},
+    lang::parser::Json,
+};
 
 pub fn setup_world(world: &mut World) {
     let mut semantic_token_dict = world.resource_mut::<SemanticTokensDict>();

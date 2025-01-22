@@ -1,6 +1,4 @@
-use chumsky::chain::Chain;
-use chumsky::prelude::*;
-use chumsky::Parser;
+use chumsky::{chain::Chain, prelude::*, Parser};
 use lsp_core::util::token::{StringStyle, Token};
 
 #[macro_export]

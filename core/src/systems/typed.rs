@@ -1,18 +1,15 @@
 use std::borrow::Cow;
 
+use bevy_ecs::prelude::*;
 use sophia_api::{
     ns::rdf,
     prelude::{Any, Dataset},
     quad::Quad as _,
 };
 
-use bevy_ecs::prelude::*;
-
 use crate::{
     components::{Dirty, HoverRequest, Prefixes, TypeHierarchy, Types},
-    util::ns::rdfs,
-    util::token::TokenComponent,
-    util::triple::Triples,
+    util::{ns::rdfs, token::TokenComponent, triple::Triples},
 };
 
 #[derive(Default, Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
