@@ -1,12 +1,16 @@
-use bevy_ecs::{schedule::IntoSystemConfigs as _, system::Query, world::World};
-use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
-use formatting::format_turtle_system;
+use bevy_ecs::prelude::*;
+use bevy_ecs::{system::Query, world::World};
+use lsp_core::components::*;
 use lsp_core::feature::*;
-use parsing::{derive_triples, parse_source, parse_turtle_system};
+
+use crate::TurtleLang;
+use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
+use format::format_turtle_system;
+use parse::{derive_triples, parse_source, parse_turtle_system};
 
 mod completion;
-mod formatting;
-mod parsing;
+mod format;
+mod parse;
 
 pub fn setup_parsing(world: &mut World) {
     use lsp_core::feature::parse::*;
@@ -35,11 +39,6 @@ pub fn setup_completion(world: &mut World) {
         ));
     });
 }
-
-use bevy_ecs::prelude::*;
-use lsp_core::components::*;
-
-use crate::TurtleLang;
 
 fn derive_prefixes(
     query: Query<(Entity, &Label, &Element<TurtleLang>), Changed<Element<TurtleLang>>>,

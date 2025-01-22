@@ -9,9 +9,7 @@ use tracing::info;
 
 use lsp_core::prelude::*;
 
-use crate::TurtlePrefix;
-
-use super::{Base, BlankNode, Term, Triple, Turtle, PO};
+use crate::lang::model::{Base, BlankNode, Term, Triple, Turtle, TurtlePrefix, PO};
 
 #[allow(unused)]
 pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
@@ -413,8 +411,8 @@ impl FormatState<'_> {
 
     fn write_triple(&mut self, triple: &Triple) -> io::Result<()> {
         match &triple.subject.0 {
-            super::Term::BlankNode(bn) => self.write_bnode(bn)?,
-            super::Term::NamedNode(n) => write!(self.buf, "{}", n)?,
+            Term::BlankNode(bn) => self.write_bnode(bn)?,
+            Term::NamedNode(n) => write!(self.buf, "{}", n)?,
             _ => write!(self.buf, "invalid")?,
         }
         write!(self.buf, " ")?;
@@ -476,7 +474,7 @@ mod tests {
     use lsp_core::prelude::{spanned, Spanned};
     use ropey::Rope;
 
-    use crate::{formatter::format_turtle, parser2::turtle, tokenizer, Turtle};
+    use crate::lang::{formatter::format_turtle, model::Turtle, parser::turtle, tokenizer};
 
     #[derive(Debug)]
     pub enum Err {

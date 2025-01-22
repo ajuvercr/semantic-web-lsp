@@ -1,4 +1,6 @@
-use lang_turtle::{Based, NamedNode, Triple, TriplesBuilder, TurtlePrefix, TurtleSimpleError};
+use lang_turtle::lang::model::{
+    Based, NamedNode, Triple, TriplesBuilder, TurtlePrefix, TurtleSimpleError,
+};
 use lsp_core::prelude::{Spanned, SparqlKeyword, Token};
 
 fn rev_range(range: &std::ops::Range<usize>, len: usize) -> std::ops::Range<usize> {

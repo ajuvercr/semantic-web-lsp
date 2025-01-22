@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
-use lang_turtle::TriplesBuilder;
+use lang_turtle::lang::model::TriplesBuilder;
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;

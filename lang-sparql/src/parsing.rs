@@ -1,5 +1,6 @@
 use chumsky::{prelude::*, Error};
-use lang_turtle::{named_node, triple, TurtlePrefix};
+use lang_turtle::lang::model::TurtlePrefix;
+use lang_turtle::lang::parser::{named_node, triple};
 use lsp_core::prelude::{spanned, Spanned, SparqlExpr, SparqlKeyword, Token};
 
 use crate::model::{

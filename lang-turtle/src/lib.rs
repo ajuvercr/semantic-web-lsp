@@ -1,27 +1,18 @@
-mod formatter;
-mod model;
-mod parser2;
-mod systems;
-mod utils;
-
 use bevy_ecs::component::Component;
 use bevy_ecs::observer::Trigger;
 use bevy_ecs::system::Commands;
 use bevy_ecs::world::World;
-use diagnostics::publish_diagnostics;
+use chumsky::prelude::Simple;
+use lsp_core::feature::diagnostics::publish_diagnostics;
+use lsp_core::lang::{Lang, LangHelper};
 use lsp_core::prelude::*;
 use lsp_core::CreateEvent;
-pub use parser2::parse_turtle;
-pub mod tokenizer;
 use lsp_types::SemanticTokenType;
-use systems::{setup_completion, setup_formatting, setup_parsing};
 
-use chumsky::prelude::Simple;
-pub use model::*;
+pub mod ecs;
+pub mod lang;
 
-pub use parser2::*;
-
-use lsp_core::lang::{Lang, LangHelper};
+use crate::ecs::{setup_completion, setup_formatting, setup_parsing};
 
 #[derive(Component)]
 pub struct TurtleLang;
@@ -79,7 +70,7 @@ impl Lang for TurtleLang {
 
     type TokenError = Simple<char>;
 
-    type Element = model::Turtle;
+    type Element = crate::lang::model::Turtle;
 
     type ElementError = (usize, Simple<Token>);
 

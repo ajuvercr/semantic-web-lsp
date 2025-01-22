@@ -5,7 +5,7 @@ use lsp_core::prelude::{Spanned, Tokens};
 use lsp_types::{Position, Range};
 use tracing::info;
 
-use crate::formatter::format_turtle;
+use crate::lang::formatter::format_turtle;
 use crate::TurtleLang;
 
 pub fn format_turtle_system(

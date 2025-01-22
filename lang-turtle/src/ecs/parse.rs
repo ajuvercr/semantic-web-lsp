@@ -3,8 +3,8 @@ use chumsky::Parser;
 use lsp_core::prelude::*;
 use tracing::info;
 
+use crate::lang::{parser::parse_turtle, tokenizer::parse_tokens};
 use crate::TurtleLang;
-use crate::{parse_turtle, tokenizer::parse_tokens};
 
 // #[instrument(skip(query, commands), name = "parse_source")]
 pub fn parse_source(
