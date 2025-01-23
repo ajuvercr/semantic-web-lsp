@@ -5,7 +5,7 @@
   "license": "MIT",
   "displayName": "semantic web lsp",
   "description": "A language server for semantic web standards",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -96,6 +96,8 @@
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/index.js",
     "pretest": "npm run compile-web",
     "vscode:prepublish": "npm run package-web",
+    "package": "npx vsce package --baseImagesUrl https://raw.githubusercontent.com/ajuvercr/semantic-web-lsp/main/ --yarn",
+    "publish": "npx vsce publish --baseImagesUrl https://raw.githubusercontent.com/ajuvercr/semantic-web-lsp/main/ --yarn",
     "compile-web": "webpack",
     "watch-web": "webpack --watch",
     "package-web": "webpack --mode production --devtool hidden-source-map",
