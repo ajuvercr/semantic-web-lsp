@@ -1,6 +1,6 @@
 [config]
 default_to_workspace = false
-skip_core_tasks = true
+skip_core_tasks      = true
 
 [tasks.deps]
 script = '''
@@ -38,3 +38,8 @@ cd lsp-web
 npm run build:prod --workspace=packages/app
 ''''
 
+[tasks.build-docs]
+script = '''
+cargo doc --workspace --exclude lsp-web --lib
+cargo doc -p lsp-web --lib
+''''

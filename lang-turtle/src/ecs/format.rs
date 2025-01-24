@@ -1,8 +1,5 @@
 use bevy_ecs::prelude::*;
-use lsp_core::{
-    components::*,
-    prelude::{Spanned, Tokens},
-};
+use lsp_core::{components::*, prelude::*};
 use lsp_types::{Position, Range};
 use tracing::info;
 

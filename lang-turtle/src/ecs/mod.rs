@@ -1,7 +1,7 @@
 use bevy_ecs::{prelude::*, system::Query, world::World};
 use completion::{subject_completion, turtle_lov_undefined_prefix_completion};
 use format::format_turtle_system;
-use lsp_core::{components::*, feature::*};
+use lsp_core::prelude::*;
 use parse::{derive_triples, parse_source, parse_turtle_system};
 
 use crate::TurtleLang;

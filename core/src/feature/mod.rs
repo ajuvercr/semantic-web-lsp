@@ -1,3 +1,6 @@
+//! All features supported by the language server.
+//! Features like completion ([`CompletionRequest`](`completion::CompletionRequest`)) and hover expose a component that collects items returned to the
+//! client.
 pub mod completion;
 pub use completion::Label as CompletionLabel;
 pub mod hover;

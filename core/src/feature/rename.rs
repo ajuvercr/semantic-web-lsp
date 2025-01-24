@@ -1,4 +1,5 @@
 use bevy_ecs::{
+    component::Component,
     schedule::{IntoSystemConfigs, Schedule, ScheduleLabel},
     world::World,
 };
@@ -8,9 +9,21 @@ pub use crate::{
     util::token::get_current_token,
 };
 
+/// [`Component`] indicating that the current document is currently handling a PrepareRename request.
+#[derive(Component, Debug)]
+pub struct PrepareRenameRequest {
+    pub range: lsp_types::Range,
+    pub placeholder: String,
+}
+
 /// [`ScheduleLabel`] related to the PrepareRename schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct PrepareRename;
+
+/// [`Component`] indicating that the current document is currently handling a Rename request,
+/// collecting [TextEdits](`lsp_types::TextEdit`).
+#[derive(Component, Debug)]
+pub struct RenameEdits(pub Vec<(lsp_types::Url, lsp_types::TextEdit)>, pub String);
 
 /// [`ScheduleLabel`] related to the Rename schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]

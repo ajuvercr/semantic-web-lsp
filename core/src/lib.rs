@@ -1,10 +1,85 @@
-use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
+//! Core and common implementation for the semantic web language server.
+//!
+//! Proivdes the backbone for the [semantic web lsp binary](../lsp_bin/index.html) and [semantic web
+//! lsp wasm](../lsp_web/index.html).
+//!
+//! With the language server protocol, each different request is handled by an ECS schedule,
+//! combining different systems together.
+//! A system can generate new data and attach it to an entity, a document, or use this data to
+//! respond to requests.
+//!
+//! Language specific implementations that handle things like tokenizing and parsing are
+//! implemented in separate crates. The binary currently supports [Turtle](../lang_turtle/index.html), [JSON-LD](../lang_jsonld/index.html) and [SPARQL](../lang_sparql/index.html).
+//! The goal is that each language at least generates [`Tokens`](prelude::Tokens), [`Triples`](`prelude::Triples`) and
+//! [`Prefixes`](prelude::Prefixes).
+//! These components are then used to derive properties for autcompletion but also derive
+//! [`TokenComponent`](`prelude::TokenComponent`) and [`TripleComponent`](prelude::TripleComponent) enabling completion.
+//!
+//! The different schedules can be found at [`prelude::feature`].
+//!
+//! ## Example add completion for all subjects that start with `a`
+//! ```
+//! use bevy_ecs::prelude::*;
+//! use lsp_core::prelude::*;
+//! # use sophia_api::dataset::Dataset;
+//! # use sophia_api::prelude::Quad;
+//!
+//! // Define the extra data struct
+//! #[derive(Component)]
+//! struct MyCompletions {
+//!     subjects: Vec<String>,
+//! }
+//!
+//! // Define the generating system
+//! // Don't forget to add it to the ecs later
+//! fn generate_my_completion(
+//!   // Only derive the completions when the document is parsed fully, aka is not Dirty
+//!   query: Query<(Entity, &Triples), (Changed<Triples>, Without<Dirty>)>,
+//!   mut commands: Commands,
+//! ) {
+//!   for (e, triples) in &query {
+//!     let mut subjects = Vec::new();
+//!     for q in triples.quads().flatten() {
+//!       if q.s().as_str().starts_with('a') {
+//!         subjects.push(q.s().as_str().to_string());
+//!       }
+//!     }
+//!     commands.entity(e).insert(MyCompletions { subjects });
+//!   }
+//! }
+//!
+//! // Define a system that adds these completions to the completion request
+//! fn complete_my_completion(
+//!   mut query: Query<(
+//!     &TokenComponent, &TripleComponent, &MyCompletions, &mut CompletionRequest
+//!   )>,
+//! ) {
+//!   for (token, this_triple, completions, mut request) in &mut query {
+//!     if this_triple.target == TripleTarget::Subject {
+//!       for my_completion in &completions.subjects {
+//!         request.push(
+//!           SimpleCompletion::new(
+//!             lsp_types::CompletionItemKind::FIELD,
+//!             my_completion.clone(),
+//!             lsp_types::TextEdit {
+//!               range: token.range.clone(),
+//!               new_text: my_completion.clone(),
+//!             }
+//!           )
+//!         )
+//!       }
+//!     }
+//!   }
+//! }
+//! ```
+//! Note that [`Prefixes`](prelude::Prefixes) can help expand and shorten iri's in a document.
+//!
+//!
 
-use crate::{
-    client::Client,
-    components::{SemanticTokensDict, TypeHierarchy},
-    feature::{completion, diagnostics, format, hover, inlay, parse, rename, save, semantic},
-};
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
+use prelude::SemanticTokensDict;
+
+use crate::prelude::*;
 
 /// Main language tower_lsp server implementation.
 ///

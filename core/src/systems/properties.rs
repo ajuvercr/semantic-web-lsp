@@ -2,11 +2,12 @@ use std::borrow::Cow;
 
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
+use hover::HoverRequest;
 use lsp_types::{CompletionItemKind, TextEdit};
 use sophia_api::{
     ns::rdfs,
     prelude::{Any, Dataset},
-    quad::Quad as _,
+    quad::Quad,
     term::Term,
 };
 use tracing::{debug, info, instrument};

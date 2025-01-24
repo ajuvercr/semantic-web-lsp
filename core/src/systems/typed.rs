@@ -7,10 +7,7 @@ use sophia_api::{
     quad::Quad as _,
 };
 
-use crate::{
-    components::{Dirty, HoverRequest, Prefixes, TypeHierarchy, Types},
-    util::{ns::rdfs, token::TokenComponent, triple::Triples},
-};
+use crate::{prelude::*, util::ns::rdfs};
 
 #[derive(Default, Debug, Clone, Copy, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct TypeId(pub usize);

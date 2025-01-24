@@ -5,8 +5,8 @@ use chumsky::prelude::Simple;
 use futures::channel::mpsc;
 use lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url};
 
+use crate::prelude::*;
 pub use crate::systems::undefined_prefix;
-use crate::{components::*, lang::Lang, util::offset_to_position};
 /// [`ScheduleLabel`] related to the PrepareRename schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;

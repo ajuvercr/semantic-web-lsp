@@ -16,11 +16,7 @@ use rudof_lib::{
 use sophia_api::prelude::Quad as _;
 use tracing::info;
 
-use crate::{
-    components::*,
-    feature::diagnostics::DiagnosticPublisher,
-    util::{range_to_range, triple::Triples},
-};
+use crate::prelude::*;
 
 // use super::diagnostics::DiagnosticPublisher;
 

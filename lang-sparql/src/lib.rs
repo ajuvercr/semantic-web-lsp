@@ -3,12 +3,7 @@ extern crate tracing;
 
 use bevy_ecs::prelude::*;
 use chumsky::error::Simple;
-use lsp_core::{
-    components::{DynLang, SemanticTokensDict},
-    lang::{Lang, LangHelper},
-    prelude::*,
-    CreateEvent,
-};
+use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 
 pub mod ecs;

@@ -1,14 +1,6 @@
 use bevy_ecs::prelude::*;
 
-use crate::{
-    components::{
-        CommandReceiver, DocumentLinks, DynLang, InlayRequest, Label, PositionComponent, Prefixes,
-        PrepareRenameRequest, RenameEdits, RopeC, Wrapped,
-    },
-    prelude::*,
-    util::{offset_to_position, range_to_range},
-    CreateEvent,
-};
+use crate::prelude::*;
 
 mod shapes;
 use completion::{CompletionRequest, SimpleCompletion};

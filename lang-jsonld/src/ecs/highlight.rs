@@ -1,9 +1,5 @@
 use bevy_ecs::prelude::*;
-use lsp_core::{
-    components::{Element, HighlightRequest},
-    feature::semantic::TokenTypesComponent,
-    prelude::*,
-};
+use lsp_core::{components::Element, feature::semantic::TokenTypesComponent, prelude::*};
 use lsp_types::SemanticTokenType;
 // use semantic::TokenTypesComponent;
 use sophia_api::term::{Term, TermKind};

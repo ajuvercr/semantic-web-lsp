@@ -3,13 +3,7 @@ use std::{fs::File, io, sync::Mutex};
 use bevy_ecs::{system::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
 use lsp_bin::TowerClient;
-use lsp_core::{
-    backend::Backend,
-    client::{Client, ClientSync},
-    components::{CommandSender, SemanticTokensDict},
-    prelude::diagnostics::DiagnosticPublisher,
-    setup_schedule_labels,
-};
+use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
 use tracing::{info, Level};

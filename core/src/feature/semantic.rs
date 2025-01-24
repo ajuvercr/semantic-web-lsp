@@ -2,14 +2,21 @@ use bevy_ecs::{
     prelude::*,
     schedule::{IntoSystemConfigs, ScheduleLabel},
 };
+use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use lsp_types::{SemanticToken, SemanticTokenType};
 
-use crate::{
-    components::{HighlightRequest, RopeC, SemanticTokensDict, Wrapped},
-    lang::TokenTrait,
-    prelude::{spanned, Spanned},
-    util::token::{Token, Tokens},
-};
+use crate::prelude::*;
+
+/// [`Resource`] mapping a ['SemanticTokenType'] to their used index.
+///
+/// This index is important because with LSP, are retrieved during startup, then only indexes are
+/// used to indicate semantic token types.
+#[derive(Resource, AsRef, Deref, AsMut, DerefMut, Debug, Default)]
+pub struct SemanticTokensDict(pub std::collections::HashMap<SemanticTokenType, usize>);
+
+/// [`Component`] indicating that the current document is currently handling a Hightlight request.
+#[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
+pub struct HighlightRequest(pub Vec<SemanticToken>);
 
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;

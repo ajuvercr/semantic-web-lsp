@@ -1,9 +1,6 @@
 use std::{borrow::Cow, ops::Range};
 
-use lsp_core::{
-    components::{Prefix, Prefixes},
-    prelude::*,
-};
+use lsp_core::prelude::*;
 
 use crate::lang::parser::{Json, ObjectMember};
 

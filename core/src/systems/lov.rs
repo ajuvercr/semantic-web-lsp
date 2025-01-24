@@ -6,7 +6,7 @@ use lsp_types::TextDocumentItem;
 use serde::Deserialize;
 use tracing::info;
 
-use crate::{client::Client, components::*, prelude::ParseLabel, systems::spawn_or_insert};
+use crate::prelude::*;
 
 #[derive(Deserialize, Debug)]
 struct Version {

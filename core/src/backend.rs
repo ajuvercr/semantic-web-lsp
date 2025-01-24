@@ -14,14 +14,7 @@ use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
-use crate::{
-    components::{
-        CommandSender, FormatRequest, HighlightRequest, HoverRequest, InlayRequest, Label, Open,
-        PositionComponent, PrepareRenameRequest, RenameEdits, RopeC, Source, Types, Wrapped,
-    },
-    prelude::*,
-    systems::spawn_or_insert,
-};
+use crate::prelude::*;
 
 #[derive(Debug)]
 pub struct Backend {

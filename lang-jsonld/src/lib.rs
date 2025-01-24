@@ -1,7 +1,7 @@
 use bevy_ecs::prelude::*;
 use chumsky::prelude::Simple;
 use lsp_core::{
-    components::{DynLang, SemanticTokensDict},
+    components::DynLang,
     lang::{Lang, LangHelper},
     prelude::*,
     CreateEvent,
