@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["LiteralHelper"],"fn":["expect_token","is_term_like","named_node","parse_turtle","triple","turtle"]};
