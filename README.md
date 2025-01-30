@@ -1,9 +1,23 @@
 # Semantic Web Language Server
- 
+
+[![CI](https://github.com/ajuvercr/semantic-web-lsp/actions/workflows/ci.yml/badge.svg)](https://github.com/ajuvercr/semantic-web-lsp/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-latest-blue)](https://ajuvercr.github.io/semantic-web-lsp/docs/lsp_core/index.html)
+![LICENSE](https://img.shields.io/badge/License-MIT-8A2BE2)
+[![Visual Studio Marketplace Last Updated](https://img.shields.io/visual-studio-marketplace/last-updated/ajuvercr.semantic-web-lsp?label=VSCode%20Extension)](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp)
+
 This repo includes the source code for the semantic web language server.
 The language server provides IDE like functionality for semantic web languages, including Turtle, JSON-LD and SPARQL.
 
 A live demo can be found [online](https://ajuvercr.github.io/semantic-web-lsp/), built with monaco editors.
+
+## Documentation
+
+- [lsp-core](https://ajuvercr.github.io/semantic-web-lsp/docs/lsp_core/index.html)
+- [lang-turtle](https://ajuvercr.github.io/semantic-web-lsp/docs/lang_turtle/index.html)
+- [lang-jsonld](https://ajuvercr.github.io/semantic-web-lsp/docs/lang_jsonld/index.html)
+- [lang-sparql](https://ajuvercr.github.io/semantic-web-lsp/docs/lang_sparql/index.html)
+- [lsp-bin](https://ajuvercr.github.io/semantic-web-lsp/docs/lsp_bin/index.html)
+- [lsp-web](https://ajuvercr.github.io/semantic-web-lsp/docs/lsp_web/index.html)
 
 
 ## Features
@@ -89,7 +103,10 @@ lspconfig.jsonld.setup {
 
 ## Screenshots
 
-![Undefined Prefixes](./screenshots/undefined_prefix.png)
-![Shape violations](./screenshots/shape.png)
-![Complete Class](./screenshots/complete_class.png)
-![Complete Property](./screenshots/complete_property.png)
+|Undefined prefix|Shape violation|
+|---|---|
+| ![Undefined Prefixes](./screenshots/undefined_prefix.png) | ![Shape violations](./screenshots/shape.png) |
+
+|Complete Class|Complete Property|
+|---|---|
+| ![Complete Class](./screenshots/complete_class.png) | ![Complete Property](./screenshots/complete_property.png) |
