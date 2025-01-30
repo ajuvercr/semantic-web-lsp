@@ -54,7 +54,7 @@ pub struct Open;
 #[derive(Component, Debug)]
 pub struct Dirty;
 
-/// [`Component`] containing the [`lsp_types::URL`] of the current document.
+/// [`Component`] containing the [`lsp_types::Url`] of the current document.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Label(pub lsp_types::Url);
 
@@ -76,8 +76,8 @@ pub struct DocumentLinks(pub Vec<(lsp_types::Url, &'static str)>);
 /// [`Component`] used to wrap an incoming [`lsp_types::Position`].
 ///
 /// This component is translated into [`TokenComponent`] and [`TripleComponent`]
-/// with [`get_current_token`](crate::prelude::systems::get_current_token)
-/// and [get_current_triple](crate::prelude::systems::get_current_triple) respectively.
+/// with [`get_current_token`]
+/// and [get_current_triple] respectively.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct PositionComponent(pub Position);
 

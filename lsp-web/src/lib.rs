@@ -6,13 +6,7 @@ use std::io::Write;
 use bevy_ecs::{system::Resource, world::World};
 use client::WebClient;
 use futures::{channel::mpsc::unbounded, stream::TryStreamExt, StreamExt};
-use lsp_core::{
-    backend::Backend,
-    client::{Client, ClientSync},
-    components::{CommandSender, SemanticTokensDict},
-    prelude::diagnostics::DiagnosticPublisher,
-    setup_schedule_labels,
-};
+use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
 use tracing::level_filters::LevelFilter;

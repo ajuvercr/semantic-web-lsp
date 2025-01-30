@@ -18,7 +18,8 @@ use crate::{
     },
 };
 
-/// [`Component`] used to indicate the term type of currently targeted [`Token`] in the Triple.
+/// [`Component`] used to indicate the term type of currently targeted
+/// [`Token`](`crate::prelude::Token`) in the Triple.
 #[derive(Debug, PartialEq)]
 pub enum TripleTarget {
     Subject,

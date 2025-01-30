@@ -10,10 +10,10 @@
 //!
 //! Language specific implementations that handle things like tokenizing and parsing are
 //! implemented in separate crates. The binary currently supports [Turtle](../lang_turtle/index.html), [JSON-LD](../lang_jsonld/index.html) and [SPARQL](../lang_sparql/index.html).
-//! The goal is that each language at least generates [`Tokens`](prelude::Tokens), [`Triples`](`prelude::Triples`) and
-//! [`Prefixes`](prelude::Prefixes).
+//! The goal is that each language at least generates [`Tokens`], [`Triples`] and
+//! [`Prefixes`].
 //! These components are then used to derive properties for autcompletion but also derive
-//! [`TokenComponent`](`prelude::TokenComponent`) and [`TripleComponent`](prelude::TripleComponent) enabling completion.
+//! [`TokenComponent`] and [`TripleComponent`] enabling completion.
 //!
 //! The different schedules can be found at [`prelude::feature`].
 //!
@@ -72,7 +72,7 @@
 //!   }
 //! }
 //! ```
-//! Note that [`Prefixes`](prelude::Prefixes) can help expand and shorten iri's in a document.
+//! Note that [`Prefixes`] can help expand and shorten iri's in a document.
 //!
 //!
 
@@ -92,7 +92,7 @@ pub mod client;
 /// Common utils
 ///
 /// Includes range transformations between [`std::ops::Range`] and [`lsp_types::Range`].
-/// And commonly used [`Spanned`](crate::prelude::Spanned).
+/// And commonly used [`Spanned`].
 pub mod util;
 
 /// Defines all common [`Component`]s and [`Resource`]s
@@ -100,7 +100,7 @@ pub mod util;
 /// In this [`World`], [Entity]s are documents and [`Components`](`Component`) are derived from these documents.
 /// Different [`System`]s derive new [`Components`](`Component`) from existing [`Components`](`Component`), that are added to
 /// the [`Entity`].
-/// For example, if [`Triples`](components::Triples) are defined, [systems::derive_classes] will
+/// For example, if [`Triples`] are defined, [systems::derive_classes] will
 /// derive [`DefinedClass`](struct@systems::DefinedClass) from them and add them to the [`Entity`].
 pub mod components;
 /// Hosts all common features of the semantic language server.
@@ -185,6 +185,6 @@ pub struct CreateEvent {
 /// This schedule is used for async tasks, things that should be done at some point.
 ///
 /// For example [`systems::handle_tasks`] spawns command queues sent with
-/// [`CommandSender`](components::CommandSender)
+/// [`CommandSender`]
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Tasks;

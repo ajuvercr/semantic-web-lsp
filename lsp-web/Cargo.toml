@@ -14,7 +14,6 @@ crate-type = ["cdylib", "rlib"]
 lang-jsonld = { path = "../lang-jsonld" }
 lang-turtle = { path = "../lang-turtle" }
 lang-sparql = { path = "../lang-sparql" }
-# lsp-bin     = { path = "../lsp-bin/" }
 lsp-core    = { path = "../core/" }
 
 console_error_panic_hook = "0.1.7"
@@ -36,9 +35,6 @@ tracing.workspace    = true
 tracing-web = "0.1.3"
 tracing-subscriber = { version = "0.3", features = ["json"] }
 
-
-[features]
-default = ["tower-lsp/runtime-agnostic"]
 
 [dependencies.wasm-bindgen]
 features = ["serde", "serde-serialize", "serde_json"]

@@ -1,11 +1,14 @@
 use std::{
     collections::HashMap,
     fmt::Display,
+    future::Future,
+    pin::Pin,
     str::FromStr as _,
     sync::{
         atomic::{AtomicU32, Ordering},
         Arc,
     },
+    task::{Context, Poll},
     time::Duration,
 };
 
@@ -85,16 +88,32 @@ impl Client for TestClient {
     }
 }
 
+struct Sendable<T>(pub T);
+
+// Safety: WebAssembly will only ever run in a single-threaded context.
+unsafe impl<T> Send for Sendable<T> {}
+impl<O, T> Future for Sendable<T>
+where
+    T: Future<Output = O>,
+{
+    type Output = O;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // Safely access the inner future
+        let inner = unsafe { self.map_unchecked_mut(|s| &mut s.0) };
+        inner.poll(cx)
+    }
+}
+
 impl ClientSync for TestClient {
-    fn spawn<F: std::future::Future<Output = ()> + Send + 'static>(&self, fut: F) {
+    fn spawn<F: std::future::Future<Output = ()> + 'static>(&self, fut: F) {
         self.tasks_running.fetch_add(1, Ordering::AcqRel);
         let tr = self.tasks_running.clone();
-        self.executor
-            .spawn(async move {
-                fut.await;
-                tr.fetch_sub(1, Ordering::AcqRel);
-            })
-            .detach();
+        let fut = async move {
+            fut.await;
+            tr.fetch_sub(1, Ordering::AcqRel);
+        };
+        self.executor.spawn(Sendable(fut)).detach();
     }
 
     fn fetch(
@@ -105,7 +124,7 @@ impl ClientSync for TestClient {
         Box<dyn Send + std::future::Future<Output = Result<lsp_core::client::Resp, String>>>,
     > {
         let body = self.locations.get(url).cloned();
-        async move {
+        Sendable(async move {
             let mut headers = Vec::new();
             async_std::task::sleep(Duration::from_millis(200)).await;
             headers.push(("Content-Type".to_string(), "text/turtle".to_string()));
@@ -115,7 +134,7 @@ impl ClientSync for TestClient {
                 body: body.unwrap_or_default(),
                 status,
             })
-        }
+        })
         .boxed()
     }
 }

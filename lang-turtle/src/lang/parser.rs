@@ -404,9 +404,9 @@ pub mod turtle_tests {
     use lsp_core::prelude::{Spanned, Token};
 
     use super::literal;
-    use crate::{
-        parser2::{blank_node, named_node, prefix, triple, turtle},
-        tokenizer, BlankNode,
+    use crate::lang::{
+        parser::{blank_node, named_node, prefix, triple, turtle, BlankNode},
+        tokenizer,
     };
 
     pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(

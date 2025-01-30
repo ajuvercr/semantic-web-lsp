@@ -205,7 +205,7 @@ mod tests {
     use sophia_api::term::{Term, TermKind};
 
     use super::{derive_prefixes, derive_triples};
-    use crate::{
+    use crate::lang::{
         parser::{parse, Json},
         tokenizer::tokenize,
     };

@@ -398,7 +398,7 @@ mod tests {
     use lsp_core::prelude::StringStyle;
 
     use super::*;
-    use crate::tokenizer::tokenize;
+    use crate::lang::tokenizer::tokenize;
 
     #[test]
     fn parse_json_simple() {

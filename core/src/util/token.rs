@@ -17,8 +17,8 @@ pub struct TokenComponent {
 
 /// [`Component`] that contains the parsed tokens.
 ///
-/// [`crate`] defines systems (like [`get_current_token`](crate::prelude::systems::get_current_token)) that depend
-/// on Tokens to deduce [`TokenComponent`] during the [`Completion`](crate::Completion) schedule.
+/// [`crate`] defines systems (like [`get_current_token`]) that depend
+/// on Tokens to deduce [`TokenComponent`] during the [`CompletionLabel`] schedule.
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Tokens(pub Vec<Spanned<Token>>);
 

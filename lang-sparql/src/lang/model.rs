@@ -458,7 +458,7 @@ mod tests {
     use sophia_iri::resolve::BaseIri;
 
     use super::*;
-    use crate::{parsing::parse, tokenizer};
+    use crate::lang::{parsing::parse, tokenizer};
 
     fn parse_sparql(inp: &str) -> Query {
         let (tokens, _) = tokenizer::tokenize(inp);

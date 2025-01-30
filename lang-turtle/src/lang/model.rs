@@ -738,7 +738,8 @@ mod test {
     use chumsky::Parser;
     use lsp_core::prelude::{spanned, MyQuad, Spanned};
 
-    use crate::{parser2, tokenizer, Turtle};
+    use super::Turtle;
+    use crate::lang::{parser as parser2, tokenizer};
 
     #[derive(Debug)]
     pub enum Err {

@@ -266,7 +266,7 @@ mod tests {
     use chumsky::Stream;
 
     use super::*;
-    use crate::{parsing::select_clause, tokenizer};
+    use crate::lang::{parsing::select_clause, tokenizer};
     pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(
         turtle: &str,
         parser: P,
