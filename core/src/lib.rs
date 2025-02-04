@@ -1,3 +1,4 @@
+#![doc(html_logo_url = "../../favicon.png")]
 //! Core and common implementation for the semantic web language server.
 //!
 //! Proivdes the backbone for the [semantic web lsp binary](../lsp_bin/index.html) and [semantic web

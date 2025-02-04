@@ -51,7 +51,7 @@ const config = {
         use: ["style-loader", "css-loader"],
       },
       {
-        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        test: /\.(woff|woff2|eot|ttf|otf|png|ico|webmanifest)$/i,
         type: "asset/resource",
       },
     ],
@@ -68,6 +68,9 @@ const config = {
       patterns: [
         {
           from: "./assets/css/*",
+        },
+        {
+          from: "./assets/icons/*",
         },
       ],
     }),
