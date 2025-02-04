@@ -1,3 +1,4 @@
+#![doc(html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png", html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico")]
 use bevy_ecs::{component::Component, observer::Trigger, system::Commands, world::World};
 use chumsky::prelude::Simple;
 use lsp_core::{

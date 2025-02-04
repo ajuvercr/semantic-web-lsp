@@ -1,4 +1,4 @@
-#![doc(html_logo_url = "../../favicon.png")]
+#![doc(html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png", html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico")]
 //! Core and common implementation for the semantic web language server.
 //!
 //! Proivdes the backbone for the [semantic web lsp binary](../lsp_bin/index.html) and [semantic web
