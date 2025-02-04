@@ -6,6 +6,14 @@ a:visited {
   color: silver;
 }
 
+.icon {
+  position: absolute;
+  transform: translateX(-50%);
+  top: 10px;
+  left: 50%;
+  border-radius: 50%;
+}
+
 #side_panel {
   z-index: 2;
   position: fixed;
@@ -13,25 +21,29 @@ a:visited {
   left: 0;
   background-color: rgba(51, 51, 51, 0.9);
   color: white;
-  height: 100vh;
-  display: flex;
-  padding: 0 5%;
-  flex-direction: column;
-  justify-content: center;
-  gap: 20px;
+  height: 100dvh;
+  max-height: 100dvh;
   max-width: 22vw;
-  /* overflow-x: auto; */
-  /* overflow-y: visible; */
 
   transition-duration: 0.4s;
   transition-property: transform;
   transition-timing-function: ease-out;
+
+  display: flex;
+  justify-content: center;
+}
+
+#side_panel>div {
+  margin: 20px;
+  margin-top: 140px;
+  overflow-y: auto;
+  flex-grow: 1;
 }
 
 #side_panel.hidden {
+  display: inline-block;
   transform: translateX(-90%);
 }
-
 
 #side_panel>button {
   background-color: #555;
@@ -54,9 +66,10 @@ a:visited {
 
 #side_panel>button {
   position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translate(50%, -50%);
+  overflow: visible;
+  left: 100%;
+  top: 50vh;
+  transform: translate(-50%, -50%);
 }
 
 #side_panel ul {
@@ -101,10 +114,11 @@ a:visited {
   font-weight: bold;
 }
 
-section + section {
+section+section {
   margin-top: 8px;
 }
-.behaviour + .behaviour {
+
+.behaviour+.behaviour {
   margin-top: 16px;
 }
 
@@ -128,14 +142,62 @@ div[id="wrapper2"] {
   justify-items: center;
 }
 
+.logElement {
+  display: flex;
+  flex-direction: column;
+}
+
+.logElement textarea {
+  flex-grow: 1;
+}
+
+.hidden {
+  display: none;
+}
+
+#logs div {
+  height: 100%;
+}
+
+#logs div textarea {
+  white-space: pre-wrap;
+}
+
+#logHeaders {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Style the buttons that are used to open the tab content */
+#logHeaders button {
+  background-color: inherit;
+  text-align: left;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+#logHeaders button:hover {
+  background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+#logHeaders button.active {
+  background-color: #ccc;
+}
+
 div[id="container2"] {
   display: grid;
   width: 85%;
   height: 90%;
   min-width: 800px;
   min-height: 600px;
-  grid-template-rows: auto auto auto auto;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto;
+  grid-template-columns: min-content 1fr;
   margin: auto;
 }
 
@@ -214,10 +276,6 @@ div[id="cell-editor4"] {
 div[id="cell-syntax"] {
   grid-column: 1 / 3;
   grid-row: 4;
-}
-
-div[id="container2"] textarea {
-  height: 100%;
 }
 
 [id="container"] label {
