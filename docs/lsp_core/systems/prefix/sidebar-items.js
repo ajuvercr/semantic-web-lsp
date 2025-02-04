@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["prefix_completion_helper"],"struct":["Prefix","Prefixes"]};
+window.SIDEBAR_ITEMS = {"fn":["defined_prefix_completion","prefix_completion_helper","undefined_prefix"],"struct":["Prefix","Prefixes"]};
