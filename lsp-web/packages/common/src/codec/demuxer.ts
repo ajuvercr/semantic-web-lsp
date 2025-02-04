@@ -6,8 +6,6 @@ import Queue from "./queue";
 
 import * as vscode from "vscode";
 
-export const logger = vscode.window.createOutputChannel("codec"); // This method is called when your extension is activated
-
 export default class StreamDemuxer extends Queue<Uint8Array> {
   readonly responses: PromiseMap<number | string, vsrpc.ResponseMessage> =
     new PromiseMap();
@@ -32,11 +30,6 @@ export default class StreamDemuxer extends Queue<Uint8Array> {
     for await (const bytes of this) {
       buffer = Bytes.append(Uint8Array, buffer, bytes);
 
-      logger.appendLine(
-        "Content length 1 " + contentLength + " current " + buffer.length
-      );
-      logger.appendLine(Bytes.decode(buffer));
-
       // check if the content length is known
       if (null == contentLength) {
         // if not, try to match the prefixed headers
@@ -54,9 +47,6 @@ export default class StreamDemuxer extends Queue<Uint8Array> {
         contentLength = length;
       }
 
-      logger.appendLine(
-        "Content length 2 " + contentLength + " current " + buffer.length
-      );
       // if the buffer doesn't contain a full message; await another iteration
 
       while (null !== contentLength && buffer.length >= contentLength) {
@@ -70,7 +60,6 @@ export default class StreamDemuxer extends Queue<Uint8Array> {
         contentLength = null;
 
         const message = JSON.parse(delimited) as vsrpc.Message;
-        logger.appendLine("Full message " + JSON.stringify(message));
 
         const match = Bytes.decode(buffer).match(/^Content-Length:\s*(\d+)\s*/);
         if (null != match) {
@@ -85,22 +74,18 @@ export default class StreamDemuxer extends Queue<Uint8Array> {
         }
 
         this.allMessages.enqueue(message);
-        logger.appendLine("Is all message");
 
         // demux the message stream
         if (vsrpc.Message.isResponse(message) && null != message.id) {
           this.responses.set(message.id, message);
-          logger.appendLine("Is response");
           continue;
         }
         if (vsrpc.Message.isNotification(message)) {
           this.notifications.enqueue(message);
-          logger.appendLine("Is notification");
           continue;
         }
         if (vsrpc.Message.isRequest(message)) {
           this.requests.enqueue(message);
-          logger.appendLine("Is request");
           continue;
         }
       }

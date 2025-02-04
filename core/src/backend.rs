@@ -420,6 +420,7 @@ impl LanguageServer for Backend {
                 Label(item.uri.clone()),
                 RopeC(Rope::from_str(&item.text)),
                 Wrapped(item),
+                DocumentLinks(Vec::new()),
                 Open,
                 Types(HashMap::new()),
             ),

@@ -1,7 +1,8 @@
 use std::{collections::HashSet, ops::Deref};
 
-use bevy_ecs::component::Component;
-use lsp_types::{CompletionItemKind, TextEdit};
+use bevy_ecs::prelude::*;
+use lsp_types::{CompletionItemKind, Diagnostic, DiagnosticSeverity, TextDocumentItem, TextEdit};
+use tracing::{debug, instrument};
 
 use crate::prelude::*;
 
@@ -141,4 +142,79 @@ pub fn prefix_completion_helper(
                 }
             }),
     );
+}
+
+pub fn undefined_prefix(
+    query: Query<
+        (&Tokens, &Prefixes, &Wrapped<TextDocumentItem>, &RopeC),
+        Or<(Changed<Prefixes>, Changed<Tokens>)>,
+    >,
+    mut client: ResMut<DiagnosticPublisher>,
+) {
+    for (tokens, prefixes, item, rope) in &query {
+        let mut diagnostics: Vec<Diagnostic> = Vec::new();
+        for t in &tokens.0 {
+            match t.value() {
+                Token::PNameLN(x, _) => {
+                    let pref = x.as_ref().map(|x| x.as_str()).unwrap_or("");
+                    let found = prefixes.0.iter().find(|x| x.prefix == pref).is_some();
+                    if !found {
+                        if let Some(range) = range_to_range(t.span(), &rope) {
+                            diagnostics.push(Diagnostic {
+                                range,
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                source: Some(String::from("SWLS")),
+                                message: format!("Undefined prefix {}", pref),
+                                related_information: None,
+                                ..Default::default()
+                            })
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        let _ = client.publish(&item.0, diagnostics, "undefined_prefix");
+    }
+}
+
+#[instrument(skip(query))]
+pub fn defined_prefix_completion(
+    mut query: Query<(&TokenComponent, &Prefixes, &mut CompletionRequest)>,
+) {
+    for (word, prefixes, mut req) in &mut query {
+        let st = &word.text;
+        let pref = if let Some(idx) = st.find(':') {
+            &st[..idx]
+        } else {
+            &st
+        };
+
+        debug!("matching {}", pref);
+
+        let completions = prefixes
+            .0
+            .iter()
+            .filter(|p| p.prefix.as_str().starts_with(pref))
+            .flat_map(|x| {
+                let new_text = format!("{}:", x.prefix.as_str());
+                if new_text != word.text {
+                    Some(
+                        SimpleCompletion::new(
+                            CompletionItemKind::MODULE,
+                            format!("{}", x.prefix.as_str()),
+                            lsp_types::TextEdit {
+                                new_text,
+                                range: word.range.clone(),
+                            },
+                        )
+                        .documentation(x.url.as_str()),
+                    )
+                } else {
+                    None
+                }
+            });
+
+        req.0.extend(completions);
+    }
 }

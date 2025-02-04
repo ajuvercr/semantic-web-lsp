@@ -139,11 +139,13 @@ export default class App {
 type Keys = "turtle" | "sparql" | "owl" | "shacl";
 const editors: { [K in Keys]: ModelStart } = {
   turtle: {
-    value: `@prefix ex: <http://example.org/>.
+    value: `@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix ex: <http://example.org/>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix ed: <./owl.ttl#>.
-@prefix ed2: <./shacl.ttl#>.
+
+<> owl:imports <./shacl.ttl#>.
 
 <HoverFeature> a ed:Hover.
 <CompleteFeature> a ed:Completion;
@@ -153,8 +155,7 @@ const editors: { [K in Keys]: ModelStart } = {
 
 <SWLS> a ed:LanguageServer;
   rdfs:label "test1", "test2";
-  ed:hasFeature <HoverFeature>, <CompleteFeature>.
-`,
+  ed:hasFeature <HoverFeature>, <CompleteFeature>.`,
     url: "inmemory://examples.this/turtle.ttl",
     elementId: "editor",
   },

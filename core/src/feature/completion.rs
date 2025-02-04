@@ -6,7 +6,9 @@ use lsp_types::{
 };
 
 pub use crate::{
-    systems::{complete_class, complete_properties, defined_prefix_completion, keyword_complete},
+    systems::{
+        complete_class, complete_properties, keyword_complete, prefix::defined_prefix_completion,
+    },
     util::{token::get_current_token, triple::get_current_triple},
 };
 

@@ -43,28 +43,17 @@ impl Write for LogItWriter {
     }
 }
 
-fn setup_global_subscriber(logit: bool) {
-    use tracing_subscriber::{fmt, fmt::format::Pretty, prelude::*};
-    use tracing_web::performance_layer;
+fn setup_global_subscriber() {
+    use tracing_subscriber::prelude::*;
 
-    if logit {
-        let fmt_layer = tracing_subscriber::fmt::layer()
-            .pretty()
-            .with_ansi(false)
-            .without_time() // std::time is not available in browsers
-            .with_writer(std::sync::Mutex::new(LogItWriter::new()))
-            .with_filter(LevelFilter::DEBUG);
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .pretty()
+        .with_ansi(false)
+        .without_time() // std::time is not available in browsers
+        .with_writer(std::sync::Mutex::new(LogItWriter::new()))
+        .with_filter(LevelFilter::DEBUG);
 
-        tracing_subscriber::registry().with(fmt_layer).init();
-    } else {
-        let fmt_layer = fmt::Layer::default().with_writer(std::sync::Mutex::new(LogItWriter));
-        let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
-
-        tracing_subscriber::registry()
-            .with(fmt_layer)
-            .with(perf_layer)
-            .init(); // Install these as subscribers to tracing events
-    }
+    tracing_subscriber::registry().with(fmt_layer).init();
 }
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
@@ -136,7 +125,7 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
 
     web_sys::console::log_1(&"server::serve".into());
 
-    setup_global_subscriber(false);
+    setup_global_subscriber();
 
     let ServerConfig {
         into_server,
@@ -176,7 +165,7 @@ pub async fn serve2(config: ServerConfig) -> Result<(), JsValue> {
 
     web_sys::console::log_1(&"server::serve".into());
 
-    setup_global_subscriber(true);
+    setup_global_subscriber();
 
     tracing::info!("Hallo I'm here!");
 

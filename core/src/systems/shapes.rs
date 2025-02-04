@@ -1,24 +1,26 @@
-use std::collections::HashMap;
+use std::{cell::OnceCell, collections::HashMap};
 
 use bevy_ecs::prelude::*;
 use lsp_types::{DiagnosticSeverity, TextDocumentItem};
 use ropey::Rope;
 use rudof_lib::{
-    shacl_ast::{compiled::schema::CompiledSchema, ShaclParser},
+    shacl_ast::{
+        compiled::{schema::CompiledSchema, shape::CompiledShape},
+        ShaclParser,
+    },
     shacl_validation::{
         shacl_processor::{GraphValidation, ShaclProcessor},
         shape::Validate,
         store::graph::Graph,
+        validation_report::result::ValidationResult,
     },
     srdf::{Object, SRDFGraph},
     RdfData,
 };
 use sophia_api::prelude::Quad as _;
-use tracing::info;
+use tracing::{info, instrument};
 
 use crate::prelude::*;
-
-// use super::diagnostics::DiagnosticPublisher;
 
 fn get_reader<'a>(rope: &'a Rope) -> impl std::io::Read + 'a {
     use std::io::prelude::*;
@@ -33,10 +35,18 @@ fn get_reader<'a>(rope: &'a Rope) -> impl std::io::Read + 'a {
 
 type ShaclSchema = CompiledSchema<RdfData>;
 pub fn derive_shapes(
-    query: Query<(Entity, &RopeC, &Label), (Changed<Triples>, Without<Dirty>)>,
+    query: Query<
+        (
+            Entity,
+            &RopeC,
+            &Label,
+            Option<&Wrapped<CompiledSchema<RdfData>>>,
+        ),
+        (Changed<Triples>, Without<Dirty>),
+    >,
     mut commands: Commands,
 ) {
-    for (e, rope, label) in &query {
+    for (e, rope, label, schema) in &query {
         if let Some(compiled) = SRDFGraph::from_reader(
             get_reader(&rope),
             &rudof_lib::RDFFormat::Turtle,
@@ -48,14 +58,176 @@ pub fn derive_shapes(
         .and_then(|data| ShaclParser::new(data.clone()).parse().ok())
         .and_then(|shacl| ShaclSchema::try_from(shacl).ok())
         {
-            info!("Compiled shapes for {} {:?}", label.as_str(), compiled);
-            commands.entity(e).insert(Wrapped(compiled));
+            let is_some = compiled.iter().next().is_some();
+            info!(
+                "Compiled shapes for {} (is some {})",
+                label.as_str(),
+                is_some
+            );
+            match (is_some, schema.is_some()) {
+                (true, _) => {
+                    commands.entity(e).insert(Wrapped(compiled));
+                }
+                (_, true) => {
+                    commands
+                        .entity(e)
+                        .remove::<Wrapped<CompiledSchema<RdfData>>>();
+                }
+                _ => {}
+            };
         } else {
             info!("Failed to compile shapes for {}", label.as_str());
         }
     }
 }
 
+fn get_path(
+    source: Option<&Object>,
+    s: &CompiledShape<RdfData>,
+    prefixes: &Prefixes,
+) -> Option<String> {
+    let source = source?;
+    let property = s
+        .property_shapes()
+        .iter()
+        .find(|x| match (x.id(), source) {
+            (rudof_lib::oxrdf::Term::NamedNode(named_node), Object::Iri(iri_s)) => {
+                named_node.as_str() == iri_s.as_str()
+            }
+            (rudof_lib::oxrdf::Term::BlankNode(blank_node), Object::BlankNode(st)) => {
+                blank_node.as_str() == st.as_str()
+            }
+            _ => false,
+        })?;
+    let path = property.path_str()?;
+    Some(prefixes.shorten(&path).unwrap_or(path))
+}
+
+fn group_per_fn_per_path(
+    res: &Vec<ValidationResult>,
+    s: &CompiledShape<RdfData>,
+    triples: &Triples,
+    prefixes: &Prefixes,
+) -> HashMap<std::ops::Range<usize>, HashMap<String, Vec<String>>> {
+    let mut per_fn_per_path = HashMap::new();
+    for r in res {
+        info!("Res {:?}", r);
+        let foc = r.focus_node().to_string();
+
+        let mut done = std::collections::HashSet::new();
+        for t in &triples.0 {
+            if t.s().as_str() == &foc && !done.contains(t.s()) {
+                done.insert(t.s().to_owned());
+
+                let entry: &mut HashMap<String, Vec<String>> =
+                    per_fn_per_path.entry(t.s().span.clone()).or_default();
+
+                let path = get_path(r.source(), s, prefixes).unwrap_or(String::new());
+                let entry = entry.entry(path).or_default();
+
+                let component = r.component().to_string();
+                let component = prefixes.shorten(&component).unwrap_or(component);
+
+                entry.push(component);
+            }
+        }
+    }
+
+    per_fn_per_path
+}
+
+fn push_diagnostics(
+    rope: &Rope,
+    res: &Vec<ValidationResult>,
+    s: &CompiledShape<RdfData>,
+    triples: &Triples,
+    prefixes: &Prefixes,
+    diagnostics: &mut Vec<lsp_types::Diagnostic>,
+) {
+    for (range, per_path) in group_per_fn_per_path(&res, s, triples, prefixes) {
+        if let Some(range) = range_to_range(&range, &rope) {
+            for (path, components) in per_path {
+                let mut comps = components[0].clone();
+                for c in components.into_iter().skip(1) {
+                    comps += ", ";
+                    comps += &c;
+                }
+
+                diagnostics.push(lsp_types::Diagnostic {
+                    range: range.clone(),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    source: Some(String::from("SWLS")),
+                    message: format!("Path {} violates {}", path, comps),
+                    related_information: None,
+                    ..Default::default()
+                });
+            }
+        }
+    }
+}
+
+fn derive_shapes_diagnostics_for(
+    rope: &RopeC,
+    label: &Label,
+    links: &DocumentLinks,
+    item: &Wrapped<TextDocumentItem>,
+    triples: &Triples,
+    other: &Query<(&Label, &Wrapped<ShaclSchema>, &Prefixes)>,
+    client: &mut DiagnosticPublisher,
+) {
+    let mut diagnostics: Vec<lsp_types::Diagnostic> = Vec::new();
+
+    let build_validator = || {
+        SRDFGraph::from_reader(
+            get_reader(&rope),
+            &rudof_lib::RDFFormat::Turtle,
+            Some(label.0.as_str()),
+            &rudof_lib::ReaderMode::Lax,
+        )
+        .ok()
+        .and_then(|data| RdfData::from_graph(data).ok())
+        .map(|data| {
+            info!("Created graph validator for {}", label.as_str());
+            GraphValidation::from_graph(
+                Graph::from_data(data),
+                rudof_lib::ShaclValidationMode::Native,
+            )
+        })
+    };
+
+    // Delayed building, maybe no shapes are linked to this document, and we don't need to build a
+    // validator
+    let validator = OnceCell::<Option<GraphValidation>>::new();
+    for (other_label, schema, prefixes) in other {
+        if links
+            .iter()
+            .find(|link| link.0.as_str().starts_with(other_label.0.as_str()))
+            .is_none()
+            && label.0 != other_label.0
+        {
+            continue;
+        }
+
+        if let Some(validator) = validator.get_or_init(build_validator) {
+            info!("Schema {}", other_label.as_str());
+            for (_, s) in schema.iter() {
+                if let Ok(res) = s.validate(validator.store(), validator.runner(), None) {
+                    if !res.is_empty() {
+                        info!("Validations for {:?}", s);
+                        push_diagnostics(rope, &res, s, triples, prefixes, &mut diagnostics);
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    let _ = client.publish(&item.0, diagnostics, "shacl_validation");
+}
+
+/// System evaluates linked shapes
+#[instrument(skip(query, other, client))]
 pub fn validate_shapes(
     query: Query<
         (
@@ -65,119 +237,53 @@ pub fn validate_shapes(
             &Wrapped<TextDocumentItem>,
             &Triples,
         ),
-        (Changed<Triples>, Without<Dirty>),
+        (Changed<Triples>, Without<Dirty>, With<Open>),
     >,
     other: Query<(&Label, &Wrapped<ShaclSchema>, &Prefixes)>,
     mut client: ResMut<DiagnosticPublisher>,
 ) {
-    info!("Validate shapes");
-
     for (rope, label, links, item, triples) in &query {
-        let mut diagnostics: Vec<lsp_types::Diagnostic> = Vec::new();
+        info!("Validate shapes {}", label.as_str());
+        derive_shapes_diagnostics_for(rope, label, links, item, triples, &other, &mut client);
+    }
+}
 
-        if let Some(validator) = SRDFGraph::from_reader(
-            get_reader(&rope),
-            &rudof_lib::RDFFormat::Turtle,
-            Some(label.0.as_str()),
-            &rudof_lib::ReaderMode::Lax,
-        )
-        .ok()
-        .and_then(|data| RdfData::from_graph(data).ok())
-        .map(|data| {
-            GraphValidation::from_graph(
-                Graph::from_data(data),
-                rudof_lib::ShaclValidationMode::Native,
-            )
-        }) {
-            info!("Created graph validator for {}", label.as_str());
-            for (other_label, schema, prefixes) in &other {
-                if links
-                    .iter()
-                    .find(|link| link.0.as_str().starts_with(other_label.0.as_str()))
-                    .is_none()
-                    && label.0 != other_label.0
-                {
-                    continue;
-                }
-
-                info!("Schema {}", other_label.as_str());
-                for (_, s) in schema.iter() {
-                    if let Ok(res) = s.validate(validator.store(), validator.runner(), None) {
-                        if !res.is_empty() {
-                            info!("Validations for {:?}", s);
-                        }
-
-                        let get_path = |source: Option<&Object>| {
-                            let source = source?;
-                            let property =
-                                s.property_shapes()
-                                    .iter()
-                                    .find(|x| match (x.id(), source) {
-                                        (
-                                            rudof_lib::oxrdf::Term::NamedNode(named_node),
-                                            Object::Iri(iri_s),
-                                        ) => named_node.as_str() == iri_s.as_str(),
-                                        (
-                                            rudof_lib::oxrdf::Term::BlankNode(blank_node),
-                                            Object::BlankNode(st),
-                                        ) => blank_node.as_str() == st.as_str(),
-                                        _ => false,
-                                    })?;
-                            let path = property.path_str()?;
-                            Some(prefixes.shorten(&path).unwrap_or(path))
-                        };
-
-                        let mut per_fn_per_path = HashMap::new();
-
-                        for r in &res {
-                            info!("Res {:?}", r);
-                            let foc = r.focus_node().to_string();
-
-                            let mut done = std::collections::HashSet::new();
-                            for t in &triples.0 {
-                                if t.s().as_str() == &foc && !done.contains(t.s()) {
-                                    done.insert(t.s().to_owned());
-
-                                    let entry: &mut HashMap<String, Vec<String>> =
-                                        per_fn_per_path.entry(t.s().span.clone()).or_default();
-
-                                    let path = get_path(r.source()).unwrap_or(String::new());
-                                    let entry = entry.entry(path).or_default();
-
-                                    let component = r.component().to_string();
-                                    let component =
-                                        prefixes.shorten(&component).unwrap_or(component);
-
-                                    entry.push(component);
-                                }
-                            }
-                        }
-
-                        for (range, per_path) in per_fn_per_path {
-                            if let Some(range) = range_to_range(&range, &rope) {
-                                for (path, components) in per_path {
-                                    let mut comps = components[0].clone();
-                                    for c in components.into_iter().skip(1) {
-                                        comps += ", ";
-                                        comps += &c;
-                                    }
-
-                                    diagnostics.push(lsp_types::Diagnostic {
-                                        range: range.clone(),
-                                        severity: Some(DiagnosticSeverity::ERROR),
-                                        source: Some(String::from("SWLS")),
-                                        message: format!("Path {} violates {}", path, comps),
-                                        related_information: None,
-                                        ..Default::default()
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
+/// System checks what entities should retrigger a shape evaluation when a shape changes
+#[instrument(skip(changed_schemas, query, other, client))]
+pub fn validate_with_updated_shapes(
+    changed_schemas: Query<&Label, (Changed<Wrapped<ShaclSchema>>, With<Open>)>,
+    query: Query<
+        (
+            &RopeC,
+            &Label,
+            &DocumentLinks,
+            &Wrapped<TextDocumentItem>,
+            &Triples,
+        ),
+        With<Open>,
+    >,
+    other: Query<(&Label, &Wrapped<ShaclSchema>, &Prefixes)>,
+    mut client: ResMut<DiagnosticPublisher>,
+) {
+    for l in &changed_schemas {
+        info!("Changed schema {}", l.as_str());
+        for (rope, label, links, item, triples) in &query {
+            if links
+                .iter()
+                .find(|(url, _)| url.as_str().starts_with(l.as_str()))
+                .is_some()
+            {
+                info!("Found reverse linked document! {}", label.as_str());
+                derive_shapes_diagnostics_for(
+                    rope,
+                    label,
+                    links,
+                    item,
+                    triples,
+                    &other,
+                    &mut client,
+                );
             }
         }
-
-        let _ = client.publish(&item.0, diagnostics, "shacl_validation");
     }
 }

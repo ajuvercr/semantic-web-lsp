@@ -4,11 +4,11 @@ use bevy_ecs::{
     world::World,
 };
 
-use crate::client::Client;
 pub use crate::systems::{
     derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
     fetch_lov_properties, infer_types,
 };
+use crate::{client::Client, systems::derive_owl_imports_links};
 
 /// Parse schedule barrier, after this system, triples should be derived
 pub fn triples() {}
@@ -25,6 +25,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         prefixes,
         triples,
         derive_prefix_links.after(prefixes),
+        derive_owl_imports_links.after(triples),
         derive_classes.after(triples),
         derive_properties.after(triples),
         fetch_lov_properties::<C>.after(prefixes),
