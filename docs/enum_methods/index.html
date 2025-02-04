@@ -1,0 +1,94 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="enum-methods"><title>enum_methods - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-42caa33d.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="enum_methods" data-themes="" data-resource-suffix="" data-rustdoc-version="1.84.1 (e71f9a9a9 2025-01-27)" data-channel="1.84.1" data-search-js="search-92e6798f.js" data-settings-js="settings-0f613d39.js" ><script src="../static.files/storage-59e33391.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-5f194d8c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../enum_methods/index.html">enum_<wbr>methods</a><span class="version">0.0.8</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#enum-methods" title="enum-methods">enum-methods</a><ul><li><a href="#please-note-that-this-crate-is-unstable-and-is-subject-to-change-frequently" title="Please note that this crate is unstable and is subject to change frequently.">Please note that this crate is unstable and is subject to change frequently.</a></li></ul></li><li><a href="#links" title="Links">Links</a></li><li><a href="#usage" title="Usage">Usage</a></li><li><a href="#why" title="Why?">Why?</a></li><li><a href="#requirements-and-gotchas" title="Requirements and gotchas">Requirements and gotchas</a></li><li><a href="#license" title="License">License</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>enum_methods</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/enum_methods/lib.rs.html#1-175">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="enum-methods"><a class="doc-anchor" href="#enum-methods">§</a>enum-methods</h2>
+<p><a href="https://travis-ci.org/alekratz/enum-methods"><img src="https://travis-ci.org/alekratz/enum-methods.svg?branch=master" alt="Build Status" /></a>
+<a href="https://crates.io/crates/enum-methods"><img src="https://img.shields.io/crates/v/enum-methods.svg" alt="crates.io" /></a></p>
+<p>Enum getter/<code>is_*</code> method generation.</p>
+<h5 id="please-note-that-this-crate-is-unstable-and-is-subject-to-change-frequently"><a class="doc-anchor" href="#please-note-that-this-crate-is-unstable-and-is-subject-to-change-frequently">§</a>Please note that this crate is unstable and is subject to change frequently.</h5>
+<p>I will attempt to prevent <em>seriously</em> breaking changes after we hit 0.1.0.</p>
+<h2 id="links"><a class="doc-anchor" href="#links">§</a>Links</h2>
+<ul>
+<li><a href="https://github.com/alekratz/enum-methods">Github</a></li>
+<li><a href="https://crates.io/crates/enum-methods">crates.io</a></li>
+<li><a href="https://docs.rs/enum-methods/0.0.8/enum_methods/">docs.rs</a></li>
+</ul>
+<h2 id="usage"><a class="doc-anchor" href="#usage">§</a>Usage</h2>
+<p>In your <code>Cargo.toml</code>, add this line under your <code>[dependencies]</code> section:</p>
+<div class="example-wrap"><pre class="language-toml"><code>enum-methods = &quot;0.0.8&quot;</code></pre></div>
+<p>To use, simply derive and call methods (see the example below).</p>
+<h2 id="why"><a class="doc-anchor" href="#why">§</a>Why?</h2>
+<p>Usually when you write an enum with one or zero values, you might want to
+add a set of getters for them. As such:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug)]
+</span><span class="kw">enum </span>MyEnum {
+    FooBarBaz(i64),
+    BazBarFoo(String),
+    <span class="comment">// ... and others
+</span>}
+
+<span class="kw">impl </span>MyEnum {
+    <span class="kw">pub fn </span>foo_bar_baz(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; i64 {
+        <span class="kw">if let </span><span class="kw-2">&amp;</span>MyEnum::FooBarBaz(i) = <span class="self">self </span>{
+            i
+        }
+        <span class="kw">else </span>{
+            <span class="macro">panic!</span>(<span class="string">"called MyEnum::FooBarBaz() on {:?}"</span>, <span class="self">self</span>)
+        }
+    }
+    <span class="comment">// et cetera
+</span>}
+</code></pre></div>
+<p>But this gets tedious, and adds a lot code for this simple functionality.
+Enter <code>enum-methods</code>.</p>
+<p>Instead of doing the above with the <code>if let ... else { panic!(...) }</code>, you
+simply derive from the <code>EnumIntoGetters</code></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>enum_methods;
+
+<span class="attr">#[derive(EnumIntoGetters, EnumAsGetters, EnumIsA, Debug)]
+</span><span class="kw">enum </span>MyEnum {
+    FooBarBaz(i64),
+    BazBarFoo(String),
+    <span class="comment">// ... and others
+</span>}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>my_foo = MyEnum::FooBarBaz(<span class="number">42</span>);
+    <span class="comment">// EnumIsA - creates is_* methods for every member
+    </span><span class="kw">if </span>my_foo.is_foo_bar_baz() {
+        <span class="comment">// EnumAsGetters - gets a reference to the enum, panicking if it is
+        // not the specified variant
+        </span><span class="macro">assert_eq!</span>(<span class="kw-2">*</span>my_foo.as_foo_bar_baz(), <span class="number">42</span>);
+        <span class="comment">// EnumIntoGetters - consumes the enum, yielding its owned value,
+        // and panicking if it is not the specified variant
+        </span><span class="macro">assert_eq!</span>(my_foo.into_foo_bar_baz(), <span class="number">42</span>);
+    }
+}</code></pre></div>
+<h2 id="requirements-and-gotchas"><a class="doc-anchor" href="#requirements-and-gotchas">§</a>Requirements and gotchas</h2>
+<p>Right now, <code>enum-methods</code> has four derivable options:</p>
+<ul>
+<li><code>EnumAsGetters</code> for generating <code>as_*</code> methods, which return a reference.</li>
+<li><code>EnumIntoGetters</code> for generating <code>into_*</code> methods, which consume the enum
+and returns the data held by the variant.</li>
+<li><code>EnumToGetters</code> for generating <code>to_*</code> methods, which returns a clone of
+the data held by the variant.</li>
+<li><code>EnumIsA</code> for generating <code>is_*</code> methods, which return a boolean indicating
+whether the enum matches that variant.</li>
+</ul>
+<p><code>EnumAsGetters</code>, <code>EnumIntoGetters</code>, and <code>EnumToGetters</code> have some limitations.</p>
+<ul>
+<li>Any enum variant which has exactly 1 member will have a getter generated for
+it. All other variants are ignored.</li>
+<li>Enums which derive from <code>EnumIntoGetters</code> must also derive from <code>Debug</code> - this
+is for when a method is called for the wrong variant and needs to <code>panic!</code>.</li>
+</ul>
+<p>Furthermore, <code>EnumToGetters</code> is <em>only</em> for enums whose variants implement
+<code>Clone</code>. There is not yet support for th</p>
+<p><code>EnumIsA</code> is much simpler than the previous; it simply adds <code>is_*</code>
+methods returning a boolean for whether the variant matches or not.</p>
+<p><strong>For all generated methods, all names are automatically converted to
+snake_case</strong>.</p>
+<h2 id="license"><a class="doc-anchor" href="#license">§</a>License</h2>
+<p>This software is released under the Apache license 2.0. See the LICENSE file
+for more details.</p>
+</div></details></section></div></main></body></html>

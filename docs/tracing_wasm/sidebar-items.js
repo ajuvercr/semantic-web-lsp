@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConsoleConfig"],"fn":["set_as_global_default","set_as_global_default_with_config","try_set_as_global_default"],"struct":["WASMLayer","WASMLayerConfig","WASMLayerConfigBuilder"]};

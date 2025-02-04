@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["StartShapeMode"],"struct":["Shacl2ShExConfig"]};

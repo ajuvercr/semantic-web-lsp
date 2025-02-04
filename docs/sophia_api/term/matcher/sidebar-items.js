@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Any","DatatypeMatcher","LanguageTagMatcher","MatcherRef","TermMatcherGn"],"trait":["GraphNameMatcher","TermMatcher"]};

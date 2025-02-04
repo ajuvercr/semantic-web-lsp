@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["QuoteStyle","ReadFieldNoCopyResult","ReadFieldResult","ReadRecordNoCopyResult","ReadRecordResult","Terminator","WriteResult"],"fn":["is_non_numeric","quote"],"struct":["Reader","ReaderBuilder","Writer","WriterBuilder"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RequestMode"],"fn":["window"],"mod":["console"],"struct":["AbortSignal","Element","EventTarget","Headers","HtmlElement","HtmlTextAreaElement","Node","ReadableStream","Request","RequestInit","Response","Window","WritableStream"]};

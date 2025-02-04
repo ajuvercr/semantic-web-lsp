@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["constraints","engine","focus_nodes","shacl_config","shacl_processor","shacl_validation_vocab","shape","store","validate_error","validation_report","value_nodes"]};

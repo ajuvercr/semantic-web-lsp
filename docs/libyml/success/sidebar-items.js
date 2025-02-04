@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["FAIL","OK"],"fn":["is_failure","is_success"],"struct":["Failure","Success"]};

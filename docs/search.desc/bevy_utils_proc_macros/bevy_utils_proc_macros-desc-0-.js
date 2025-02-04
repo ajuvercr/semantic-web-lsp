@@ -1,0 +1,1 @@
+searchState.loadedDescShard("bevy_utils_proc_macros", 0, "Helper macro to generate tuple pyramids. Useful to …")

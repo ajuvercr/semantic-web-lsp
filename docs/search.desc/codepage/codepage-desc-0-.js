@@ -1,0 +1,1 @@
+searchState.loadedDescShard("codepage", 0, "Mapping between Windows code page identifiers and …\nReturns the preferred code page identifier for an <code>Encoding</code>.\nMaps a Windows code page identifier to an encoding_rs …\nLike <code>to_encoding</code>, except returns <code>None</code> when <code>to_encoding</code> …")

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["ON_ADD","ON_INSERT","ON_REMOVE"],"enum":["Entry"],"mod":["error","unsafe_world_cell"],"struct":["CommandQueue","DeferredWorld","EntityMut","EntityRef","EntityWorldMut","FilteredEntityMut","FilteredEntityRef","OccupiedEntry","OnAdd","OnInsert","OnRemove","SpawnBatchIter","VacantEntry","World","WorldId"],"trait":["Command","FromWorld"]};

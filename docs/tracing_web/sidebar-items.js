@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["performance_layer"],"struct":["ConsoleWriter","FormatSpanFromFields","MakeConsoleWriter","MakeWebConsoleWriter","PerformanceEventsLayer"],"trait":["FormatSpan"]};

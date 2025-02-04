@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ZipError"],"struct":["DateTimeRangeError"],"type":["ZipResult"]};

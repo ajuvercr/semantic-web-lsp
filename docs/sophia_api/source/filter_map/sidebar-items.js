@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["FilterMapQuadSource","FilterMapQuadSourceIterator","FilterMapTripleSource","FilterMapTripleSourceIterator"]};

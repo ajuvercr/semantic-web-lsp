@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["available_parallelism","block_on","poll_once","tick_global_task_pools_on_main_thread"],"mod":["prelude"],"struct":["AsyncComputeTaskPool","ComputeTaskPool","IoTaskPool","Scope","Task","TaskPool","TaskPoolBuilder","ThreadExecutor","ThreadExecutorTicker"],"trait":["ParallelIterator","ParallelSlice","ParallelSliceMut"]};

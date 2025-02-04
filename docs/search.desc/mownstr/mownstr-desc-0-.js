@@ -1,0 +1,1 @@
+searchState.loadedDescShard("mownstr", 0, "<code>MownStr</code> is either a borrowed reference to a <code>str</code> or an own …\n“Maybe own str”: either a borrowed reference to a <code>str</code> …\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.\nConvert this <code>MownStr</code> to any type <code>T</code> that can be created …")

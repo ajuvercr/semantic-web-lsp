@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"derive":["AsMut","AsRef","Deref","DerefMut"],"mod":["derive"]};

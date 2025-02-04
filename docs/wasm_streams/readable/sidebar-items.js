@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["sys"],"struct":["IntoAsyncRead","IntoStream","PipeOptions","ReadableStream","ReadableStreamBYOBReader","ReadableStreamDefaultReader"]};

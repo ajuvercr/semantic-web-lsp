@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["shacl_parser_error"],"struct":["ShaclParser"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BlockType","ErrorKind","Format"],"fn":["compress","prewarm_object_pools"],"struct":["DeflateEncoder","Error","GzipEncoder","Options","ZlibEncoder"],"trait":["Write"]};

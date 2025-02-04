@@ -1,0 +1,1 @@
+searchState.loadedDescShard("casey", 0, "Expands idents in the input stream as lowercase\nExpands idents in the input stream as PascalCase e.g. …\nExpands idents in the input stream as SHOUTY_CASE e.g. …\nExpands idents in the input stream as snake_case e.g. …\nExpands idents in the input stream as UPPERCASE")

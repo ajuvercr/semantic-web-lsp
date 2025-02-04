@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["Entities","Entity","EntityHash","EntityHasher","EntityLocation","ReserveEntitiesIterator","SceneEntityMapper"],"trait":["EntityMapper","MapEntities"],"type":["EntityHashMap","EntityHashSet"]};

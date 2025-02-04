@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["alias","deref","iri_ref","prefixmap","prefixmap_error"]};

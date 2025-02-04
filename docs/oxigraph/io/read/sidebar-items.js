@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["DatasetParser","GraphParser","QuadReader","TripleReader"]};

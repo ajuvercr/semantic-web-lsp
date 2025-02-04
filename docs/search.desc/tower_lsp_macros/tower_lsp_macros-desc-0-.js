@@ -1,0 +1,1 @@
+searchState.loadedDescShard("tower_lsp_macros", 0, "Internal procedural macros for <code>tower-lsp</code>.\nMacro for generating LSP server implementation from …")

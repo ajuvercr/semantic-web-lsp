@@ -2,7 +2,7 @@
     // Required methods
     fn <a href="#tymethod.log_message" class="fn">log_message</a>&lt;'life0, 'async_trait, M&gt;(
         &amp;'life0 self,
-        ty: MessageType,
+        ty: <a class="struct" href="../../lsp_types/window/struct.MessageType.html" title="struct lsp_types::window::MessageType">MessageType</a>,
         msg: M,
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.84.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="primitive" href="https://doc.rust-lang.org/1.84.1/std/primitive.unit.html">()</a>&gt; + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
        <span class="where">where M: 'async_trait + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/fmt/trait.Display.html" title="trait core::fmt::Display">Display</a> + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'static,
@@ -10,23 +10,23 @@
              'life0: 'async_trait</span>;
 <span class="item-spacer"></span>    fn <a href="#tymethod.publish_diagnostics" class="fn">publish_diagnostics</a>&lt;'life0, 'async_trait&gt;(
         &amp;'life0 self,
-        uri: <a class="struct" href="https://docs.rs/url/2.5.4/url/struct.Url.html" title="struct url::Url">Url</a>,
-        diags: <a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Diagnostic&gt;,
+        uri: <a class="struct" href="../../url/struct.Url.html" title="struct url::Url">Url</a>,
+        diags: <a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../lsp_types/struct.Diagnostic.html" title="struct lsp_types::Diagnostic">Diagnostic</a>&gt;,
         version: <a class="enum" href="https://doc.rust-lang.org/1.84.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.84.1/std/primitive.i32.html">i32</a>&gt;,
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.84.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="primitive" href="https://doc.rust-lang.org/1.84.1/std/primitive.unit.html">()</a>&gt; + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
        <span class="where">where Self: 'async_trait,
              'life0: 'async_trait</span>;
 }</code></pre><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><section id="tymethod.log_message" class="method"><a class="src rightside" href="../../src/lsp_core/client.rs.html#14">Source</a><h4 class="code-header">fn <a href="#tymethod.log_message" class="fn">log_message</a>&lt;'life0, 'async_trait, M&gt;(
     &amp;'life0 self,
-    ty: MessageType,
+    ty: <a class="struct" href="../../lsp_types/window/struct.MessageType.html" title="struct lsp_types::window::MessageType">MessageType</a>,
     msg: M,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.84.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="primitive" href="https://doc.rust-lang.org/1.84.1/std/primitive.unit.html">()</a>&gt; + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
     M: 'async_trait + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/fmt/trait.Display.html" title="trait core::fmt::Display">Display</a> + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'static,
     Self: 'async_trait,
     'life0: 'async_trait,</div></h4></section><section id="tymethod.publish_diagnostics" class="method"><a class="src rightside" href="../../src/lsp_core/client.rs.html#15-20">Source</a><h4 class="code-header">fn <a href="#tymethod.publish_diagnostics" class="fn">publish_diagnostics</a>&lt;'life0, 'async_trait&gt;(
     &amp;'life0 self,
-    uri: <a class="struct" href="https://docs.rs/url/2.5.4/url/struct.Url.html" title="struct url::Url">Url</a>,
-    diags: <a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Diagnostic&gt;,
+    uri: <a class="struct" href="../../url/struct.Url.html" title="struct url::Url">Url</a>,
+    diags: <a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../lsp_types/struct.Diagnostic.html" title="struct lsp_types::Diagnostic">Diagnostic</a>&gt;,
     version: <a class="enum" href="https://doc.rust-lang.org/1.84.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.84.1/std/primitive.i32.html">i32</a>&gt;,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.84.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.84.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="primitive" href="https://doc.rust-lang.org/1.84.1/std/primitive.unit.html">()</a>&gt; + <a class="trait" href="https://doc.rust-lang.org/1.84.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
     Self: 'async_trait,

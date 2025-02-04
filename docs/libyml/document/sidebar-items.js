@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["yaml_document_add_mapping","yaml_document_add_scalar","yaml_document_add_sequence","yaml_document_append_mapping_pair","yaml_document_append_sequence_item","yaml_document_delete","yaml_document_end_event_initialize","yaml_document_get_node","yaml_document_get_root_node","yaml_document_initialize","yaml_document_start_event_initialize"]};

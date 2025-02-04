@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EvaluationError","QueryResults"],"mod":["results"],"struct":["Query","QueryDataset","QueryExplanation","QueryOptions","QuerySolution","QuerySolutionIter","QueryTripleIter","SparqlSyntaxError","Update","UpdateOptions","Variable","VariableNameParseError"],"trait":["ServiceHandler"]};

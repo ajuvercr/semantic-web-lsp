@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RdfFormat","RdfParseError"],"struct":["RdfParser","RdfSerializer","RdfSyntaxError","ReaderQuadParser","SliceQuadParser","TextPosition","WriterQuadSerializer"]};
