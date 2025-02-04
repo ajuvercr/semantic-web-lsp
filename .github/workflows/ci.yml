@@ -67,7 +67,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Build Documentation
-        run: cargo doc --workspace --no-deps
+        run: cargo doc --workspace
 
       - name: Deploy Documentation to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
