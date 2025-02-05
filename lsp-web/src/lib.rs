@@ -17,13 +17,14 @@ use wasm_bindgen_futures::stream::JsStream;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen()]
-    pub fn logit(string: &str);
+    pub fn info(string: &str);
+    pub fn debug(string: &str);
 }
 
 struct LogItWriter;
 impl LogItWriter {
     fn new() -> Self {
-        logit("building self");
+        debug("building self");
         LogItWriter
     }
 }
@@ -31,9 +32,9 @@ impl Write for LogItWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match std::str::from_utf8(buf) {
             Ok(st) => {
-                logit(st);
+                debug(st);
             }
-            Err(e) => logit(&format!("Invalid string logged {:?}", e)),
+            Err(e) => debug(&format!("Invalid string logged {:?}", e)),
         }
 
         Ok(buf.len())
@@ -154,7 +155,7 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     })
     .finish();
 
-    logit("Testing logit, I'm serve 1");
+    debug("Testing logit, I'm serve 1");
     Server::new(input, output, socket).serve(service).await;
 
     Ok(())
@@ -194,7 +195,7 @@ pub async fn serve2(config: ServerConfig) -> Result<(), JsValue> {
         Backend::new(sender, client, rt)
     })
     .finish();
-    logit("Testing logit, I'm serve 2");
+    debug("Testing logit, I'm serve 2");
 
     Server::new(input, output, socket).serve(service).await;
 

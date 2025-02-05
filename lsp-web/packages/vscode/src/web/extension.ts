@@ -2,18 +2,15 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 import Server from "./server";
-import { Codec, FromServer, IntoServer, jsrpc } from "common";
-import { logger } from "./logger";
+import { Codec, FromServer, IntoServer, jsrpc, logger } from "common";
 import {
   BaseLanguageClient,
-  ConnectionOptions,
   Disposable,
   LanguageClientOptions,
   MessageTransports,
 } from "vscode-languageclient";
 import * as rpc from "vscode-jsonrpc";
-// import { LanguageClient } from "vscode-languageclient/browser";
-//
+
 class ReadableS {
   readonly onError: rpc.Event<Error>;
   readonly onClose: rpc.Event<void>;
@@ -35,7 +32,7 @@ class ReadableS {
 
     (async () => {
       for await (const line of fromServer.allMessages) {
-        logger.appendLine("Got string from server " + JSON.stringify(line));
+        logger.debug("Got string from server \n" + JSON.stringify(line));
         emitter.fire(line);
       }
     })();
@@ -77,7 +74,7 @@ class WriterS {
    * @description Implementations should guarantee messages are transmitted in the same order that they are received by this method.
    */
   async write(msg: rpc.Message): Promise<void> {
-    logger.appendLine("Writing line to server " + JSON.stringify(msg));
+    logger.debug("Writing line to server \n" + JSON.stringify(msg));
     const encoded = Codec.encode(<jsrpc.JSONRPCRequest>msg);
     this.intoServer.enqueue(encoded);
   }
@@ -117,22 +114,40 @@ class LanguageClient extends BaseLanguageClient {
 }
 
 // Your extension is activated the very first time the command is executed
-export async function activate(context: vscode.ExtensionContext) {
-  logger.appendLine("semantic-web-lsp activated!, Part 3");
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log(
-    'Congratulations, your extension "semantic-web-lsp" is now active in the web extension host!'
+export async function activate() {
+  const channel = vscode.window.createOutputChannel("swls");
+  logger.init(
+    (st) => channel.appendLine(st.trim()),
+    (st) => channel.appendLine(st.trim())
   );
+
+  const config = vscode.workspace.getConfiguration();
+  logger.info("semantic-web-lsp activated!, Part 3");
+
+  const debug = <boolean>config.get("swls.debug");
+  logger.set(debug);
+
+  logger.info("Debug is on " + debug);
+
+  vscode.workspace.onDidChangeConfiguration((event) => {
+    // Check if the specific setting has changed
+    if (event.affectsConfiguration("swls.debug")) {
+      const newSetting = <boolean>(
+        vscode.workspace.getConfiguration().get("swls.debug")
+      );
+      logger.set(newSetting);
+      logger.info("New debug value: " + newSetting);
+    }
+  });
 
   const intoServer = new IntoServer();
   const fromServer = FromServer.create();
-  logger.appendLine("Created intoServer and fromServer");
+  logger.debug("Created intoServer and fromServer");
 
   const serverPromise = Server.initialize(intoServer, fromServer);
-  logger.appendLine("Building a server");
+  logger.debug("Building a server");
   const server = await serverPromise;
-  logger.appendLine("Server built");
+  logger.debug("Server built");
 
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
@@ -155,13 +170,10 @@ export async function activate(context: vscode.ExtensionContext) {
     intoServer
   );
 
-  logger.appendLine("Here1");
   server.start();
-  logger.appendLine("Here2");
 
   await new Promise((res) => setTimeout(res, 200));
   await client.start();
-  logger.appendLine("Here3");
 }
 
 // This method is called when your extension is deactivated

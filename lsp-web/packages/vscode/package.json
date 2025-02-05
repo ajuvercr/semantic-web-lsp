@@ -5,7 +5,8 @@
   "license": "MIT",
   "displayName": "semantic web lsp",
   "description": "A language server for semantic web standards",
-  "version": "0.0.3",
+  "version": "0.0.4",
+  "icon": "favicon.png",
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -85,10 +86,15 @@
     ],
     "configuration": [
       {
-        "order": 22,
         "id": "semantic-web-lsp",
         "title": "semantic web lsp",
-        "properties": {}
+        "properties": {
+          "swls.debug": {
+            "type": "boolean",
+            "default": false,
+            "description": "Log debug information."
+          }
+        }
       }
     ]
   },

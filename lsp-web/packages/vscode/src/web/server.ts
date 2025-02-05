@@ -5,7 +5,6 @@ import init, {
 } from "../../assets/wasm/lsp_web";
 import wasmData from "../../assets/wasm/lsp_web_bg.wasm";
 import { FromServer, IntoServer } from "common";
-import { logger } from "./logger";
 
 let server: null | Server;
 
@@ -79,10 +78,6 @@ export default class Server {
     fromServer: FromServer
   ): Promise<Server> {
     if (null == server) {
-      // const data = await base64ToBufferAsync(wasmData);
-      logger.appendLine(typeof wasmData);
-      // logger.appendLine((<string>(<any>wasmData)).slice(0, 100));
-      // logger.appendLine("len " + (<string>(<any>wasmData)).length);
       const buffer = decodeBase64(
         (<string>(<any>wasmData)).slice("data:application/wasm;base64,".length)
       );
@@ -98,10 +93,6 @@ export default class Server {
 
   async start(): Promise<void> {
     const config = new ServerConfig(this.#intoServer, this.#fromServer);
-    setTimeout(() => {
-      (<any>global)["logit"]("test");
-      logger.appendLine("testing");
-    }, 200);
     await serve2(config);
   }
 }
