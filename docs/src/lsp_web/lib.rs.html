@@ -200,7 +200,8 @@
 <a href="#199" id="199">199</a>
 <a href="#200" id="200">200</a>
 <a href="#201" id="201">201</a>
-<a href="#202" id="202">202</a></pre></div><pre class="rust"><code><span class="attr">#![doc(html_logo_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png"</span>, html_favicon_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"</span>)]
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a></pre></div><pre class="rust"><code><span class="attr">#![doc(html_logo_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png"</span>, html_favicon_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"</span>)]
 </span><span class="kw">mod </span>client;
 <span class="kw">mod </span>fetch;
 
@@ -219,13 +220,14 @@
 <span class="attr">#[wasm_bindgen]
 </span><span class="kw">extern </span><span class="string">"C" </span>{
     <span class="attr">#[wasm_bindgen()]
-    </span><span class="kw">pub fn </span>logit(string: <span class="kw-2">&amp;</span>str);
+    </span><span class="kw">pub fn </span>info(string: <span class="kw-2">&amp;</span>str);
+    <span class="kw">pub fn </span>debug(string: <span class="kw-2">&amp;</span>str);
 }
 
 <span class="kw">struct </span>LogItWriter;
 <span class="kw">impl </span>LogItWriter {
     <span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-        logit(<span class="string">"building self"</span>);
+        debug(<span class="string">"building self"</span>);
         LogItWriter
     }
 }
@@ -233,9 +235,9 @@
     <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;</span>[u8]) -&gt; std::io::Result&lt;usize&gt; {
         <span class="kw">match </span>std::str::from_utf8(buf) {
             <span class="prelude-val">Ok</span>(st) =&gt; {
-                logit(st);
+                debug(st);
             }
-            <span class="prelude-val">Err</span>(e) =&gt; logit(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"Invalid string logged {:?}"</span>, e)),
+            <span class="prelude-val">Err</span>(e) =&gt; debug(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"Invalid string logged {:?}"</span>, e)),
         }
 
         <span class="prelude-val">Ok</span>(buf.len())
@@ -356,7 +358,7 @@
     })
     .finish();
 
-    logit(<span class="string">"Testing logit, I'm serve 1"</span>);
+    debug(<span class="string">"Testing logit, I'm serve 1"</span>);
     Server::new(input, output, socket).serve(service).<span class="kw">await</span>;
 
     <span class="prelude-val">Ok</span>(())
@@ -396,7 +398,7 @@
         Backend::new(sender, client, rt)
     })
     .finish();
-    logit(<span class="string">"Testing logit, I'm serve 2"</span>);
+    debug(<span class="string">"Testing logit, I'm serve 2"</span>);
 
     Server::new(input, output, socket).serve(service).<span class="kw">await</span>;
 
