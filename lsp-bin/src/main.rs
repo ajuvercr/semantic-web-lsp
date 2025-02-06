@@ -89,7 +89,7 @@ fn setup_global_subscriber() -> impl Drop {
     _guard
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() {
     std::panic::set_hook(Box::new(|_panic_info| {
         let backtrace = std::backtrace::Backtrace::capture();
