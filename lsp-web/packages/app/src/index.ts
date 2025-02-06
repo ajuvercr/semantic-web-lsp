@@ -13,6 +13,7 @@ const cb = (st: string) => {
   }
 };
 logger.init(cb, cb);
+logger.set(true);
 
 const app = new App();
 app.run().catch(console.error);

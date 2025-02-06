@@ -10,6 +10,7 @@ use sophia_api::{
     quad::Quad,
     term::Term,
 };
+use systems::OntologyExtractor;
 use tracing::{debug, info, instrument};
 
 use crate::{
@@ -29,7 +30,6 @@ fn derive_class(
     triples: &Triples,
     source: &'static str,
 ) -> Option<DefinedClass> {
-    info!("Derive class for {}", subject);
     let label = triples
         .object([subject], [rdfs::label])?
         .to_owned()
@@ -51,18 +51,19 @@ fn derive_class(
 pub fn derive_classes(
     query: Query<(Entity, &Triples, &Label), (Changed<Triples>, Without<Dirty>)>,
     mut commands: Commands,
+    extractor: Res<OntologyExtractor>,
 ) {
-    info!("Running derive_classes");
     for (e, triples, label) in &query {
         let classes: Vec<_> = triples
             .0
-            .quads_matching(Any, [rdf::type_], [rdfs::Class], Any)
+            .quads_matching(Any, [rdf::type_], extractor.classes(), Any)
             .flatten()
             .flat_map(|x| derive_class(x.s(), &triples, "owl_class"))
             .collect();
 
         info!(
-            "Found {} classes for {} ({} triples)",
+            "({} classes) Found {} classes for {} ({} triples)",
+            extractor.classes().len(),
             classes.len(),
             label.0,
             triples.0.len()
@@ -83,7 +84,6 @@ pub fn complete_class(
     )>,
     other: Query<(&Label, &Wrapped<Vec<DefinedClass>>)>,
 ) {
-    info!("Running");
     for (token, triple, prefixes, links, this_label, mut request) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             && triple.target == TripleTarget::Object
@@ -168,7 +168,6 @@ fn derive_property(
     triples: &Triples,
     source: &'static str,
 ) -> Option<DefinedProperty> {
-    info!("Derive class for {}", subject);
     let label = triples
         .object([subject], [rdfs::label])?
         .to_owned()
@@ -202,20 +201,21 @@ fn derive_property(
 pub fn derive_properties(
     query: Query<(Entity, &Triples, &Label), (Changed<Triples>, Without<Dirty>)>,
     mut commands: Commands,
+    extractor: Res<OntologyExtractor>,
 ) {
-    info!("Running derive_properties");
     for (e, triples, label) in &query {
         let classes: Vec<_> = triples
             .0
-            .quads_matching(Any, [rdf::type_], [rdf::Property], Any)
+            .quads_matching(Any, [rdf::type_], extractor.properties(), Any)
             .flatten()
             .flat_map(|x| derive_property(x.s(), &triples, "owl_property"))
             .collect();
 
         info!(
-            "Found {} properties for {} ({} triples)",
+            "({} properties) Found {} properties for {} ({} triples)",
+            extractor.properties().len(),
             classes.len(),
-            label.0,
+            label.0.as_str(),
             triples.0.len()
         );
         commands.entity(e).insert(Wrapped(classes));

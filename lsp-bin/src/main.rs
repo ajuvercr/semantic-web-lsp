@@ -6,7 +6,7 @@ use lsp_bin::TowerClient;
 use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
-use tracing::{info, Level};
+use tracing::{info, level_filters::LevelFilter, Level};
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
@@ -73,7 +73,9 @@ fn setup_global_subscriber() -> impl Drop {
         };
 
     let (flame_layer, _guard) = FlameLayer::with_file("/tmp/tracing.folded").unwrap();
-    let fmt_layer = fmt::Layer::default().with_writer(Mutex::new(target));
+    let fmt_layer = fmt::Layer::default()
+        .with_writer(Mutex::new(target))
+        .with_filter(LevelFilter::DEBUG);
 
     let subscriber = Registry::default().with(fmt_layer).with(
         flame_layer

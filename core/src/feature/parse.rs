@@ -8,7 +8,10 @@ pub use crate::systems::{
     derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
     fetch_lov_properties, infer_types,
 };
-use crate::{client::Client, systems::derive_owl_imports_links};
+use crate::{
+    client::Client,
+    systems::{check_added_ontology_extract, derive_owl_imports_links},
+};
 
 /// Parse schedule barrier, after this system, triples should be derived
 pub fn triples() {}
@@ -32,6 +35,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         extract_type_hierarchy.after(triples),
         infer_types.after(triples),
         derive_shapes.after(triples),
+        check_added_ontology_extract.after(triples),
     ));
     world.add_schedule(parse_schedule);
 }
