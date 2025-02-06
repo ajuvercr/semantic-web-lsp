@@ -17,7 +17,9 @@ pub use properties::{
     hover_property, DefinedClass, DefinedProperty,
 };
 mod lov;
-pub use lov::fetch_lov_properties;
+pub use lov::{
+    check_added_ontology_extract, fetch_lov_properties, init_onology_extractor, OntologyExtractor,
+};
 use tracing::instrument;
 
 pub fn spawn_or_insert(

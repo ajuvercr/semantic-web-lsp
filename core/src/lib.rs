@@ -1,4 +1,7 @@
-#![doc(html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png", html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico")]
+#![doc(
+    html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png",
+    html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
+)]
 //! Core and common implementation for the semantic web language server.
 //!
 //! Proivdes the backbone for the [semantic web lsp binary](../lsp_bin/index.html) and [semantic web
@@ -79,6 +82,7 @@
 
 use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use prelude::SemanticTokensDict;
+use systems::{init_onology_extractor, OntologyExtractor};
 
 use crate::prelude::*;
 
@@ -116,6 +120,7 @@ pub mod systems;
 pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     world.init_resource::<SemanticTokensDict>();
     world.init_resource::<TypeHierarchy<'static>>();
+    world.insert_resource(OntologyExtractor::new());
 
     parse::setup_schedule::<C>(world);
     hover::setup_schedule(world);
@@ -128,6 +133,10 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     semantic::setup_world(world);
 
     world.add_schedule(Schedule::new(Tasks));
+
+    let mut schedule = Schedule::new(Startup);
+    schedule.add_systems(init_onology_extractor);
+    world.add_schedule(schedule);
 }
 
 /// Event triggers when a document is opened
@@ -189,3 +198,6 @@ pub struct CreateEvent {
 /// [`CommandSender`]
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Tasks;
+
+#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct Startup;

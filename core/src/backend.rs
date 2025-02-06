@@ -14,7 +14,7 @@ use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
-use crate::prelude::*;
+use crate::{prelude::*, Startup};
 
 #[derive(Debug)]
 pub struct Backend {
@@ -91,6 +91,7 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self, _init))]
     async fn initialize(&self, _init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
+        self.run(|world| world.run_schedule(Startup)).await;
         // let triggers = L::TRIGGERS.iter().copied().map(String::from).collect();
         Ok(InitializeResult {
             server_info: None,

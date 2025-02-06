@@ -1,4 +1,7 @@
-#![doc(html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png", html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico")]
+#![doc(
+    html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png",
+    html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
+)]
 mod client;
 mod fetch;
 
@@ -128,6 +131,8 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     web_sys::console::log_1(&"server::serve".into());
 
     setup_global_subscriber();
+
+    info("string string string");
 
     let ServerConfig {
         into_server,

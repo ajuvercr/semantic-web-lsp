@@ -62,7 +62,7 @@ const config = {
     new HtmlWebpackPlugin({
       template: "assets/index.html",
       scriptLoading: "module",
-      title: "tower-lsp web demo",
+      title: "sematnic web lsp web demo",
     }),
     new CopyWebpackPlugin({
       patterns: [
