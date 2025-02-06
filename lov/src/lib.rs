@@ -7,5 +7,3 @@ pub struct LocalPrefix {
 }
 
 pub const LOCAL_PREFIXES: &'static [LocalPrefix] = min_prefixes::LOCAL_PREFIXES;
-
-

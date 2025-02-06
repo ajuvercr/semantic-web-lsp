@@ -1,4 +1,7 @@
-#![doc(html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png", html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico")]
+#![doc(
+    html_logo_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png",
+    html_favicon_url = "https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
+)]
 use std::{
     collections::HashMap,
     fmt::Display,

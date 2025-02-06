@@ -4,10 +4,10 @@ use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 use chumsky::prelude::Simple;
 use futures::channel::mpsc;
 use lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url};
-
-use crate::prelude::*;
 /// [`ScheduleLabel`] related to the PrepareRename schedule
 pub use systems::prefix::undefined_prefix;
+
+use crate::prelude::*;
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 pub struct Label;
 
