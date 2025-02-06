@@ -109,7 +109,9 @@
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
 <a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a></pre></div><pre class="rust"><code><span class="kw">use </span>bevy_ecs::prelude::<span class="kw-2">*</span>;
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a></pre></div><pre class="rust"><code><span class="kw">use </span>bevy_ecs::prelude::<span class="kw-2">*</span>;
 
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 
@@ -128,7 +130,9 @@
     hover_property, DefinedClass, DefinedProperty,
 };
 <span class="kw">mod </span>lov;
-<span class="kw">pub use </span>lov::fetch_lov_properties;
+<span class="kw">pub use </span>lov::{
+    check_added_ontology_extract, fetch_lov_properties, init_onology_extractor, OntologyExtractor,
+};
 <span class="kw">use </span>tracing::instrument;
 
 <span class="kw">pub fn </span>spawn_or_insert(

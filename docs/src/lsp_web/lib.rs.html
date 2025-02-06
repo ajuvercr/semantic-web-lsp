@@ -201,7 +201,15 @@
 <a href="#200" id="200">200</a>
 <a href="#201" id="201">201</a>
 <a href="#202" id="202">202</a>
-<a href="#203" id="203">203</a></pre></div><pre class="rust"><code><span class="attr">#![doc(html_logo_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png"</span>, html_favicon_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"</span>)]
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a></pre></div><pre class="rust"><code><span class="attr">#![doc(
+    html_logo_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png"</span>,
+    html_favicon_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
+</span>)]
 </span><span class="kw">mod </span>client;
 <span class="kw">mod </span>fetch;
 
@@ -331,6 +339,8 @@
     web_sys::console::log_1(<span class="kw-2">&amp;</span><span class="string">"server::serve"</span>.into());
 
     setup_global_subscriber();
+
+    info(<span class="string">"string string string"</span>);
 
     <span class="kw">let </span>ServerConfig {
         into_server,

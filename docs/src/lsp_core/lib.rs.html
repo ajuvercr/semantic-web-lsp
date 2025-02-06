@@ -189,7 +189,22 @@
 <a href="#188" id="188">188</a>
 <a href="#189" id="189">189</a>
 <a href="#190" id="190">190</a>
-<a href="#191" id="191">191</a></pre></div><pre class="rust"><code><span class="attr">#![doc(html_logo_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png"</span>, html_favicon_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"</span>)]
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a></pre></div><pre class="rust"><code><span class="attr">#![doc(
+    html_logo_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.png"</span>,
+    html_favicon_url = <span class="string">"https://ajuvercr.github.io/semantic-web-lsp/assets/icons/favicon.ico"
+</span>)]
 </span><span class="doccomment">//! Core and common implementation for the semantic web language server.
 //!
 //! Proivdes the backbone for the [semantic web lsp binary](../lsp_bin/index.html) and [semantic web
@@ -270,6 +285,7 @@
 
 </span><span class="kw">use </span>bevy_ecs::{prelude::<span class="kw-2">*</span>, schedule::ScheduleLabel};
 <span class="kw">use </span>prelude::SemanticTokensDict;
+<span class="kw">use </span>systems::{init_onology_extractor, OntologyExtractor};
 
 <span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 
@@ -307,6 +323,7 @@
 </span><span class="kw">pub fn </span>setup_schedule_labels&lt;C: Client + Resource&gt;(world: <span class="kw-2">&amp;mut </span>World) {
     world.init_resource::&lt;SemanticTokensDict&gt;();
     world.init_resource::&lt;TypeHierarchy&lt;<span class="lifetime">'static</span>&gt;&gt;();
+    world.insert_resource(OntologyExtractor::new());
 
     parse::setup_schedule::&lt;C&gt;(world);
     hover::setup_schedule(world);
@@ -319,6 +336,10 @@
     semantic::setup_world(world);
 
     world.add_schedule(Schedule::new(Tasks));
+
+    <span class="kw">let </span><span class="kw-2">mut </span>schedule = Schedule::new(Startup);
+    schedule.add_systems(init_onology_extractor);
+    world.add_schedule(schedule);
 }
 
 <span class="doccomment">/// Event triggers when a document is opened
@@ -380,4 +401,7 @@
 /// [`CommandSender`]
 </span><span class="attr">#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 </span><span class="kw">pub struct </span>Tasks;
+
+<span class="attr">#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
+</span><span class="kw">pub struct </span>Startup;
 </code></pre></div></section></main></body></html>

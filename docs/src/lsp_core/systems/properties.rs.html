@@ -366,6 +366,7 @@
     quad::Quad,
     term::Term,
 };
+<span class="kw">use </span>systems::OntologyExtractor;
 <span class="kw">use </span>tracing::{debug, info, instrument};
 
 <span class="kw">use crate</span>::{
@@ -385,7 +386,6 @@
     triples: <span class="kw-2">&amp;</span>Triples,
     source: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;DefinedClass&gt; {
-    <span class="macro">info!</span>(<span class="string">"Derive class for {}"</span>, subject);
     <span class="kw">let </span>label = triples
         .object([subject], [rdfs::label])<span class="question-mark">?
         </span>.to_owned()
@@ -407,18 +407,19 @@
 <span class="kw">pub fn </span>derive_classes(
     query: Query&lt;(Entity, <span class="kw-2">&amp;</span>Triples, <span class="kw-2">&amp;</span>Label), (Changed&lt;Triples&gt;, Without&lt;Dirty&gt;)&gt;,
     <span class="kw-2">mut </span>commands: Commands,
+    extractor: Res&lt;OntologyExtractor&gt;,
 ) {
-    <span class="macro">info!</span>(<span class="string">"Running derive_classes"</span>);
     <span class="kw">for </span>(e, triples, label) <span class="kw">in </span><span class="kw-2">&amp;</span>query {
         <span class="kw">let </span>classes: Vec&lt;<span class="kw">_</span>&gt; = triples
             .<span class="number">0
-            </span>.quads_matching(Any, [rdf::type_], [rdfs::Class], Any)
+            </span>.quads_matching(Any, [rdf::type_], extractor.classes(), Any)
             .flatten()
             .flat_map(|x| derive_class(x.s(), <span class="kw-2">&amp;</span>triples, <span class="string">"owl_class"</span>))
             .collect();
 
         <span class="macro">info!</span>(
-            <span class="string">"Found {} classes for {} ({} triples)"</span>,
+            <span class="string">"({} classes) Found {} classes for {} ({} triples)"</span>,
+            extractor.classes().len(),
             classes.len(),
             label.<span class="number">0</span>,
             triples.<span class="number">0</span>.len()
@@ -439,7 +440,6 @@
     )&gt;,
     other: Query&lt;(<span class="kw-2">&amp;</span>Label, <span class="kw-2">&amp;</span>Wrapped&lt;Vec&lt;DefinedClass&gt;&gt;)&gt;,
 ) {
-    <span class="macro">info!</span>(<span class="string">"Running"</span>);
     <span class="kw">for </span>(token, triple, prefixes, links, this_label, <span class="kw-2">mut </span>request) <span class="kw">in </span><span class="kw-2">&amp;mut </span>query {
         <span class="kw">if </span>triple.triple.predicate.value == <span class="string">"http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
             </span>&amp;&amp; triple.target == TripleTarget::Object
@@ -524,7 +524,6 @@
     triples: <span class="kw-2">&amp;</span>Triples,
     source: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;DefinedProperty&gt; {
-    <span class="macro">info!</span>(<span class="string">"Derive class for {}"</span>, subject);
     <span class="kw">let </span>label = triples
         .object([subject], [rdfs::label])<span class="question-mark">?
         </span>.to_owned()
@@ -558,20 +557,21 @@
 <span class="kw">pub fn </span>derive_properties(
     query: Query&lt;(Entity, <span class="kw-2">&amp;</span>Triples, <span class="kw-2">&amp;</span>Label), (Changed&lt;Triples&gt;, Without&lt;Dirty&gt;)&gt;,
     <span class="kw-2">mut </span>commands: Commands,
+    extractor: Res&lt;OntologyExtractor&gt;,
 ) {
-    <span class="macro">info!</span>(<span class="string">"Running derive_properties"</span>);
     <span class="kw">for </span>(e, triples, label) <span class="kw">in </span><span class="kw-2">&amp;</span>query {
         <span class="kw">let </span>classes: Vec&lt;<span class="kw">_</span>&gt; = triples
             .<span class="number">0
-            </span>.quads_matching(Any, [rdf::type_], [rdf::Property], Any)
+            </span>.quads_matching(Any, [rdf::type_], extractor.properties(), Any)
             .flatten()
             .flat_map(|x| derive_property(x.s(), <span class="kw-2">&amp;</span>triples, <span class="string">"owl_property"</span>))
             .collect();
 
         <span class="macro">info!</span>(
-            <span class="string">"Found {} properties for {} ({} triples)"</span>,
+            <span class="string">"({} properties) Found {} properties for {} ({} triples)"</span>,
+            extractor.properties().len(),
             classes.len(),
-            label.<span class="number">0</span>,
+            label.<span class="number">0</span>.as_str(),
             triples.<span class="number">0</span>.len()
         );
         commands.entity(e).insert(Wrapped(classes));
