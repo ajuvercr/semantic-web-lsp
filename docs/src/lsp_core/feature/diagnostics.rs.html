@@ -233,10 +233,10 @@
 <span class="kw">use </span>chumsky::prelude::Simple;
 <span class="kw">use </span>futures::channel::mpsc;
 <span class="kw">use </span>lsp_types::{Diagnostic, DiagnosticSeverity, TextDocumentItem, Url};
-
-<span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 <span class="doccomment">/// [`ScheduleLabel`] related to the PrepareRename schedule
 </span><span class="kw">pub use </span>systems::prefix::undefined_prefix;
+
+<span class="kw">use </span><span class="kw">crate</span>::prelude::<span class="kw-2">*</span>;
 <span class="attr">#[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
 </span><span class="kw">pub struct </span>Label;
 
