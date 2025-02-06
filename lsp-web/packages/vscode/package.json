@@ -5,7 +5,7 @@
   "license": "MIT",
   "displayName": "semantic web lsp",
   "description": "A language server for semantic web standards",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "icon": "favicon.png",
   "engines": {
     "vscode": "^1.90.0"
