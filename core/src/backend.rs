@@ -10,6 +10,7 @@ use bevy_ecs::{
 use completion::CompletionRequest;
 use futures::lock::Mutex;
 use lsp_types::*;
+use references::ReferencesRequest;
 use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
@@ -108,6 +109,7 @@ impl LanguageServer for Backend {
                     all_commit_characters: None,
                     completion_item: None,
                 }),
+                references_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
@@ -214,6 +216,37 @@ impl LanguageServer for Backend {
     async fn shutdown(&self) -> Result<()> {
         info!("Shutting down!");
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(params.text_document_position.text_document.uri.as_str())
+            {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.text_document_position.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        let resp = self
+            .run_schedule::<ReferencesRequest>(
+                entity,
+                ReferencesLabel,
+                (PositionComponent(pos), ReferencesRequest(Vec::new())),
+            )
+            .await
+            .map(|x| x.0);
+
+        Ok(resp)
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]

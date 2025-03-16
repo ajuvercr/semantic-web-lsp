@@ -19,3 +19,5 @@ pub mod format;
 pub use format::Label as FormatLabel;
 pub mod semantic;
 pub use semantic::Label as SemanticLabel;
+pub mod references;
+pub use references::Label as ReferencesLabel;
