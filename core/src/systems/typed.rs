@@ -62,6 +62,18 @@ pub fn infer_types(
     }
 }
 
+pub fn infer_current_type(
+    query: Query<(Entity, &TripleComponent, &Types), Changed<Triples>>,
+    mut commands: Commands,
+) {
+    for (e, tc, types) in &query {
+        commands.entity(e).remove::<CurrentType>();
+        if let Some(types) = types.get(tc.triple.s().as_str()) {
+            commands.entity(e).insert(CurrentType(types.clone()));
+        }
+    }
+}
+
 #[tracing::instrument(skip(query, hierarchy))]
 pub fn hover_types(
     mut query: Query<(&TokenComponent, &Types, &Prefixes, &mut HoverRequest)>,

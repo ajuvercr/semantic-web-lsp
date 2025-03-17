@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use bevy_ecs::{
     bundle::Bundle,
@@ -9,8 +12,10 @@ use bevy_ecs::{
 };
 use completion::CompletionRequest;
 use futures::lock::Mutex;
+use goto_implementation::GotoImplementationRequest;
 use lsp_types::*;
 use references::ReferencesRequest;
+use request::{GotoImplementationParams, GotoImplementationResponse};
 use ropey::Rope;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
@@ -97,6 +102,7 @@ impl LanguageServer for Backend {
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
+                implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 inlay_hint_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
@@ -522,6 +528,52 @@ impl LanguageServer for Backend {
             info!("Ran OnSave Schedule");
         })
         .await;
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
+    async fn goto_implementation(
+        &self,
+        params: GotoImplementationParams,
+    ) -> Result<Option<GotoImplementationResponse>> {
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(
+                params
+                    .text_document_position_params
+                    .text_document
+                    .uri
+                    .as_str(),
+            ) {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.text_document_position_params.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        let resp = self
+            .run_schedule::<GotoImplementationRequest>(
+                entity,
+                GotoImplementationLabel,
+                (
+                    PositionComponent(pos),
+                    GotoImplementationRequest(Vec::new()),
+                ),
+            )
+            .await
+            .map(|x| {
+                info!("Found {} options", x.0.len());
+                x
+            })
+            .map(|x| GotoImplementationResponse::Array(x.0));
+
+        Ok(resp)
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]

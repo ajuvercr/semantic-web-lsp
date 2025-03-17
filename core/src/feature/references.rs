@@ -30,23 +30,11 @@ pub fn setup_schedule(world: &mut World) {
 
 mod system {
     use bevy_ecs::prelude::*;
-    use lsp_types::Location;
     use references::ReferencesRequest;
-    use ropey::Rope;
-    use sophia_api::{
-        quad::Quad,
-        term::{Term, TermKind},
-    };
+    use sophia_api::term::TermKind;
 
-    fn token_to_location(token: &Spanned<Token>, label: &Label, rope: &Rope) -> Option<Location> {
-        let range = range_to_range(token.span(), rope)?;
-        Some(Location {
-            range,
-            uri: label.0.clone(),
-        })
-    }
+    use crate::{prelude::*, util::token_to_location};
 
-    use crate::prelude::*;
     pub fn add_references(
         mut query: Query<(
             &TokenComponent,
@@ -59,19 +47,8 @@ mod system {
         project: Query<(&Tokens, &RopeC, &Label), With<Open>>,
     ) {
         for (token, triple, tokens, label, rope, mut req) in &mut query {
-            let target = match triple.target {
-                TripleTarget::Subject => triple.triple.s().kind(),
-                TripleTarget::Predicate => triple.triple.p().kind(),
-                TripleTarget::Object => triple.triple.o().kind(),
-                TripleTarget::Graph => triple
-                    .triple
-                    .g()
-                    .map(|x| x.kind())
-                    .unwrap_or(sophia_api::term::TermKind::Triple),
-            };
-
+            let target = triple.kind();
             tracing::info!("Found {} with kind {:?}", token.text, target);
-
             if target == TermKind::Iri {
                 // This is a named node, we should look project wide
                 for (tokens, rope, label) in &project {
@@ -79,7 +56,7 @@ mod system {
                         tokens
                             .iter()
                             .filter(|x| x.value() == token.token.value())
-                            .flat_map(|t| token_to_location(t, label, &rope)),
+                            .flat_map(|t| token_to_location(t.span(), label, &rope)),
                     );
                 }
             } else if target == TermKind::BlankNode {
@@ -89,7 +66,7 @@ mod system {
                     tokens
                         .iter()
                         .filter(|x| x.value() == token.token.value())
-                        .flat_map(|t| token_to_location(t, label, &rope)),
+                        .flat_map(|t| token_to_location(t.span(), label, &rope)),
                 );
             }
         }
