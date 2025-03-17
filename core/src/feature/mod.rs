@@ -21,3 +21,5 @@ pub mod semantic;
 pub use semantic::Label as SemanticLabel;
 pub mod references;
 pub use references::Label as ReferencesLabel;
+pub mod goto_implementation;
+pub use goto_implementation::Label as GotoImplementationLabel;

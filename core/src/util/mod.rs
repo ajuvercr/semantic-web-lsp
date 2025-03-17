@@ -3,8 +3,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use lsp_types::{Position, Range};
+use lsp_types::{Location, Position, Range};
 use ropey::Rope;
+
+use crate::Label;
 
 /// Commonly used RDF prefixes
 pub mod ns;
@@ -148,4 +150,16 @@ impl<T> Spanned<T> {
     pub fn span(&self) -> &std::ops::Range<usize> {
         &self.1
     }
+}
+
+pub fn token_to_location(
+    token: &std::ops::Range<usize>,
+    label: &Label,
+    rope: &Rope,
+) -> Option<Location> {
+    let range = range_to_range(token, rope)?;
+    Some(Location {
+        range,
+        uri: label.0.clone(),
+    })
 }

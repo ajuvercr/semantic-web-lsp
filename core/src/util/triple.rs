@@ -34,6 +34,31 @@ pub struct TripleComponent {
     pub triple: MyQuad<'static>,
     pub target: TripleTarget,
 }
+impl TripleComponent {
+    pub fn kind(&self) -> TermKind {
+        let target = match self.target {
+            TripleTarget::Subject => self.triple.s().kind(),
+            TripleTarget::Predicate => self.triple.p().kind(),
+            TripleTarget::Object => self.triple.o().kind(),
+            TripleTarget::Graph => self
+                .triple
+                .g()
+                .map(|x| x.kind())
+                .unwrap_or(sophia_api::term::TermKind::Triple),
+        };
+        target
+    }
+
+    pub fn term(&self) -> Option<&MyTerm<'static>> {
+        let target = match self.target {
+            TripleTarget::Subject => self.triple.s(),
+            TripleTarget::Predicate => self.triple.p(),
+            TripleTarget::Object => self.triple.o(),
+            TripleTarget::Graph => return None,
+        };
+        Some(target)
+    }
+}
 
 /// [`Component`] containing all derived Triples from the documents.
 ///
@@ -83,10 +108,6 @@ pub fn get_current_triple(
 ) {
     for (e, position, triples, rope) in &query {
         commands.entity(e).remove::<TripleComponent>();
-
-        for t in triples.iter() {
-            debug!("Triple {}", t);
-        }
 
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
             debug!("Couldn't transform to an offset");

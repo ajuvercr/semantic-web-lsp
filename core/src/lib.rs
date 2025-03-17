@@ -131,6 +131,8 @@ pub fn setup_schedule_labels<C: Client + Resource>(world: &mut World) {
     format::setup_schedule(world);
     references::setup_schedule(world);
     inlay::setup_schedule(world);
+    goto_implementation::setup_schedule(world);
+
     semantic::setup_world(world);
 
     world.add_schedule(Schedule::new(Tasks));

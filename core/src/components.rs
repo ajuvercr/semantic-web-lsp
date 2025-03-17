@@ -15,6 +15,9 @@ use crate::{
     systems::TypeId,
 };
 
+#[derive(Component, Default, Debug, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
+pub struct CurrentType(pub Vec<TypeId>);
+
 /// [`Component`] that contains the parsed semantic element (i.e. Turtle, JSONLD).
 #[derive(Component, AsRef, Deref, AsMut, DerefMut, Debug)]
 pub struct Element<L: Lang>(pub Spanned<L::Element>);
