@@ -44,13 +44,14 @@ mod system {
             &RopeC,
             &mut ReferencesRequest,
         )>,
-        project: Query<(&Tokens, &RopeC, &Label), With<Open>>,
+        project: Query<(&Tokens, &RopeC, &Label)>,
     ) {
         for (token, triple, tokens, label, rope, mut req) in &mut query {
             let target = triple.kind();
             tracing::info!("Found {} with kind {:?}", token.text, target);
             if target == TermKind::Iri {
                 // This is a named node, we should look project wide
+                // TODO: This should not match on token, but on expanded token
                 for (tokens, rope, label) in &project {
                     req.0.extend(
                         tokens

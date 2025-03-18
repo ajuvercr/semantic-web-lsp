@@ -3,9 +3,7 @@ use bevy_ecs::{
     schedule::{IntoSystemConfigs, Schedule, ScheduleLabel},
     world::World,
 };
-use lsp_types::Location;
 
-use crate::systems::infer_current_type;
 pub use crate::{
     systems::{hover_class, hover_property, hover_types, infer_types},
     util::{token::get_current_token, triple::get_current_triple},
@@ -13,7 +11,7 @@ pub use crate::{
 
 /// [`Component`] indicating that the current document is currently handling a GotoImplementation request.
 #[derive(Component, Debug, Default)]
-pub struct GotoImplementationRequest(pub Vec<Location>);
+pub struct GotoImplementationRequest(pub Vec<lsp_types::Location>);
 
 /// [`ScheduleLabel`] related to the GotoImplementation schedule
 #[derive(ScheduleLabel, Clone, Eq, PartialEq, Debug, Hash)]
@@ -24,8 +22,6 @@ pub fn setup_schedule(world: &mut World) {
     references.add_systems((
         get_current_token,
         get_current_triple.after(get_current_token),
-        infer_types.before(infer_current_type),
-        infer_current_type.after(get_current_triple),
         system::goto_implementation.after(get_current_triple),
     ));
     world.add_schedule(references);
@@ -37,7 +33,6 @@ mod system {
     use bevy_ecs::prelude::*;
     use goto_implementation::GotoImplementationRequest;
     use sophia_api::{quad::Quad as _, term::TermKind};
-    use tracing::info;
 
     use crate::{prelude::*, util::token_to_location};
 
@@ -49,7 +44,7 @@ mod system {
             &RopeC,
             &mut GotoImplementationRequest,
         )>,
-        project: Query<(&Triples, &RopeC, &Label), With<Open>>,
+        project: Query<(&Triples, &RopeC, &Label)>,
     ) {
         for (triple, triples, label, rope, mut req) in &mut query {
             let target = triple.kind();
@@ -57,7 +52,7 @@ mod system {
                 continue;
             };
 
-            tracing::info!("Found {} with kind {:?}", term.value, target);
+            tracing::debug!("Found {} with kind {:?}", term.value, target);
             if target == TermKind::Iri {
                 // This is a named node, we should look project wide
                 for (triples, rope, label) in &project {

@@ -18,7 +18,8 @@ pub use properties::{
 };
 mod lov;
 pub use lov::{
-    check_added_ontology_extract, fetch_lov_properties, init_onology_extractor, OntologyExtractor,
+    check_added_ontology_extract, fetch_lov_properties, finish_prefix_import,
+    init_onology_extractor, FromPrefix, LovEntry, LovHelper, OntologyExtractor,
 };
 use tracing::instrument;
 
@@ -64,7 +65,7 @@ pub fn keyword_complete(
         &mut CompletionRequest,
     )>,
 ) {
-    tracing::info!("Keyword complete!");
+    tracing::debug!("Keyword complete!");
     for (m_token, position, helper, mut req) in &mut query {
         let range = if let Some(ct) = m_token {
             ct.range

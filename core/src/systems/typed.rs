@@ -63,13 +63,21 @@ pub fn infer_types(
 }
 
 pub fn infer_current_type(
-    query: Query<(Entity, &TripleComponent, &Types), Changed<Triples>>,
+    query: Query<(Entity, &TripleComponent, &Types)>,
     mut commands: Commands,
 ) {
     for (e, tc, types) in &query {
         commands.entity(e).remove::<CurrentType>();
         if let Some(types) = types.get(tc.triple.s().as_str()) {
+            tracing::debug!(
+                "Found current type for {} {} {:?}",
+                e,
+                tc.triple.s().as_str(),
+                types
+            );
             commands.entity(e).insert(CurrentType(types.clone()));
+        } else {
+            tracing::debug!("No type found for {}", tc.triple.s().as_str(),);
         }
     }
 }

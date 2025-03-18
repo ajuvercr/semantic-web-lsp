@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use bevy_ecs::{
     bundle::Bundle,
@@ -13,10 +10,15 @@ use bevy_ecs::{
 use completion::CompletionRequest;
 use futures::lock::Mutex;
 use goto_implementation::GotoImplementationRequest;
+use goto_type::GotoTypeRequest;
 use lsp_types::*;
 use references::ReferencesRequest;
-use request::{GotoImplementationParams, GotoImplementationResponse};
+use request::{
+    GotoImplementationParams, GotoImplementationResponse, GotoTypeDefinitionParams,
+    GotoTypeDefinitionResponse,
+};
 use ropey::Rope;
+use systems::LovHelper;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
@@ -54,7 +56,7 @@ impl Backend {
         commands.push(move |world: &mut World| {
             let o = f(world);
             if let Err(_) = tx.send(o) {
-                tracing::error!("Failed to run schedule");
+                tracing::error!("Failed to run schedule for {}", stringify!(T));
             };
         });
 
@@ -69,7 +71,7 @@ impl Backend {
     async fn run_schedule<T: Component>(
         &self,
         entity: Entity,
-        schedule: impl ScheduleLabel,
+        schedule: impl ScheduleLabel + Clone,
         param: impl Bundle,
     ) -> Option<T> {
         let (tx, rx) = futures::channel::oneshot::channel();
@@ -77,9 +79,9 @@ impl Backend {
         let mut commands = CommandQueue::default();
         commands.push(move |world: &mut World| {
             world.entity_mut(entity).insert(param);
-            world.run_schedule(schedule);
+            world.run_schedule(schedule.clone());
             if let Err(_) = tx.send(world.entity_mut(entity).take::<T>()) {
-                tracing::error!("Failed to run schedule");
+                tracing::error!("Failed to run schedule {:?}", schedule);
             };
         });
 
@@ -97,7 +99,17 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self, _init))]
     async fn initialize(&self, _init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
-        self.run(|world| world.run_schedule(Startup)).await;
+        // iew
+        let cache = Cache::from_client(&self.client).await;
+        let helper = LovHelper::from_cache(&cache);
+
+        self.run(|world| {
+            world.insert_resource(cache);
+            world.insert_resource(helper);
+            world.run_schedule(Startup)
+        })
+        .await;
+
         // let triggers = L::TRIGGERS.iter().copied().map(String::from).collect();
         Ok(InitializeResult {
             server_info: None,
@@ -115,6 +127,7 @@ impl LanguageServer for Backend {
                     all_commit_characters: None,
                     completion_item: None,
                 }),
+                type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
@@ -205,7 +218,6 @@ impl LanguageServer for Backend {
             .run_schedule::<HighlightRequest>(entity, SemanticLabel, HighlightRequest(vec![]))
             .await
         {
-            info!("resulitng in {} tokens", res.0.len());
             Ok(Some(SemanticTokensResult::Tokens(
                 lsp_types::SemanticTokens {
                     result_id: None,
@@ -221,6 +233,20 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self))]
     async fn shutdown(&self) -> Result<()> {
         info!("Shutting down!");
+
+        self.run(|world| {
+            match (
+                world.remove_resource::<Cache>(),
+                world.remove_resource::<LovHelper>(),
+            ) {
+                (Some(cache), Some(helper)) => {
+                    helper.save(&cache);
+                }
+                _ => {}
+            }
+        })
+        .await;
+
         Ok(())
     }
 
@@ -243,7 +269,7 @@ impl LanguageServer for Backend {
             pos.character
         };
 
-        let resp = self
+        let arr = self
             .run_schedule::<ReferencesRequest>(
                 entity,
                 ReferencesLabel,
@@ -252,7 +278,7 @@ impl LanguageServer for Backend {
             .await
             .map(|x| x.0);
 
-        Ok(resp)
+        Ok(arr)
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
@@ -397,35 +423,68 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let _ = params;
-        info!("Goto definition");
-        let url = params
-            .text_document_position_params
-            .text_document
-            .uri
-            .join("pipeline.ttl")
-            .unwrap();
-        // let url = Url::parse("untitled://cdn.jsdelivr.net/gh/treecg/specification@master/tree.ttl")
-        //     .unwrap();
-        // let mut map = HashMap::new();
-        // map.insert(
-        //     url.clone(),
-        //     vec![TextEdit {
-        //         range: lsp_types::Range::new(
-        //             lsp_types::Position::new(0, 0),
-        //             lsp_types::Position::new(0, 0),
-        //         ),
-        //         new_text: String::from("@prefix foaf: <>."),
-        //     }],
-        // );
-        // let res = self.client.apply_edit(WorkspaceEdit::new(map)).await;
-        // info!("result {:?}", res);
-        Ok(Some(GotoDefinitionResponse::Array(vec![Location {
-            uri: url,
-            range: Range::new(Position::new(0, 0), Position::new(0, 5)),
-            // target_selection_range: Range::new(Position::new(0, 0), Position::new(0, 5)),
-            // origin_selection_range: None,
-        }])))
+        // let _ = params;
+        // info!("Goto definition");
+        //
+        // let virtual_uri = "file://tmp/MyType.ttl".to_string();
+        // let content = "@prefix ex: <http://example.com/> .\nex:Type a rdfs:Class .\n";
+        //
+        // let start = Range::new(Position::new(0, 0), Position::new(0, 0));
+        // // Store the content in memory (for debugging)
+        // // let mut virtual_files = self.virtual_files.lock().await;
+        // // virtual_files.insert(virtual_uri.clone(), content.clone());
+        // let url = Url::parse(&virtual_uri).unwrap();
+        // let resp = self
+        //     .client
+        //     .apply_edit(WorkspaceEdit {
+        //         document_changes: Some(DocumentChanges::Operations(vec![
+        //             DocumentChangeOperation::Op(ResourceOp::Create(CreateFile {
+        //                 uri: url.clone(),
+        //                 options: None,
+        //                 annotation_id: None,
+        //             })),
+        //             DocumentChangeOperation::Edit(TextDocumentEdit {
+        //                 text_document: OptionalVersionedTextDocumentIdentifier {
+        //                     uri: url.clone(),
+        //                     version: None,
+        //                 },
+        //                 edits: vec![OneOf::Left(TextEdit {
+        //                     range: start,
+        //                     new_text: content.to_string(),
+        //                 })],
+        //             }),
+        //         ])),
+        //         ..Default::default()
+        //     })
+        //     .await;
+        // // Notify Neovim that the virtual file is "opened"
+        // // self.client
+        // //     .send_notification::<DidOpenTextDocument>(DidOpenTextDocumentParams {
+        // //         text_document: TextDocumentItem {
+        // //             uri: Url::parse(&virtual_uri).unwrap(),
+        // //             language_id: "turtle".to_string(),
+        // //             version: 1,
+        // //             text: content.to_string(),
+        // //         },
+        // //     })
+        // //     .await;
+        //
+        // info!("Opening {} (resp {:?})", virtual_uri, resp);
+        // // Wait for Neovim to register the buffer before returning location
+        // // sleep(Duration::from_millis(100)).await;
+        //
+        // // Return the location inside the virtual buffer
+        // Ok(Some(GotoDefinitionResponse::Scalar(Location {
+        //     uri: Url::parse(&virtual_uri).unwrap(),
+        //     range: Range::new(Position::new(0, 0), Position::new(0, 0)),
+        // })))
+        // Ok(Some(GotoDefinitionResponse::Array(vec![Location {
+        //     uri: url,
+        //     range: Range::new(Position::new(0, 0), Position::new(0, 5)),
+        //     // target_selection_range: Range::new(Position::new(0, 0), Position::new(0, 5)),
+        //     // origin_selection_range: None,
+        // }])))
+        Ok(None)
     }
 
     #[tracing::instrument(skip(self))]
@@ -451,6 +510,8 @@ impl LanguageServer for Backend {
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let item = params.text_document;
         let url = item.uri.as_str().to_string();
+
+        tracing::info!("Did open");
 
         let lang_id = Some(item.language_id.clone());
         let spawn = spawn_or_insert(
@@ -557,7 +618,7 @@ impl LanguageServer for Backend {
             pos.character
         };
 
-        let resp = self
+        let arr = self
             .run_schedule::<GotoImplementationRequest>(
                 entity,
                 GotoImplementationLabel,
@@ -567,13 +628,48 @@ impl LanguageServer for Backend {
                 ),
             )
             .await
-            .map(|x| {
-                info!("Found {} options", x.0.len());
-                x
-            })
             .map(|x| GotoImplementationResponse::Array(x.0));
 
-        Ok(resp)
+        Ok(arr)
+    }
+
+    #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
+    async fn goto_type_definition(
+        &self,
+        params: GotoTypeDefinitionParams,
+    ) -> Result<Option<GotoTypeDefinitionResponse>> {
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(
+                params
+                    .text_document_position_params
+                    .text_document
+                    .uri
+                    .as_str(),
+            ) {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.text_document_position_params.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        let arr = self
+            .run_schedule::<GotoTypeRequest>(
+                entity,
+                GotoTypeLabel,
+                (PositionComponent(pos), GotoTypeRequest(Vec::new())),
+            )
+            .await
+            .map(|x| GotoTypeDefinitionResponse::Array(x.0));
+
+        Ok(arr)
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position.text_document.uri.as_str()))]
@@ -596,6 +692,7 @@ impl LanguageServer for Backend {
         } else {
             pos.character
         };
+
         let completions: Option<Vec<lsp_types::CompletionItem>> = self
             .run_schedule::<CompletionRequest>(
                 entity,

@@ -20,7 +20,7 @@ pub use crate::{
     systems::prefix::{Prefix, Prefixes},
     systems::spawn_or_insert,
     util::{
-        lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,
+        cache::*, lsp_range_to_range, offset_to_position, offsets_to_range, position_to_offset,
         range_to_range, spanned, token::*, triple::*, Spanned,
     },
     CreateEvent,

@@ -60,17 +60,17 @@ pub fn prepare_rename(query: Query<(Entity, Option<&TokenComponent>)>, mut comma
                 continue;
             }
         }
-        tracing::info!("Didn't find a good token");
+        tracing::debug!("Didn't find a good token");
     }
 }
 
 #[instrument(skip(query,))]
 pub fn rename(mut query: Query<(&TokenComponent, &Tokens, &RopeC, &Label, &mut RenameEdits)>) {
     for (token, tokens, rope, label, mut edits) in &mut query {
-        tracing::info!("Token {:?}", token);
+        tracing::debug!("Token {:?}", token);
         let new_text = edits.1.clone();
         for t in tokens.0.iter().filter(|x| x.value() == token.token.value()) {
-            tracing::info!("Changing {:?}", t);
+            tracing::debug!("Changing {:?}", t);
             if let Some(range) = range_to_range(t.span(), &rope.0) {
                 edits.0.push((
                     label.0.clone(),
@@ -81,9 +81,5 @@ pub fn rename(mut query: Query<(&TokenComponent, &Tokens, &RopeC, &Label, &mut R
                 ))
             }
         }
-        // commands.entity(e).insert(PrepareRenameRequest {
-        //     range: token.range.clone(),
-        //     placeholder: token.text.clone(),
-        // });
     }
 }
