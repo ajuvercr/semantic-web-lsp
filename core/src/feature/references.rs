@@ -42,21 +42,21 @@ mod system {
             &Tokens,
             &Label,
             &RopeC,
+            &Prefixes,
             &mut ReferencesRequest,
         )>,
-        project: Query<(&Tokens, &RopeC, &Label)>,
+        project: Query<(&Tokens, &RopeC, &Label, &Prefixes)>,
     ) {
-        for (token, triple, tokens, label, rope, mut req) in &mut query {
+        for (token, triple, tokens, label, rope, prefixes, mut req) in &mut query {
             let target = triple.kind();
             tracing::info!("Found {} with kind {:?}", token.text, target);
+            let expanded = prefixes.expand(&token.token);
             if target == TermKind::Iri {
-                // This is a named node, we should look project wide
-                // TODO: This should not match on token, but on expanded token
-                for (tokens, rope, label) in &project {
+                for (tokens, rope, label, prefixes) in &project {
                     req.0.extend(
                         tokens
                             .iter()
-                            .filter(|x| x.value() == token.token.value())
+                            .filter(|x| prefixes.expand(&x) == expanded)
                             .flat_map(|t| token_to_location(t.span(), label, &rope)),
                     );
                 }
