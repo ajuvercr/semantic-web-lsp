@@ -9,14 +9,11 @@ use bevy_ecs::{
 };
 use completion::CompletionRequest;
 use futures::lock::Mutex;
-use goto_implementation::GotoImplementationRequest;
+use goto_definition::GotoDefinitionRequest;
 use goto_type::GotoTypeRequest;
 use lsp_types::*;
 use references::ReferencesRequest;
-use request::{
-    GotoImplementationParams, GotoImplementationResponse, GotoTypeDefinitionParams,
-    GotoTypeDefinitionResponse,
-};
+use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
 use systems::LovHelper;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
@@ -114,7 +111,6 @@ impl LanguageServer for Backend {
         Ok(InitializeResult {
             server_info: None,
             capabilities: ServerCapabilities {
-                implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 inlay_hint_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
@@ -127,6 +123,7 @@ impl LanguageServer for Backend {
                     all_commit_characters: None,
                     completion_item: None,
                 }),
+                // implementation_provider: Some(ImplementationProviderCapability::Simple(true)),
                 type_definition_provider: Some(TypeDefinitionProviderCapability::Simple(true)),
                 references_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
@@ -419,75 +416,6 @@ impl LanguageServer for Backend {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn goto_definition(
-        &self,
-        params: GotoDefinitionParams,
-    ) -> Result<Option<GotoDefinitionResponse>> {
-        // let _ = params;
-        // info!("Goto definition");
-        //
-        // let virtual_uri = "file://tmp/MyType.ttl".to_string();
-        // let content = "@prefix ex: <http://example.com/> .\nex:Type a rdfs:Class .\n";
-        //
-        // let start = Range::new(Position::new(0, 0), Position::new(0, 0));
-        // // Store the content in memory (for debugging)
-        // // let mut virtual_files = self.virtual_files.lock().await;
-        // // virtual_files.insert(virtual_uri.clone(), content.clone());
-        // let url = Url::parse(&virtual_uri).unwrap();
-        // let resp = self
-        //     .client
-        //     .apply_edit(WorkspaceEdit {
-        //         document_changes: Some(DocumentChanges::Operations(vec![
-        //             DocumentChangeOperation::Op(ResourceOp::Create(CreateFile {
-        //                 uri: url.clone(),
-        //                 options: None,
-        //                 annotation_id: None,
-        //             })),
-        //             DocumentChangeOperation::Edit(TextDocumentEdit {
-        //                 text_document: OptionalVersionedTextDocumentIdentifier {
-        //                     uri: url.clone(),
-        //                     version: None,
-        //                 },
-        //                 edits: vec![OneOf::Left(TextEdit {
-        //                     range: start,
-        //                     new_text: content.to_string(),
-        //                 })],
-        //             }),
-        //         ])),
-        //         ..Default::default()
-        //     })
-        //     .await;
-        // // Notify Neovim that the virtual file is "opened"
-        // // self.client
-        // //     .send_notification::<DidOpenTextDocument>(DidOpenTextDocumentParams {
-        // //         text_document: TextDocumentItem {
-        // //             uri: Url::parse(&virtual_uri).unwrap(),
-        // //             language_id: "turtle".to_string(),
-        // //             version: 1,
-        // //             text: content.to_string(),
-        // //         },
-        // //     })
-        // //     .await;
-        //
-        // info!("Opening {} (resp {:?})", virtual_uri, resp);
-        // // Wait for Neovim to register the buffer before returning location
-        // // sleep(Duration::from_millis(100)).await;
-        //
-        // // Return the location inside the virtual buffer
-        // Ok(Some(GotoDefinitionResponse::Scalar(Location {
-        //     uri: Url::parse(&virtual_uri).unwrap(),
-        //     range: Range::new(Position::new(0, 0), Position::new(0, 0)),
-        // })))
-        // Ok(Some(GotoDefinitionResponse::Array(vec![Location {
-        //     uri: url,
-        //     range: Range::new(Position::new(0, 0), Position::new(0, 5)),
-        //     // target_selection_range: Range::new(Position::new(0, 0), Position::new(0, 5)),
-        //     // origin_selection_range: None,
-        // }])))
-        Ok(None)
-    }
-
-    #[tracing::instrument(skip(self))]
     async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         let uri = params.text_document.uri.as_str();
         let entity = {
@@ -592,10 +520,10 @@ impl LanguageServer for Backend {
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]
-    async fn goto_implementation(
+    async fn goto_definition(
         &self,
-        params: GotoImplementationParams,
-    ) -> Result<Option<GotoImplementationResponse>> {
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
         let entity = {
             let map = self.entities.lock().await;
             if let Some(entity) = map.get(
@@ -619,16 +547,13 @@ impl LanguageServer for Backend {
         };
 
         let arr = self
-            .run_schedule::<GotoImplementationRequest>(
+            .run_schedule::<GotoDefinitionRequest>(
                 entity,
-                GotoImplementationLabel,
-                (
-                    PositionComponent(pos),
-                    GotoImplementationRequest(Vec::new()),
-                ),
+                GotoDefinitionLabel,
+                (PositionComponent(pos), GotoDefinitionRequest(Vec::new())),
             )
             .await
-            .map(|x| GotoImplementationResponse::Array(x.0));
+            .map(|x| GotoDefinitionResponse::Array(x.0));
 
         Ok(arr)
     }
