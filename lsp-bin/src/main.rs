@@ -2,7 +2,7 @@ use std::{fs::File, io, sync::Mutex};
 
 use bevy_ecs::{system::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
-use lsp_bin::TowerClient;
+use lsp_bin::{timings, TowerClient};
 use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
@@ -77,13 +77,16 @@ fn setup_global_subscriber() -> impl Drop {
         .with_writer(Mutex::new(target))
         .with_filter(LevelFilter::DEBUG);
 
-    let subscriber = Registry::default().with(fmt_layer).with(
-        flame_layer
-            .with_empty_samples(false)
-            .with_file_and_line(false)
-            .with_threads_collapsed(true)
-            .with_module_path(false),
-    );
+    let subscriber = Registry::default()
+        .with(timings::TracingLayer::new())
+        .with(fmt_layer)
+        .with(
+            flame_layer
+                .with_empty_samples(false)
+                .with_file_and_line(false)
+                .with_threads_collapsed(true)
+                .with_module_path(false),
+        );
 
     tracing::subscriber::set_global_default(subscriber).expect("Could not set global default");
     _guard
