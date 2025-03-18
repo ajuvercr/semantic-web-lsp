@@ -9,7 +9,7 @@ use sophia_api::{
     quad::Quad,
     term::matcher::TermMatcher,
 };
-use tracing::{debug, error, info, instrument};
+use tracing::{debug, error, info, instrument, span};
 
 use crate::{prelude::*, util::ns::rdfs};
 
@@ -127,10 +127,17 @@ pub fn fetch_lov_properties<C: Client + Resource>(
 
 fn from_cache(e: &LovEntry, cache: &Cache, sender: &CommandSender) -> Option<()> {
     debug!("Using cached {:?}", e);
-    let mut command_queue = CommandQueue::default();
     let url = e.url(cache)?;
     let content = cache.get_file(&e.name())?;
 
+    spawn_document(url, content, &sender.0, None);
+
+    Some(())
+}
+
+type Sender = futures::channel::mpsc::UnboundedSender<CommandQueue>;
+fn spawn_document(url: Url, content: String, sender: &Sender, from_prefix: Option<FromPrefix>) {
+    let mut command_queue = CommandQueue::default();
     let item = TextDocumentItem {
         version: 1,
         uri: url.clone(),
@@ -152,53 +159,24 @@ fn from_cache(e: &LovEntry, cache: &Cache, sender: &CommandSender) -> Option<()>
     );
 
     command_queue.push(move |world: &mut World| {
-        spawn(world);
+        let span = span!(tracing::Level::INFO, "span lov");
+        let _enter = span.enter();
+        let e = spawn(world);
+        if let Some(from) = from_prefix {
+            world.entity_mut(e).insert(from);
+        }
         world.run_schedule(ParseLabel);
+        drop(_enter);
     });
 
-    let _ = sender.0.clone().start_send(command_queue);
-
-    Some(())
+    let _ = sender.unbounded_send(command_queue);
 }
 
-async fn fetch_lov<C: Client + Resource>(
-    prefix: Prefix,
-    label: Url,
-    c: C,
-    mut sender: futures::channel::mpsc::UnboundedSender<CommandQueue>,
-) {
-    let mut command_queue = CommandQueue::default();
-
+async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender) {
     if let Some(url) = extract_file_url(&prefix.prefix, &c).await {
         match c.fetch(&url, &std::collections::HashMap::new()).await {
             Ok(resp) if resp.status == 200 => {
-                let rope = ropey::Rope::from_str(&resp.body);
-                let item = TextDocumentItem {
-                    version: 1,
-                    uri: label.clone(),
-                    language_id: String::from("turtle"),
-                    text: String::new(),
-                };
-
-                let spawn = spawn_or_insert(
-                    label.clone(),
-                    (
-                        Source(resp.body),
-                        RopeC(rope),
-                        Label(label), // this might crash
-                        Wrapped(item),
-                        FromPrefix(prefix),
-                    ),
-                    Some("turtle".into()),
-                    (),
-                );
-
-                command_queue.push(move |world: &mut World| {
-                    spawn(world);
-                    world.run_schedule(ParseLabel);
-                });
-
-                let _ = sender.start_send(command_queue);
+                spawn_document(label, resp.body, &sender, Some(FromPrefix(prefix)));
             }
             Ok(resp) => {
                 error!("Fetch ({}) failed status {}", url, resp.status);
@@ -212,38 +190,12 @@ async fn fetch_lov<C: Client + Resource>(
 
 fn local_lov(local: &lov::LocalPrefix, label: Url, sender: &Res<CommandSender>) {
     info!("Using local {}", local.name);
-    let mut command_queue = CommandQueue::default();
 
-    let url = lsp_types::Url::from_str(local.location).unwrap();
-    let item = TextDocumentItem {
-        version: 1,
-        uri: label.clone(),
-        language_id: String::from("turtle"),
-        text: String::new(),
-    };
-    let spawn = spawn_or_insert(
-        url.clone(),
-        (
-            Source(local.content.to_string()),
-            RopeC(ropey::Rope::from_str(local.content)),
-            Label(label),
-            Wrapped(item),
-            Types(HashMap::new()),
-            FromPrefix(Prefix {
-                prefix: local.name.to_string(),
-                url: Url::parse(&local.location).unwrap(),
-            }),
-        ),
-        Some("turtle".into()),
-        (),
-    );
-
-    command_queue.push(move |world: &mut World| {
-        spawn(world);
-        world.run_schedule(ParseLabel);
+    let from = FromPrefix(Prefix {
+        prefix: local.name.to_string(),
+        url: Url::parse(&local.location).unwrap(),
     });
-
-    let _ = sender.0.clone().start_send(command_queue);
+    spawn_document(label, local.content.to_string(), &sender.0, Some(from));
 }
 
 #[derive(Component)]
