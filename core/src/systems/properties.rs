@@ -23,6 +23,7 @@ pub struct DefinedClass {
     pub label: String,
     pub comment: String,
     pub reason: &'static str,
+    pub location: std::ops::Range<usize>,
 }
 
 fn derive_class(
@@ -45,6 +46,7 @@ fn derive_class(
         comment,
         term: subject.to_owned(),
         reason: source,
+        location: subject.span.clone(),
     })
 }
 
@@ -96,13 +98,13 @@ pub fn complete_class(
                     .is_none()
                     && label.0 != this_label.0
                 {
-                    info!(
+                    debug!(
                         "Not looking for defined classes in {} (not linked)",
                         label.0
                     );
                     continue;
                 }
-                info!("Looking for defined classes in {}", label.0);
+                debug!("Looking for defined classes in {}", label.0);
 
                 for class in classes.0.iter() {
                     let to_beat = prefixes
@@ -239,6 +241,7 @@ pub fn complete_properties(
     debug!("Complete properties");
     for (token, triple, prefixes, links, this_label, types, mut request) in &mut query {
         debug!("target {:?} text {}", triple.target, token.text);
+        debug!("links {:?}", links);
         if triple.target == TripleTarget::Predicate {
             let tts = types.get(&triple.triple.subject.value);
             for (label, properties) in &other {
@@ -249,6 +252,7 @@ pub fn complete_properties(
                     .is_none()
                     && label.0 != this_label.0
                 {
+                    debug!("This link is ignored {}", label.as_str());
                     continue;
                 }
 

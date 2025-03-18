@@ -189,6 +189,7 @@ pub fn publish_diagnostics<L: Lang>(
                 Changed<Errors<L::TokenError>>,
                 Changed<Errors<L::ElementError>>,
             )>,
+            With<Open>,
         ),
     >,
     mut client: ResMut<DiagnosticPublisher>,

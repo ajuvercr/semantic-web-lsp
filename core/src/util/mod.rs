@@ -8,6 +8,7 @@ use ropey::Rope;
 
 use crate::Label;
 
+pub mod cache;
 /// Commonly used RDF prefixes
 pub mod ns;
 pub mod token;

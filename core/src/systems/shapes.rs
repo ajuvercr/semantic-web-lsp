@@ -18,7 +18,7 @@ use rudof_lib::{
     RdfData,
 };
 use sophia_api::prelude::Quad as _;
-use tracing::{info, instrument};
+use tracing::{debug, error, info, instrument};
 
 use crate::prelude::*;
 
@@ -59,7 +59,7 @@ pub fn derive_shapes(
         .and_then(|shacl| ShaclSchema::try_from(shacl).ok())
         {
             let is_some = compiled.iter().next().is_some();
-            info!(
+            debug!(
                 "Compiled shapes for {} (is some {})",
                 label.as_str(),
                 is_some
@@ -76,7 +76,7 @@ pub fn derive_shapes(
                 _ => {}
             };
         } else {
-            info!("Failed to compile shapes for {}", label.as_str());
+            error!("Failed to compile shapes for {}", label.as_str());
         }
     }
 }
@@ -111,7 +111,6 @@ fn group_per_fn_per_path(
 ) -> HashMap<std::ops::Range<usize>, HashMap<String, Vec<String>>> {
     let mut per_fn_per_path = HashMap::new();
     for r in res {
-        info!("Res {:?}", r);
         let foc = r.focus_node().to_string();
 
         let mut done = std::collections::HashSet::new();
@@ -187,7 +186,7 @@ fn derive_shapes_diagnostics_for(
         .ok()
         .and_then(|data| RdfData::from_graph(data).ok())
         .map(|data| {
-            info!("Created graph validator for {}", label.as_str());
+            debug!("Created graph validator for {}", label.as_str());
             GraphValidation::from_graph(
                 Graph::from_data(data),
                 rudof_lib::ShaclValidationMode::Native,
@@ -209,11 +208,10 @@ fn derive_shapes_diagnostics_for(
         }
 
         if let Some(validator) = validator.get_or_init(build_validator) {
-            info!("Schema {}", other_label.as_str());
+            debug!("Schema {}", other_label.as_str());
             for (_, s) in schema.iter() {
                 if let Ok(res) = s.validate(validator.store(), validator.runner(), None) {
                     if !res.is_empty() {
-                        info!("Validations for {:?}", s);
                         push_diagnostics(rope, &res, s, triples, prefixes, &mut diagnostics);
                     }
                 }
@@ -273,7 +271,7 @@ pub fn validate_with_updated_shapes(
                 .find(|(url, _)| url.as_str().starts_with(l.as_str()))
                 .is_some()
             {
-                info!("Found reverse linked document! {}", label.as_str());
+                debug!("Found reverse linked document! {}", label.as_str());
                 derive_shapes_diagnostics_for(
                     rope,
                     label,
