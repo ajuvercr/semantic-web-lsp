@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr as _};
+use std::{collections::HashMap, fs::read_to_string, str::FromStr as _};
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
@@ -7,11 +7,14 @@ use serde::{Deserialize, Serialize};
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
-    term::matcher::TermMatcher,
+    term::{matcher::TermMatcher, Term as _},
 };
 use tracing::{debug, error, info, instrument, span};
 
-use crate::{prelude::*, util::ns::rdfs};
+use crate::{
+    prelude::*,
+    util::ns::{owl, rdfs},
+};
 
 #[derive(Deserialize, Debug)]
 struct Version {
@@ -75,6 +78,33 @@ pub fn finish_prefix_import(
     }
 }
 
+pub fn open_imports(
+    query: Query<(&Triples, &RopeC), Changed<Triples>>,
+    mut opened: Local<HashSet<String>>,
+    sender: Res<CommandSender>,
+) {
+    for (triples, _) in &query {
+        for object in triples
+            .quads_matching(Any, [owl::imports], Any, Any)
+            .flatten()
+            .flat_map(|s| s.o().iri())
+            .flat_map(|s| Url::parse(s.as_str()))
+        {
+            if opened.contains(object.as_str()) {
+                continue;
+            }
+            opened.insert(object.as_str().to_string());
+            if let Some(content) = object
+                .to_file_path()
+                .ok()
+                .and_then(|p| read_to_string(p).ok())
+            {
+                spawn_document(object, content, &sender.0, None);
+            }
+        }
+    }
+}
+
 /// First of al, fetch the lov dataset information at url https://lov.linkeddata.es/dataset/lov/api/v2/vocabulary/info?vocab=${prefix}
 /// Next, extract that json object into an object and find the latest dataset
 pub fn fetch_lov_properties<C: Client + Resource>(
@@ -91,9 +121,9 @@ pub fn fetch_lov_properties<C: Client + Resource>(
     mut helper: ResMut<LovHelper>,
     cache: Res<Cache>,
 ) {
-    println!("fetch lov properties");
+    // println!("fetch lov properties");
     for prefs in &query {
-        println!("Found some turtle!");
+        // println!("Found some turtle!");
         for prefix in prefs.0.iter() {
             if let Some(e) = helper.has_entry_mut(&prefix) {
                 let name = e.name();
@@ -112,13 +142,19 @@ pub fn fetch_lov_properties<C: Client + Resource>(
                             .iter()
                             .find(|x| x.location == prefix.url.as_str())
                         {
+                            debug!("Local lov");
                             local_lov(local, url, &sender);
                         } else {
+                            debug!("Remove lov");
                             let sender = sender.0.clone();
                             let c = client.as_ref().clone();
                             client.spawn(fetch_lov(prefix.clone(), url, c, sender));
                         }
+                    } else {
+                        debug!("Failed to find url");
                     }
+                } else {
+                    debug!("Prefixes is already present {}", name);
                 }
             }
         }
@@ -362,9 +398,17 @@ impl LovEntry {
         format!("{}-{}.ttl", self.num, self.prefix)
     }
     pub fn url(&self, cache: &Cache) -> Option<Url> {
+        self.file_url(cache).or_else(|| self.remote_url())
+    }
+
+    fn file_url(&self, cache: &Cache) -> Option<Url> {
         let p = cache.path()?;
         let url = p.join(self.name());
         Url::from_file_path(url).ok()
+    }
+
+    fn remote_url(&self) -> Option<Url> {
+        Url::from_str(&self.url).ok()
     }
 
     pub fn save(&mut self, cache: &Cache, content: &str) -> Option<()> {
@@ -415,6 +459,7 @@ impl LovHelper {
     }
 
     pub fn create_entry(&mut self, prefix: &Prefix) -> &LovEntry {
+        debug!("Create entry for {:?}", prefix);
         if let Some(e) = self.entries.iter().enumerate().find_map(|(i, e)| {
             (e.prefix == prefix.prefix && e.url == prefix.url.as_str()).then_some(i)
         }) {

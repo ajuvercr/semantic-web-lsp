@@ -138,9 +138,6 @@ pub fn get_current_triple(
             });
         } else {
             debug!("No current triple found");
-            for t in &triples.0 {
-                println!("triple {}", t);
-            }
         }
     }
 }

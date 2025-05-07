@@ -37,13 +37,12 @@ mod system {
 
     use bevy_ecs::prelude::*;
     use goto_type::GotoTypeRequest;
-    use systems::DefinedClass;
 
-    use crate::{prelude::*, util::token_to_location};
+    use crate::{prelude::*, systems::DefinedClasses, util::token_to_location};
 
     pub fn goto_class_type(
         mut query: Query<(&CurrentType, &mut GotoTypeRequest)>,
-        project: Query<(&Wrapped<Vec<DefinedClass>>, &RopeC, &Label)>,
+        project: Query<(&Wrapped<DefinedClasses>, &RopeC, &Label)>,
         her: Res<TypeHierarchy<'static>>,
     ) {
         for (ty, mut req) in &mut query {

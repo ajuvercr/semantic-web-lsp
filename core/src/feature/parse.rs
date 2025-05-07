@@ -10,7 +10,7 @@ pub use crate::systems::{
 };
 use crate::{
     client::Client,
-    systems::{check_added_ontology_extract, derive_owl_imports_links, finish_prefix_import},
+    systems::{check_added_ontology_extract, derive_owl_imports_links, finish_prefix_import, open_imports},
 };
 
 /// Parse schedule barrier, after this system, triples should be derived
@@ -37,6 +37,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         derive_shapes.after(triples),
         check_added_ontology_extract.after(triples),
         finish_prefix_import.after(triples),
+        open_imports.after(triples),
     ));
     world.add_schedule(parse_schedule);
 }

@@ -146,7 +146,8 @@ foa
         let c = world.resource::<TestClient>().clone();
         block_on(c.await_futures(|| world.run_schedule(lsp_core::feature::ParseLabel)));
 
-        assert_eq!(world.entities().len(), 2);
+        // We added 3 ontologies that are always present
+        assert_eq!(world.entities().len(), 2 + 3);
     }
 
     #[test]

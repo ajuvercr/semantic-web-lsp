@@ -226,11 +226,11 @@ foaf:me foaf:friend <#me>.
             .0;
 
         for c in &completions {
-            println!("c {:?} {:?}\n\n", c.label, c._documentation);
+            println!("c {:?} {:?}", c.label, c._documentation);
         }
         assert_eq!(
             completions.len(),
-            4 /* prefix.cc */ + 13 /*completions */ + TurtleHelper.keyword().len()
+            4 /* prefix.cc */ + 14 /*completions */ + TurtleHelper.keyword().len()
         );
     }
 

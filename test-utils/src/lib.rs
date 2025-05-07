@@ -25,9 +25,13 @@ use futures::{
 use lsp_core::{
     client::{Client, ClientSync, Resp},
     components::*,
-    prelude::diagnostics::{DiagnosticItem, DiagnosticPublisher},
+    prelude::{
+        diagnostics::{DiagnosticItem, DiagnosticPublisher},
+        Cache, NoCache,
+    },
     setup_schedule_labels,
-    systems::{handle_tasks, spawn_or_insert},
+    systems::{handle_tasks, spawn_or_insert, LovHelper},
+    Startup,
 };
 use lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url};
 
@@ -155,6 +159,12 @@ pub fn setup_world(
     world.insert_resource(CommandReceiver(rx));
     world.insert_resource(client);
 
+    let cache = Cache::None(NoCache);
+    let helper = LovHelper::from_cache(&cache);
+
+    world.insert_resource(cache);
+    world.insert_resource(helper);
+
     world.schedule_scope(lsp_core::Tasks, |_, schedule| {
         schedule.add_systems(handle_tasks);
     });
@@ -163,6 +173,8 @@ pub fn setup_world(
 
     let (publisher, rx) = DiagnosticPublisher::new();
     world.insert_resource(publisher);
+
+    world.run_schedule(Startup);
 
     (world, rx)
 }

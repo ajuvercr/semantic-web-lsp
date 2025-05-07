@@ -264,6 +264,7 @@ mod tests {
             .expect("triple component");
 
         assert_eq!(triple.target, TripleTarget::Predicate);
+        println!("Triple {:?}", triple);
 
         let comppletions = world
             .entity_mut(entity)

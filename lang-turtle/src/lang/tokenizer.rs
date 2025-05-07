@@ -53,6 +53,20 @@ mod tests {
     }
 
     #[test]
+    fn parse_strings() {
+        for input in [
+            "\"\"\"test\"\"\"",
+            "\"\"\"t\"est\"\"\"",
+        ] {
+            println!("Input {}", input);
+            let (tok, err) = long_string_double().parse_recovery(input);
+            println!("Found tokens {:?} {:?}", tok, err);
+            assert!(tok.is_some());
+            assert!(err.is_empty());
+        }
+    }
+
+    #[test]
     fn parse_named_node() {
         let input = "
             <http://localhost/elmBeta> 
