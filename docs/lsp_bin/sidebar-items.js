@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["client"],"struct":["Error"]};
+window.SIDEBAR_ITEMS = {"mod":["client","timings"],"struct":["Error"]};

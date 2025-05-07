@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["shacl2shex","shacl2shex_config","shacl2shex_error"]};

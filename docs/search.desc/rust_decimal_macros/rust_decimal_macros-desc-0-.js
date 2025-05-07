@@ -1,1 +1,0 @@
-searchState.loadedDescShard("rust_decimal_macros", 0, "A helpful macro for instantiating <code>Decimal</code> numbers.\nConvenience function for creating decimal numbers")

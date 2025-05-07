@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["shex2sparql","shex2sparql_config","shex2sparql_error"],"struct":["SelectQuery","TriplePattern","Var","VarBuilder"]};

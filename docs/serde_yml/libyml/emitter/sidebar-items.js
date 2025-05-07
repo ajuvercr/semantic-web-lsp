@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Error","Event","ScalarStyle"],"struct":["Emitter","EmitterPinned","Mapping","Scalar","Sequence"]};

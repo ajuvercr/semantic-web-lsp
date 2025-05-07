@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["yaml_free","yaml_malloc","yaml_realloc","yaml_strdup"]};

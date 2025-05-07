@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["find_schema_rotating_formats","get_schema_from_iri","local_folder_as_iri","resolve_iri_or_str"],"struct":["SchemaWithoutImports"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["LowLevelTriGParser","LowLevelTriGSerializer","ReaderTriGParser","SliceTriGParser","TriGParser","TriGPrefixesIter","TriGSerializer","WriterTriGSerializer"]};

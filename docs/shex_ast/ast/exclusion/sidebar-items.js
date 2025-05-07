@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Exclusion","IriExclusion","LanguageExclusion","LiteralExclusion"],"struct":["SomeNoIriExclusion","SomeNoLanguageExclusion","SomeNoLitExclusion"]};

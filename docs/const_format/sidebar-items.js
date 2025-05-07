@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Case"],"macro":["concatcp","formatcp","map_ascii_case","str_get","str_index","str_repeat","str_replace","str_splice","str_splice_out"],"struct":["SplicedStr"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["UmlCardinality","UmlComponent","UmlError","ValueConstraint"],"mod":["shex2uml","shex2uml_config","shex2uml_error"],"struct":["Name","NodeId","Uml","UmlClass","UmlEntry","UmlLink"]};

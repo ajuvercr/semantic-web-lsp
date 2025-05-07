@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["constraint_error","core"],"trait":["NativeDeref","NativeValidator","SparqlDeref","SparqlValidator","Validator"]};

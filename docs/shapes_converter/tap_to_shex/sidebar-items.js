@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["tap2shex","tap2shex_config","tap2shex_error"]};

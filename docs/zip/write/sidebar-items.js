@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["ExtendedFileOptions","FileOptions","ZipWriter"],"trait":["FileOptionExtension"],"type":["FullFileOptions","SimpleFileOptions"]};

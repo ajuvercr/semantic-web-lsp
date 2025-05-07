@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ReaderMode"],"struct":["SRDFGraph"]};

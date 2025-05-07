@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["LowLevelNTriplesParser","LowLevelNTriplesSerializer","NTriplesParser","NTriplesSerializer","ReaderNTriplesParser","SliceNTriplesParser","WriterNTriplesSerializer"]};

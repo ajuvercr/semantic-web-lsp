@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["DCTAPFormat"],"mod":["datatype_id","dctap","dctap_format","extends_id","node_type","placeholder_resolver","prefix_cc","property_id","reader_range","shape_id","tap_config","tap_error","tap_headers","tap_reader","tap_reader_builder","tap_reader_state","tap_reader_warning","tap_shape","tap_statement","value_constraint"]};

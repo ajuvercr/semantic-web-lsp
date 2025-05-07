@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["DEFAULT_REPLACE_IRI_BY_LABEL","PLANTUML"],"enum":["ShEx2UmlConfigError"],"struct":["ShEx2UmlConfig"]};

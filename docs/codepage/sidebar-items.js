@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["from_encoding","to_encoding","to_encoding_no_replacement"]};

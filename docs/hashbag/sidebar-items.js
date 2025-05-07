@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["Drain","Entry","HashBag","IntoIter","Iter","SetIter"]};

@@ -1,1 +1,0 @@
-searchState.loadedDescShard("async_recursion", 0, "async-recursion macro")

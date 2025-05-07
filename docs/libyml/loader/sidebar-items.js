@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["yaml_parser_load","yaml_parser_set_composer_error"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["emitter","error","parser","safe_cstr","tag","util"]};

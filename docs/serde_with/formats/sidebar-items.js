@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["ColonSeparator","CommaSeparator","DosLineSeparator","Flexible","Lowercase","Padded","PreferMany","PreferOne","SemicolonSeparator","SpaceSeparator","Strict","UnixLineSeparator","Unpadded","Uppercase"],"trait":["Format","Separator","Strictness"]};

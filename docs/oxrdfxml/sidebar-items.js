@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["RdfXmlParseError"],"struct":["RdfXmlParser","RdfXmlPrefixesIter","RdfXmlSerializer","RdfXmlSyntaxError","ReaderRdfXmlParser","SliceRdfXmlParser","WriterRdfXmlSerializer"]};

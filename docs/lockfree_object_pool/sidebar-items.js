@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["LinearObjectPool","LinearOwnedReusable","LinearReusable","MutexObjectPool","MutexOwnedReusable","MutexReusable","NoneObjectPool","NoneReusable","SpinLockObjectPool","SpinLockOwnedReusable","SpinLockReusable"]};

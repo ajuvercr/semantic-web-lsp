@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ShaclValidationMode"],"struct":["EndpointValidation","GraphValidation"],"trait":["ShaclProcessor"]};

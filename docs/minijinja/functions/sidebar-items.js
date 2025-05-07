@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["debug","dict","namespace","range"],"trait":["Function"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ShaclFormat"],"mod":["ast","compiled","converter","shacl_vocab"]};

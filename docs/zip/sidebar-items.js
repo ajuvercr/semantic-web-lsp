@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":["SUPPORTED_COMPRESSION_METHODS","ZIP64_BYTES_THR","ZIP64_ENTRY_THR"],"enum":["AesMode","CompressionMethod"],"mod":["extra_fields","read","result","unstable","write"],"struct":["DateTime"]};

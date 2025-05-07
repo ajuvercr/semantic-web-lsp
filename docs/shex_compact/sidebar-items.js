@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["hex","hex_refactor","literal","re_find"],"mod":["shapemap_compact_printer","shapemap_parser","shex_compact_printer","shex_parser","shex_parser_error"],"static":["HEX"],"struct":["LocatedParseError"]};

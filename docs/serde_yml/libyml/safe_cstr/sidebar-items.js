@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["debug_lossy"],"struct":["CStr","CStrError"]};

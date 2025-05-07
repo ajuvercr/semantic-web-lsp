@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"macro":["iri"],"mod":["iris","iris_error"]};

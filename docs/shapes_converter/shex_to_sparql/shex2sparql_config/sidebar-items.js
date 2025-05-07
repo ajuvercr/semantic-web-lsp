@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ShEx2SparqlConfigError"],"struct":["ShEx2SparqlConfig"]};

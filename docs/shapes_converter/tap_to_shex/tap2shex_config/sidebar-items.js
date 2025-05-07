@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["prefix_local_name"],"struct":["Tap2ShExConfig"]};

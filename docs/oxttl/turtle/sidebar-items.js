@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":["LowLevelTurtleParser","LowLevelTurtleSerializer","ReaderTurtleParser","SliceTurtleParser","TurtleParser","TurtlePrefixesIter","TurtleSerializer","WriterTurtleSerializer"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["re_capture","re_captures","re_find","re_match","re_matches"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["deserialize","serialize"],"struct":["SerializeStructVariantAsSingletonMap","SerializeTupleVariantAsSingletonMap","SingletonMap"]};

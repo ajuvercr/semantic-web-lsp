@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["compiled_shacl_error","component","node_shape","property_shape","schema","severity","shape","target"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"attr":["apply","serde_as","skip_serializing_none"],"derive":["DeserializeFromStr","SerializeDisplay"]};

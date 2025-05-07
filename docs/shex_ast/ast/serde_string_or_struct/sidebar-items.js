@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["deserialize_opt_box_string_or_struct","deserialize_opt_string_or_struct","deserialize_string_or_struct","deserialize_vec_box_string_or_struct","serialize_opt_box_string_or_struct","serialize_opt_string_or_struct","serialize_string_or_struct","serialize_vec_box_string_or_struct"],"struct":["SeqAccessError"],"trait":["SerializeStringOrStruct"]};

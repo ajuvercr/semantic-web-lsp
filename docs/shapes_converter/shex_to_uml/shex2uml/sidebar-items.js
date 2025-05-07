@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ImageFormat","UmlGenerationMode"],"struct":["ShEx2Uml"]};

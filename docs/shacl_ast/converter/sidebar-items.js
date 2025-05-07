@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["rdf_to_shacl","shacl_to_rdf"]};

@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Feature","ResultFormat","SupportedLanguage"],"struct":["ClassPartition","Dataset","DatatypePartition","GraphDescription","NamedGraphDescription","PropertyPartition","ServiceDescription"]};

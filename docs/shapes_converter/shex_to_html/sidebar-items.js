@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Cardinality","ValueConstraint"],"mod":["shex2html","shex2html_config","shex2html_error","value"],"struct":["HtmlSchema","HtmlShape","Name","NodeId","ShapeTemplateEntry"]};

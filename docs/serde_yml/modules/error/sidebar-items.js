@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ErrorImpl"],"fn":["fix_mark","new","shared"],"struct":["Error","Location","Pos"],"type":["Result"]};

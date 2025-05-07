@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["TurtleParseError"],"mod":["n3","nquads","ntriples","trig","turtle"],"struct":["TextPosition","TurtleSyntaxError"]};

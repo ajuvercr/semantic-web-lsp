@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ShapeMapFormat"],"mod":["association","node_selector","query_shape_map","result_shape_map","shape_selector","shapemap","shapemap_config","shapemap_error","shapemap_state","validation_status"]};

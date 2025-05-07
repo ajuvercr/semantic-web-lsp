@@ -1,9 +1,9 @@
 (function() {
-    var implementors = Object.fromEntries([["calamine",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"enum\" href=\"calamine/enum.DeError.html\" title=\"enum calamine::DeError\">DeError</a>"]]],["csv",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"csv/struct.DeserializeError.html\" title=\"struct csv::DeserializeError\">DeserializeError</a>"]]],["minijinja",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"minijinja/struct.Error.html\" title=\"struct minijinja::Error\">Error</a>"]]],["serde",[]],["serde_json",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"serde_json/struct.Error.html\" title=\"struct serde_json::Error\">Error</a>"]]],["serde_wasm_bindgen",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"serde_wasm_bindgen/struct.Error.html\" title=\"struct serde_wasm_bindgen::Error\">Error</a>"]]],["serde_yml",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"serde_yml/modules/error/struct.Error.html\" title=\"struct serde_yml::modules::error::Error\">Error</a>"]]]]);
+    var implementors = Object.fromEntries([["serde",[]],["serde_json",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"serde_json/struct.Error.html\" title=\"struct serde_json::Error\">Error</a>"]]],["serde_wasm_bindgen",[["impl <a class=\"trait\" href=\"serde/de/trait.Error.html\" title=\"trait serde::de::Error\">Error</a> for <a class=\"struct\" href=\"serde_wasm_bindgen/struct.Error.html\" title=\"struct serde_wasm_bindgen::Error\">Error</a>"]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
         window.pending_implementors = implementors;
     }
 })()
-//{"start":57,"fragment_lengths":[223,242,227,13,230,254,257]}
+//{"start":57,"fragment_lengths":[12,230,254]}

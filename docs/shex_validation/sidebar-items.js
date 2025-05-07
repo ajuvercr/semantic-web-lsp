@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["ResolveMethod","ResultValue"],"mod":["atom","reason","rule","schema_without_imports","schema_without_imports_error","shex_config","shex_format","solver","validator","validator_config","validator_error","validator_runner"]};

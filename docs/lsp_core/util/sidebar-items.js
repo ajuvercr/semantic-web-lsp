@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["lsp_range_to_range","offset_to_position","offsets_to_range","position_to_offset","range_to_range","spanned"],"mod":["ns","token","triple"],"struct":["Spanned"]};
+window.SIDEBAR_ITEMS = {"fn":["lsp_range_to_range","offset_to_position","offsets_to_range","position_to_offset","range_to_range","spanned","token_to_location"],"mod":["cache","ns","token","triple"],"struct":["Spanned"]};

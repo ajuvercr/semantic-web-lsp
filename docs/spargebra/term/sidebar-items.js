@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["GraphName","GraphNamePattern","GroundSubject","GroundTerm","GroundTermPattern","NamedNodePattern","Subject","Term","TermPattern"],"struct":["BlankNode","GroundQuad","GroundQuadPattern","GroundTriple","GroundTriplePattern","Literal","NamedNode","Quad","QuadPattern","Triple","TriplePattern","Variable"]};
