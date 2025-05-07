@@ -110,6 +110,8 @@ async fn get_cache_directory(client: &Client) -> PathBuf {
     if let Some(workspaces) = client.workspace_folders().await.unwrap_or(None) {
         if let Some(folder) = workspaces.first() {
             let uri = &folder.uri;
+
+            #[cfg(not(target_arch = "wasm32"))]
             if let Ok(path) = uri.to_file_path() {
                 return path.join(".swls-cache");
             }

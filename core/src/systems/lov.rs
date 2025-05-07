@@ -94,6 +94,8 @@ pub fn open_imports(
                 continue;
             }
             opened.insert(object.as_str().to_string());
+
+            #[cfg(not(target_arch = "wasm32"))]
             if let Some(content) = object
                 .to_file_path()
                 .ok()
@@ -401,10 +403,16 @@ impl LovEntry {
         self.file_url(cache).or_else(|| self.remote_url())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn file_url(&self, cache: &Cache) -> Option<Url> {
         let p = cache.path()?;
         let url = p.join(self.name());
         Url::from_file_path(url).ok()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn file_url(&self, cache: &Cache) -> Option<Url> {
+        None
     }
 
     fn remote_url(&self) -> Option<Url> {
