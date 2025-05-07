@@ -193,26 +193,33 @@ pub fn parse_string<const C: char>() -> t!(String) {
 
 pub fn parse_long_string<const C: char>() -> t!(String) {
     let si = || just::<char, char, Simple<char>>(C);
-    let delim = si().ignore_then(si()).ignore_then(si());
+    let delim = si().repeated().exactly(3);
 
-    let letter = e_char()
-        .or(uchar())
-        .or(filter(|c: &char| *c != C && *c != '\\')
-            .repeated()
-            .at_least(1));
+    let letter = delim.not();
 
     delim
-        .ignore_then(
-            si().repeated()
-                .at_most(2)
-                .then(letter.repeated().flatten())
-                .map(|(mut x, y)| {
-                    y.append_to(&mut x);
-                    x
-                }),
-        )
+        .ignore_then(letter.repeated().collect().map(|x| {
+            println!("Found {:?}", x);
+            x
+        }))
         .then_ignore(delim)
-        .collect()
+    // letter
+    //     .repeated()
+    //     .flatten()
+    //     .collect()
+    //     .delimited_by(delim, delim)
+    // delim
+    //     .ignore_then(
+    //         si().repeated()
+    //             .at_most(2)
+    //             .then(letter.repeated().flatten())
+    //             .map(|(mut x, y)| {
+    //                 y.append_to(&mut x);
+    //                 x
+    //             }),
+    //     )
+    //     .then_ignore(delim)
+    //     .collect()
 }
 
 pub fn strings() -> t!(Token) {
@@ -371,6 +378,7 @@ mod tests {
         assert!(integer().parse("14.0").is_ok());
         assert!(strings().parse("'testing'").is_ok());
         assert!(strings().parse("\"testing\"").is_ok());
+        assert!(strings().parse("\"\"\"testing\"\"\"").is_ok());
         assert!(comment().parse("# This is a nice comment").is_ok());
     }
 

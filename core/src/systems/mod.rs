@@ -14,12 +14,12 @@ use lsp_types::CompletionItemKind;
 mod properties;
 pub use properties::{
     complete_class, complete_properties, derive_classes, derive_properties, hover_class,
-    hover_property, DefinedClass, DefinedProperty,
+    hover_property, DefinedClass, DefinedClasses, DefinedProperties, DefinedProperty,
 };
 mod lov;
 pub use lov::{
     check_added_ontology_extract, fetch_lov_properties, finish_prefix_import,
-    init_onology_extractor, FromPrefix, LovEntry, LovHelper, OntologyExtractor,
+    init_onology_extractor, open_imports, FromPrefix, LovEntry, LovHelper, OntologyExtractor,
 };
 use tracing::instrument;
 

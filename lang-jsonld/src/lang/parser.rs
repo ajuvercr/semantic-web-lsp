@@ -350,13 +350,13 @@ fn parser() -> impl Parser<Token, Spanned<Json>, Error = Simple<Token>> {
                 let mut manager = ObjectMemberManager::new(&span, emit);
 
                 for part in parts {
-                    manager.print();
+                    // manager.print();
                     match part {
                         Ok(e) => manager.eat_json(e),
                         Err(e) => manager.eat_token(e),
                     }
                 }
-                manager.print();
+                // manager.print();
                 manager.flush(span, true);
                 manager.out
             }))

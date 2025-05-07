@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashSet};
 
 use bevy_ecs::prelude::*;
 use completion::{CompletionRequest, SimpleCompletion};
@@ -18,6 +18,7 @@ use crate::{
     util::{ns::*, triple::MyTerm},
 };
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct DefinedClass {
     pub term: MyTerm<'static>,
     pub label: String,
@@ -25,6 +26,8 @@ pub struct DefinedClass {
     pub reason: &'static str,
     pub location: std::ops::Range<usize>,
 }
+
+pub type DefinedClasses = HashSet<DefinedClass>;
 
 fn derive_class(
     subject: <MyTerm<'_> as Term>::BorrowTerm<'_>,
@@ -56,7 +59,7 @@ pub fn derive_classes(
     extractor: Res<OntologyExtractor>,
 ) {
     for (e, triples, label) in &query {
-        let classes: Vec<_> = triples
+        let classes: HashSet<_> = triples
             .0
             .quads_matching(Any, [rdf::type_], extractor.classes(), Any)
             .flatten()
@@ -84,7 +87,7 @@ pub fn complete_class(
         &Label,
         &mut CompletionRequest,
     )>,
-    other: Query<(&Label, &Wrapped<Vec<DefinedClass>>)>,
+    other: Query<(&Label, &Wrapped<DefinedClasses>)>,
 ) {
     for (token, triple, prefixes, links, this_label, mut request) in &mut query {
         if triple.triple.predicate.value == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
@@ -138,7 +141,7 @@ pub fn hover_class(
         &DocumentLinks,
         &mut HoverRequest,
     )>,
-    other: Query<(&Label, &Wrapped<Vec<DefinedClass>>)>,
+    other: Query<(&Label, &Wrapped<DefinedClasses>)>,
 ) {
     for (token, prefixes, links, mut request) in &mut query {
         if let Some(target) = prefixes.expand(token.token.value()) {
@@ -156,6 +159,7 @@ pub fn hover_class(
     }
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct DefinedProperty {
     pub predicate: MyTerm<'static>,
     pub comment: String,
@@ -164,6 +168,7 @@ pub struct DefinedProperty {
     pub domain: Vec<String>,
     pub reason: &'static str,
 }
+pub type DefinedProperties = HashSet<DefinedProperty>;
 
 fn derive_property(
     subject: <MyTerm<'_> as Term>::BorrowTerm<'_>,
@@ -206,7 +211,7 @@ pub fn derive_properties(
     extractor: Res<OntologyExtractor>,
 ) {
     for (e, triples, label) in &query {
-        let classes: Vec<_> = triples
+        let classes: HashSet<_> = triples
             .0
             .quads_matching(Any, [rdf::type_], extractor.properties(), Any)
             .flatten()
@@ -235,7 +240,7 @@ pub fn complete_properties(
         &Types,
         &mut CompletionRequest,
     )>,
-    other: Query<(&Label, &Wrapped<Vec<DefinedProperty>>)>,
+    other: Query<(&Label, &Wrapped<DefinedProperties>)>,
     hierarchy: Res<TypeHierarchy<'static>>,
 ) {
     debug!("Complete properties");
@@ -314,7 +319,7 @@ pub fn hover_property(
         &DocumentLinks,
         &mut HoverRequest,
     )>,
-    other: Query<(&Label, Option<&Prefixes>, &Wrapped<Vec<DefinedProperty>>)>,
+    other: Query<(&Label, Option<&Prefixes>, &Wrapped<DefinedProperties>)>,
 ) {
     for (token, prefixes, links, mut request) in &mut query {
         if let Some(target) = prefixes.expand(token.token.value()) {
