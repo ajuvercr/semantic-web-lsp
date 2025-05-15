@@ -17,10 +17,14 @@ pub fn tokens_ext() -> t!(Token) {
 }
 
 pub fn keywords() -> t!(Token) {
-    just('@').ignore_then(choice((
+    choice((
+        just("PREFIX").to(Token::PrefixTag),
+        just("BASE").to(Token::BaseTag),
+    ))
+    .or(just('@').ignore_then(choice((
         just("prefix").to(Token::PrefixTag),
         just("base").to(Token::BaseTag),
-    )))
+    ))))
 }
 
 pub fn tokens() -> t!(Token) {

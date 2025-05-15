@@ -205,19 +205,36 @@ impl Term {
     pub fn is_subject(&self) -> bool {
         match self {
             Term::BlankNode(_) => true,
+            Term::Variable(_) => true,
+            Term::NamedNode(NamedNode::A) => false,
             Term::NamedNode(_) => true,
+            Term::Invalid => true,
+            Term::Collection(_) => true,
             _ => false,
         }
     }
     pub fn is_predicate(&self) -> bool {
         match self {
             Term::NamedNode(_) => true,
+            Term::Variable(_) => true,
+            Term::Invalid => true,
             _ => false,
+        }
+    }
+
+    pub fn is_object(&self) -> bool {
+        match self {
+            Term::NamedNode(NamedNode::A) => false,
+            Term::Variable(_) => true,
+            Term::Invalid => true,
+            Term::Collection(_) => true,
+            _ => true,
         }
     }
     pub fn is_variable(&self) -> bool {
         match self {
             Term::Variable(_) => true,
+            Term::Invalid => true,
             _ => false,
         }
     }
@@ -735,11 +752,10 @@ impl Display for Turtle {
 mod test {
     use std::{collections::HashSet, str::FromStr};
 
-    use chumsky::Parser;
     use lsp_core::prelude::{spanned, MyQuad, Spanned};
 
     use super::Turtle;
-    use crate::lang::{parser as parser2, tokenizer};
+    use crate::lang::{parser as parser2, tokenizer::parse_tokens_str_safe};
 
     #[derive(Debug)]
     pub enum Err {
@@ -750,15 +766,10 @@ mod test {
         inp: &str,
         url: &lsp_types::Url,
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
-        let tokens = tokenizer::parse_tokens().parse(inp).map_err(|err| {
-            println!("Token error {:?}", err);
+        let tokens = parse_tokens_str_safe(inp).map_err(|e| {
+            println!("Error {:?}", e);
             Err::Tokenizing
         })?;
-
-        for t in &tokens {
-            println!("Token {:?}", t.value());
-        }
-        // let end = inp.len() - 1..inp.len() + 1;
 
         let mut comments: Vec<_> = tokens
             .iter()
@@ -850,5 +861,35 @@ _:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://ex
         println!("triples {:?}", triples);
 
         assert_eq!(triples.triples.len(), 7);
+    }
+
+    #[test]
+    fn owl_is_valid() {
+        let txt = include_str!("../../../lov/prefixes/owl.ttl");
+
+        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
+        let triples = output.get_simple_triples().expect("Triples found");
+    }
+
+    #[test]
+    fn owl_is_valid_2() {
+        let txt = r#"
+@prefix dc:    <http://purl.org/dc/elements/1.1/> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml:   <http://www.w3.org/XML/1998/namespace> .
+@prefix grddl: <http://www.w3.org/2003/g/data-view#> .
+
+<http://www.w3.org/2002/07/owl>
+        a                              owl:Ontology ;
+        rdfs:comment                   "\r\n  This ontology partially describes the built-in " ; .
+            "#;
+
+        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+        let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
+        let triples = output.get_simple_triples().expect("Triples found");
     }
 }

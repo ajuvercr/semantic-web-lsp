@@ -13,6 +13,7 @@ chumsky.workspace      = true
 enum-methods.workspace = true
 futures.workspace      = true
 lsp-types.workspace    = true
+logos.workspace    = true
 ropey.workspace        = true
 serde.workspace        = true
 serde_json.workspace   = true

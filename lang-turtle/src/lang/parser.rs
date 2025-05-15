@@ -1,7 +1,9 @@
 use chumsky::prelude::*;
 use lsp_core::prelude::*;
+use lsp_types::Url;
 use tracing::info;
 
+use super::tokenizer;
 use crate::lang::model::{
     Base, BlankNode, Literal, NamedNode, RDFLiteral, Term, Triple, Turtle, TurtlePrefix, Variable,
     PO,
@@ -150,11 +152,12 @@ fn blank_node() -> impl Parser<Token, BlankNode, Error = Simple<Token>> + Clone 
 }
 
 fn subject() -> impl Parser<Token, Term, Error = Simple<Token, S>> + Clone {
-    let nn = named_node().map(|x| Term::NamedNode(x));
-    let bn = blank_node().map(|x| Term::BlankNode(x));
-    let var = variable().map(|x| Term::Variable(x));
-
-    nn.or(bn).or(var)
+    term(blank_node())
+    // let nn = named_node().map(|x| Term::NamedNode(x));
+    // let bn = blank_node().map(|x| Term::BlankNode(x));
+    // let var = variable().map(|x| Term::Variable(x));
+    //
+    // nn.or(bn).or(var)
 }
 
 fn variable() -> impl Parser<Token, Variable, Error = Simple<Token, S>> + Clone {
@@ -232,38 +235,50 @@ fn po(
         .map(|(object, predicate)| PO { predicate, object })
 }
 
+fn po_list() -> impl Parser<Token, (Vec<Spanned<PO>>, bool), Error = Simple<Token>> + Clone {
+    po(blank_node())
+        .map_with_span(spanned)
+        .separated_by(just(Token::PredicateSplit).repeated().at_least(1))
+        .allow_leading()
+        .map(|mut x| {
+            x.reverse();
+            x
+        })
+        .validate(|po, span: S, emit| {
+            if po.is_empty() {
+                emit(Simple::custom(
+                    span.clone(),
+                    format!("Expected at least one predicate object."),
+                ));
+                (
+                    vec![spanned(
+                        PO {
+                            predicate: spanned(Term::Invalid, span.clone()),
+                            object: vec![spanned(Term::Invalid, span.clone())],
+                        },
+                        span,
+                    )],
+                    false,
+                )
+            } else {
+                (po, true)
+            }
+        })
+}
+fn bn_triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
+    expect_token(Token::Stop, |_| true)
+        .ignore_then(expect_token(Token::SqClose, |_| true))
+        .ignore_then(po_list())
+        .then_ignore(just(Token::SqOpen))
+        .map_with_span(|pos, span| Triple {
+            subject: spanned(Term::BlankNode(BlankNode::Unnamed(pos.0)), span),
+            po: Vec::new(),
+        })
+}
+
 pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
     expect_token(Token::Stop, |_| true)
-        .ignore_then(
-            po(blank_node())
-                .map_with_span(spanned)
-                .separated_by(just(Token::PredicateSplit))
-                .allow_leading()
-                .map(|mut x| {
-                    x.reverse();
-                    x
-                })
-                .validate(|po, span: S, emit| {
-                    if po.is_empty() {
-                        emit(Simple::custom(
-                            span.clone(),
-                            format!("Expected at least one predicate object."),
-                        ));
-                        (
-                            vec![spanned(
-                                PO {
-                                    predicate: spanned(Term::Invalid, span.clone()),
-                                    object: vec![spanned(Term::Invalid, span.clone())],
-                                },
-                                span,
-                            )],
-                            false,
-                        )
-                    } else {
-                        (po, true)
-                    }
-                }),
-        )
+        .ignore_then(po_list())
         .then_with(move |(po, succesful)| {
             let po2 = po.clone();
             let basic_subj = subject()
@@ -297,17 +312,52 @@ pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
             basic_subj.or(alt_subj)
         })
         .map(|(po, subject)| Triple { subject, po })
+        .validate(|this: Triple, _, emit| {
+            for po in &this.po {
+                if !po.predicate.is_predicate() {
+                    emit(Simple::custom(
+                        po.predicate.span().clone(),
+                        "predicate should be a named node",
+                    ));
+                }
+
+                for o in &po.object {
+                    if !o.is_object() {
+                        emit(Simple::custom(
+                            o.span().clone(),
+                            "object should be an object",
+                        ));
+                    }
+                }
+            }
+
+            if !this.subject.is_subject() {
+                emit(Simple::custom(
+                    this.subject.span().clone(),
+                    "subject should be a subject",
+                ));
+            }
+
+            this
+        })
+        .or(bn_triple())
 }
 
 fn base() -> impl Parser<Token, Base, Error = Simple<Token>> + Clone {
-    expect_token(Token::Stop, |_| true)
+    let turtle_base = expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
         .then(just(Token::BaseTag).map_with_span(|_, s| s))
-        .map(|(x, s)| Base(s, x))
+        .map(|(x, s)| Base(s, x));
+    let sparql_base = named_node()
+        .map_with_span(spanned)
+        .then(just(Token::SparqlBase).map_with_span(|_, s| s))
+        .map(|(x, s)| Base(s, x));
+
+    turtle_base.or(sparql_base)
 }
 
 fn prefix() -> impl Parser<Token, TurtlePrefix, Error = Simple<Token>> {
-    expect_token(Token::Stop, |_| true)
+    let turtle_prefix = expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
         .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::PrefixTag).map_with_span(|_, s| s))
@@ -315,7 +365,19 @@ fn prefix() -> impl Parser<Token, TurtlePrefix, Error = Simple<Token>> {
             span,
             prefix,
             value,
-        })
+        });
+
+    let sparql_prefix = named_node()
+        .map_with_span(spanned)
+        .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
+        .then(just(Token::SparqlPrefix).map_with_span(|_, s| s))
+        .map(|((value, prefix), span)| TurtlePrefix {
+            span,
+            prefix,
+            value,
+        });
+
+    turtle_prefix.or(sparql_prefix)
 }
 
 // Makes it easier to handle parts that are not ordered
@@ -383,12 +445,6 @@ pub fn parse_turtle(
     json.iter_mut().for_each(|turtle| turtle.0.fix_spans(len));
 
     let json_errors: Vec<_> = json_errors.into_iter().map(|error| (len, error)).collect();
-    if !json_errors.is_empty() {
-        info!("Errors");
-        for e in &json_errors {
-            info!("Error {:?}", e);
-        }
-    }
 
     (
         json.unwrap_or(Spanned(Turtle::empty(location), 0..len)),
@@ -406,14 +462,14 @@ pub mod turtle_tests {
     use super::literal;
     use crate::lang::{
         parser::{blank_node, named_node, prefix, triple, turtle, BlankNode},
-        tokenizer,
+        tokenizer::{parse_tokens_str, parse_tokens_str_safe},
     };
 
     pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(
         turtle: &str,
         parser: P,
     ) -> (Option<T>, Vec<Simple<Token>>) {
-        let tokens = tokenizer::parse_tokens().parse(turtle).unwrap();
+        let tokens = parse_tokens_str_safe(turtle).unwrap();
         let end = turtle.len()..turtle.len();
         let stream = Stream::from_iter(
             end,
@@ -431,12 +487,11 @@ pub mod turtle_tests {
         turtle: &str,
         parser: P,
     ) -> (Option<T>, Vec<Simple<Token>>) {
-        let (tokens, _) = tokenizer::parse_tokens().parse_recovery(turtle);
+        let (tokens, _) = parse_tokens_str(turtle);
         let end = turtle.len()..turtle.len();
         let stream = Stream::from_iter(
             end,
             tokens
-                .unwrap_or_default()
                 .into_iter()
                 .map(|Spanned(x, y)| (x, y))
                 .rev()

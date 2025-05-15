@@ -235,7 +235,7 @@ foaf:me foaf:friend <#me>.
     }
 
     #[test_log::test]
-    fn test_autocomplete_properties() {
+    fn test_autocomplete_properties_3() {
         println!("completion_event_works");
         let (mut world, _) = setup_world(TestClient::new(), crate::setup_world);
 

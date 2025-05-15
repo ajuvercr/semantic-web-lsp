@@ -372,6 +372,7 @@ pub enum Token {
     SparqlPrefix,
     /// sparql base
     SparqlBase,
+
     /// a
     PredType,
 

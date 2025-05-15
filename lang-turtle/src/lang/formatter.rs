@@ -136,7 +136,6 @@ pub fn format(tokens: &[&Token], options: FormattingOptions) -> String {
             }
             Token::ANON => line += "[]",
             Token::Comment(x) => {
-                line += "#";
                 line += x;
                 needs_new_line = true;
             }
@@ -203,7 +202,7 @@ impl<'a> FormatState<'a> {
             }
 
             first = false;
-            write!(self.buf, "#{}", current.0)?;
+            write!(self.buf, "{}", current.0)?;
             self.new_line()?;
             self.comments_idx += 1;
         }
@@ -257,7 +256,7 @@ impl FormatState<'_> {
         self.new_line()?;
 
         for i in self.comments_idx..self.comments.len() {
-            write!(self.buf, "#{}", self.comments[i].0)?;
+            write!(self.buf, "{}", self.comments[i].0)?;
             self.new_line()?;
         }
 
@@ -473,7 +472,12 @@ mod tests {
     use lsp_core::prelude::{spanned, Spanned};
     use ropey::Rope;
 
-    use crate::lang::{formatter::format_turtle, model::Turtle, parser::turtle, tokenizer};
+    use crate::lang::{
+        formatter::format_turtle,
+        model::Turtle,
+        parser::{self as parser2, turtle},
+        tokenizer::{self, parse_tokens_str, parse_tokens_str_safe},
+    };
 
     #[derive(Debug)]
     pub enum Err {
@@ -485,18 +489,10 @@ mod tests {
         inp: &str,
         url: &lsp_types::Url,
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
-        let len = inp.len();
-        let tokens: Vec<_> = tokenizer::parse_tokens()
-            .parse(inp)
-            .map_err(|err| {
-                println!("Token error {:?}", err);
-                Err::Tokenizing
-            })?
-            .into_iter()
-            .rev()
-            .collect();
-
-        let end = 0..inp.len() + 1;
+        let tokens = parse_tokens_str_safe(inp).map_err(|e| {
+            println!("Error {:?}", e);
+            Err::Tokenizing
+        })?;
 
         let mut comments: Vec<_> = tokens
             .iter()
@@ -506,24 +502,12 @@ mod tests {
             .collect();
         comments.sort_by_key(|x| x.1.start);
 
-        let stream = Stream::from_iter(
-            end,
-            tokens
-                .into_iter()
-                .map(|Spanned(x, span)| (x, (len - span.start)..(len - span.end)))
-                .filter(|x| !x.0.is_comment()),
-        );
+        let (turtle, errs) = parser2::parse_turtle(&url, tokens, inp.len());
+        for e in errs {
+            println!("Error {:?}", e);
+        }
 
-        turtle(&url)
-            .parse(stream)
-            .map_err(|err| {
-                println!("Parse error {:?}", err);
-                Err::Parsing
-            })
-            .map(|mut t| {
-                t.fix_spans(len);
-                (t, comments)
-            })
+        Ok((turtle.into_value(), comments))
     }
 
     #[test]
@@ -630,14 +614,14 @@ mod tests {
     #[test]
     fn long_objectlist() {
         let txt = r#"
-        <abc> a <something long>, <something longer still>, <something longer>, <something tes>, <soemthing eeeellssee>.
+        <abc> a <something-long>, <something-longer-still>, <something-longer>, <something-tes>, <soemthing-eeeellssee>.
 "#;
 
-        let expected = r#"<abc> a <something long>,
-  <something longer still>,
-  <something longer>,
-  <something tes>,
-  <soemthing eeeellssee>.
+        let expected = r#"<abc> a <something-long>,
+  <something-longer-still>,
+  <something-longer>,
+  <something-tes>,
+  <soemthing-eeeellssee>.
 
 "#;
 
@@ -684,13 +668,13 @@ mod tests {
     #[test]
     fn long_collection() {
         let txt = r#"
-        <abc> a (), (<somevery very very long item> <and othersss> <and ottteeehs> <wheeeeeeeeeeeee>).
+        <abc> a (), (<somevery-very-very-long-item> <and-othersss> <and-ottteeehs> <wheeeeeeeeeeeee>).
 "#;
 
         let expected = r#"<abc> a ( ), (
-  <somevery very very long item>
-  <and othersss>
-  <and ottteeehs>
+  <somevery-very-very-long-item>
+  <and-othersss>
+  <and-ottteeehs>
   <wheeeeeeeeeeeee>
 ).
 

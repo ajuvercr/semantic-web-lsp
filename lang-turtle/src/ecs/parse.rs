@@ -4,7 +4,7 @@ use lsp_core::prelude::*;
 use tracing::info;
 
 use crate::{
-    lang::{parser::parse_turtle, tokenizer::parse_tokens},
+    lang::{parser::parse_turtle, tokenizer::parse_tokens_str},
     TurtleLang,
 };
 
@@ -14,11 +14,9 @@ pub fn parse_source(
     mut commands: Commands,
 ) {
     for (entity, source) in &query {
-        let (tok, es) = parse_tokens().parse_recovery(source.0.as_str());
-        if let Some(tokens) = tok {
-            let t = Tokens(tokens);
-            commands.entity(entity).insert(t);
-        }
+        let (tok, es) = parse_tokens_str(source.0.as_str());
+        let t = Tokens(tok);
+        commands.entity(entity).insert(t);
         commands.entity(entity).insert(Errors(es));
     }
 }
