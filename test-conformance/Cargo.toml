@@ -8,6 +8,7 @@ version = "0.1.0"
 [dependencies]
 sophia_api.workspace   = true
 sophia_iri.workspace   = true
+chumsky.workspace   = true
 sophia_turtle = "0.8.0"
 
 lsp-types.workspace    = true
