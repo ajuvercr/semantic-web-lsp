@@ -12,6 +12,12 @@ pub enum Cache {
     None(NoCache),
 }
 impl Cache {
+    #[cfg(target_arch = "wasm32")]
+    pub async fn from_client(client: &Client) -> Self {
+        Self::None(NoCache)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub async fn from_client(client: &Client) -> Self {
         Self::File(FileCache::from_client(client).await)
     }

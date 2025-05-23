@@ -105,26 +105,26 @@ impl TracingLayer {
                         longest_spans.sort_by_key(|(_, timing)| timing.elapsed);
                         longest_spans.reverse();
 
-                        tracing::info!("🔍 Top 10 Longest Spans:");
-                        for (_, timing) in longest_spans.iter().take(10) {
-                            tracing::info!(
-                                "⏳ Span: {} | Count: {} | Mean: {:.3}ms | Time: {:.3}ms",
-                                timing.name,
-                                timing.count,
-                                timing.elapsed.as_millis() / timing.count,
-                                timing.elapsed.as_millis()
-                            );
-                        }
-                        let names = longest_spans.iter().map(|(x, _)| x.as_str()).fold(String::new(), |mut acc, item| {
-                            acc += ", ";
-                            acc += item;
-                            acc
-                        });
-
-                            tracing::info!(
-                                "span names {}",
-                                names
-                            );
+                        // tracing::info!("🔍 Top 10 Longest Spans:");
+                        // for (_, timing) in longest_spans.iter().take(10) {
+                        //     tracing::info!(
+                        //         "⏳ Span: {} | Count: {} | Mean: {:.3}ms | Time: {:.3}ms",
+                        //         timing.name,
+                        //         timing.count,
+                        //         timing.elapsed.as_millis() / timing.count,
+                        //         timing.elapsed.as_millis()
+                        //     );
+                        // }
+                        // let names = longest_spans.iter().map(|(x, _)| x.as_str()).fold(String::new(), |mut acc, item| {
+                        //     acc += ", ";
+                        //     acc += item;
+                        //     acc
+                        // });
+                        //
+                        //     tracing::info!(
+                        //         "span names {}",
+                        //         names
+                        //     );
                     }
                 }
             }

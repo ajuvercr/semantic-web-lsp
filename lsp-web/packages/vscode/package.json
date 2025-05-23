@@ -91,7 +91,7 @@
         "properties": {
           "swls.debug": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "description": "Log debug information."
           }
         }

@@ -6,7 +6,7 @@ use tracing::debug;
 
 #[allow(non_camel_case_types)]
 #[derive(Logos, Debug, PartialEq)]
-#[logos(skip r"[ \t\n\f]+")] // Ignore this regex pattern between tokens
+#[logos(skip r"[ \t\n\f\r]+")] // Ignore this regex pattern between tokens
 enum TurtleToken {
     #[token("@prefix")]
     Prefix,
@@ -70,17 +70,17 @@ enum TurtleToken {
     #[regex(r#"(@[a-zA-Z][a-zA-Z]*(\-[a-zA-Z0-9][a-zA-Z0-9]*)*)"#)]
     LANGTAG,
 
-    #[regex(r#"("""(("|"")?([^"\\]|(\\[tbnrf\"'\\])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])))))*""")"#)]
-    STRING_LITERAL_LONG_QUOTE,
+    #[regex(r#"("([^\x22\x5C\x0A\x0D]|(\\[tbnrf\"'\\])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))))*")"#)]
+    STRING_LITERAL_QUOTE,
 
     #[regex(r#"('([^\x27\x5C\x0A\x0D]|(\\[tbnrf\"'\\])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))))*')"#)]
     STRING_LITERAL_SINGLE_QUOTE,
 
-    #[regex(r#"('''(('|'')?([^'\\]|(\\[tbnrf\"'])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])))))*''')"#)]
+    #[regex(r#"('''(('|'')?([^'\\]|(\\[tbnrf\"'\\])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])))))*''')"#)]
     STRING_LITERAL_LONG_SINGLE_QUOTE,
 
-    #[regex(r#"("([^\x22\x5C\x0A\x0D]|(\\[tbnrf\"'])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))))*")"#)]
-    STRING_LITERAL_QUOTE,
+    #[regex(r#"("""(("|"")?([^"\\]|(\\[tbnrf\"'\\])|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])))))*""")"#)]
+    STRING_LITERAL_LONG_QUOTE,
 
     #[regex(r#"(<([^\x00-\x20<>"{}|^`\\]|((\\u([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))|(\\U([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f])([0-9]|[A-F]|[a-f]))))*>)"#)]
     IRIREF,
@@ -100,7 +100,6 @@ pub fn parse_tokens_str<'a>(text: &'a str) -> (Vec<Spanned<Token>>, Vec<Simple<c
     let mut errors = Vec::new();
     let mut lex = TurtleToken::lexer(text);
     while let Some(x) = lex.next() {
-        debug!("Some {:?} {}", x, &text[lex.span()]);
         let t = || text[lex.span()].to_string();
         let t2 = |d_start, d_end| {
             let span = lex.span();
@@ -205,7 +204,7 @@ pub fn parse_tokens_str_safe(text: &str) -> Result<Vec<Spanned<Token>>, Vec<Simp
     if e.is_empty() {
         Ok(t)
     } else {
-        println!("Found tokens {:?}", t);
+        println!("Found tokens {:?} error {:?}", t, e);
         Err(e)
     }
 }

@@ -484,6 +484,7 @@ dependencies = [
 name = "conformance-tests"
 version = "0.1.0"
 dependencies = [
+ "chumsky",
  "lang-turtle",
  "lsp-types",
  "sophia_api",

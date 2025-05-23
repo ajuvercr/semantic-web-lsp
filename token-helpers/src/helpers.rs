@@ -203,7 +203,7 @@ pub fn parse_long_string<const C: char>() -> t!(String) {
 
     delim
         .ignore_then(letter.repeated().collect().map(|x| {
-            println!("Found {:?}", x);
+            // println!("Found {:?}", x);
             x
         }))
         .then_ignore(delim)
