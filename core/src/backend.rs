@@ -141,7 +141,7 @@ impl LanguageServer for Backend {
                                         DocumentFilter {
                                             language: Some(String::from("turtle")),
                                             scheme: None,
-                                            pattern: Some(String::from("*.ttl")),
+                                            pattern: None,
                                         },
                                         DocumentFilter {
                                             language: Some(String::from("jsonld")),
