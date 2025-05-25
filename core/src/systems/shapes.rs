@@ -1,7 +1,6 @@
-use std::{cell::OnceCell, collections::HashMap};
 
 use bevy_ecs::prelude::*;
-use lsp_types::{DiagnosticSeverity, TextDocumentItem};
+use lsp_types::TextDocumentItem;
 use ropey::Rope;
 // use rudof_lib::{
 //     shacl_ast::{
@@ -17,8 +16,6 @@ use ropey::Rope;
 //     srdf::{Object, SRDFGraph},
 //     RdfData,
 // };
-use sophia_api::prelude::Quad as _;
-use tracing::{debug, error, info, instrument};
 
 use crate::prelude::*;
 
@@ -44,7 +41,7 @@ pub fn derive_shapes(
         ),
         (Changed<Triples>, Without<Dirty>),
     >,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     // for (e, rope, label, schema) in &query {
     //     if let Some(compiled) = SRDFGraph::from_reader(
@@ -238,7 +235,7 @@ pub fn validate_shapes(
         (Changed<Triples>, Without<Dirty>, With<Open>),
     >,
     // other: Query<(&Label, &Wrapped<ShaclSchema>, &Prefixes)>,
-    mut client: ResMut<DiagnosticPublisher>,
+    client: ResMut<DiagnosticPublisher>,
 ) {
     // for (rope, label, links, item, triples) in &query {
     //     info!("Validate shapes {}", label.as_str());
@@ -261,7 +258,7 @@ pub fn validate_with_updated_shapes(
         With<Open>,
     >,
     // other: Query<(&Label, &Wrapped<ShaclSchema>, &Prefixes)>,
-    mut client: ResMut<DiagnosticPublisher>,
+    client: ResMut<DiagnosticPublisher>,
 ) {
     // for l in &changed_schemas {
     //     info!("Changed schema {}", l.as_str());

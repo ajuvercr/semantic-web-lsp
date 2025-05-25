@@ -1,9 +1,7 @@
 use chumsky::prelude::*;
 use lsp_core::prelude::*;
-use lsp_types::Url;
 use tracing::info;
 
-use super::tokenizer;
 use crate::lang::model::{
     Base, BlankNode, Literal, NamedNode, RDFLiteral, Term, Triple, Turtle, TurtlePrefix, Variable,
     PO,

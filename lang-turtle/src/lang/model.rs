@@ -890,6 +890,6 @@ _:internal_bnode_1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#first> <http://ex
 
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, _) = parse_turtle(txt, &url).expect("Simple collection");
-        let triples = output.get_simple_triples().expect("Triples found");
+        output.get_simple_triples().expect("Triples found");
     }
 }

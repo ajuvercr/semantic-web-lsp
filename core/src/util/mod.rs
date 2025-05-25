@@ -3,10 +3,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use lsp_types::{Location, Position, Range, Url};
+use lsp_types::{Location, Position, Range};
 use ropey::Rope;
 
-use crate::{prelude::Prefix, Label};
+use crate::Label;
 
 // pub mod cache;
 pub mod fs;

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, pin::Pin};
 
-use lsp_types::{Diagnostic, MessageType, Url, WorkspaceEdit};
+use lsp_types::{Diagnostic, MessageType, Url};
 
 #[derive(Debug)]
 pub struct Resp {

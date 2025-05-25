@@ -67,7 +67,7 @@ impl TripleComponent {
 pub struct Triples(pub Vec<MyQuad<'static>>);
 
 impl Triples {
-    pub fn object<'s, S, P>(&'s self, subj: S, pred: P) -> Option<&MyTerm<'_>>
+    pub fn object<'s, S, P>(&'s self, subj: S, pred: P) -> Option<&'s MyTerm<'s>>
     where
         S: TermMatcher + 's,
         P: TermMatcher + 's,
@@ -84,7 +84,7 @@ impl Triples {
             .map(|x| x.o())
     }
 
-    pub fn objects<'s, S, P>(&'s self, subj: S, pred: P) -> impl Iterator<Item = &MyTerm<'_>>
+    pub fn objects<'s, S, P>(&'s self, subj: S, pred: P) -> impl Iterator<Item = &'s MyTerm<'s>>
     where
         S: TermMatcher + 's,
         P: TermMatcher + 's,

@@ -468,15 +468,15 @@ mod tests {
 
     use std::str::FromStr;
 
-    use chumsky::{Parser, Stream};
+    use chumsky::Parser;
     use lsp_core::prelude::{spanned, Spanned};
     use ropey::Rope;
 
     use crate::lang::{
         formatter::format_turtle,
         model::Turtle,
-        parser::{self as parser2, turtle},
-        tokenizer::{self, parse_tokens_str, parse_tokens_str_safe},
+        parser::self as parser2,
+        tokenizer::{parse_tokens_str_safe},
     };
 
     #[derive(Debug)]

@@ -34,6 +34,7 @@ impl<'a> ObjectMemberManager<'a> {
         }
     }
 
+    #[allow(unused)]
     fn print(&self) {
         println!(
             "key {:?} value {:?} (out {} len) (start {} full start {})",

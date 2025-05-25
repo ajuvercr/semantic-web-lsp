@@ -2,7 +2,6 @@ use chumsky::prelude::*;
 use logos::Logos;
 use lsp_core::prelude::{spanned, Spanned, StringStyle, Token};
 use token_helpers::*;
-use tracing::debug;
 
 #[allow(non_camel_case_types)]
 #[derive(Logos, Debug, PartialEq)]

@@ -13,18 +13,12 @@ use tracing_subscriber::{layer::Context, registry::LookupSpan, Layer};
 
 #[derive(Debug)]
 enum SpanEvent {
-    Enter {
-        id: u64,
-        name: String,
-        metadata: String,
-    },
-    Exit {
-        id: u64,
-        name: String,
-    },
+    Enter { name: String, metadata: String },
+    Exit { name: String },
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 struct SpanTiming {
     name: String,
     metadata: String,
@@ -51,21 +45,14 @@ where
                 .map(|fields| format!("{:?}", fields))
                 .unwrap_or_else(|| "".to_string());
 
-            let _ = self.sender.try_send(SpanEvent::Enter {
-                id: id.into_u64(),
-                name,
-                metadata,
-            });
+            let _ = self.sender.try_send(SpanEvent::Enter { name, metadata });
         }
     }
 
     fn on_exit(&self, id: &span::Id, ctx: Context<S>) {
         if let Some(span) = ctx.span(id) {
             let name = span.name().to_string();
-            let _ = self.sender.try_send(SpanEvent::Exit {
-                id: id.into_u64(),
-                name,
-            });
+            let _ = self.sender.try_send(SpanEvent::Exit { name });
         }
     }
 }
@@ -83,14 +70,14 @@ impl TracingLayer {
                     Some(event) = receiver.recv() => {
                         let mut spans = spans_clone.lock().await;
                         match event {
-                            SpanEvent::Enter { id, name, metadata } => {
+                            SpanEvent::Enter { name, metadata, .. } => {
                                 let e = spans.entry(name).or_insert_with_key(|name| SpanTiming {
                                     name: name.clone(), metadata, start: Instant::now(), elapsed: Duration::ZERO, count: 0
                                 });
                                 e.start = Instant::now();
                                 e.count += 1;
                             }
-                            SpanEvent::Exit { id, name } => {
+                            SpanEvent::Exit {  name, .. } => {
                                 if let Some(span) = spans.get_mut(&name) {
                                     span.elapsed = span.start.elapsed();
                                     span.count += 1;
