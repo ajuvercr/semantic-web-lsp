@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["formatter","model","parser","tokenizer"]};
+window.SIDEBAR_ITEMS = {"fn":["parse_source"],"mod":["formatter","model","parser","parser2","tokenizer"]};

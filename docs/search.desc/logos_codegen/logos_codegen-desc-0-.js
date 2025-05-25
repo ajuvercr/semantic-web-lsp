@@ -1,0 +1,1 @@
+searchState.loadedDescShard("logos_codegen", 0, "Logos\nGenerate a <code>Logos</code> implementation for the given struct, …\nStrip all logos attributes from the given struct, allowing …")

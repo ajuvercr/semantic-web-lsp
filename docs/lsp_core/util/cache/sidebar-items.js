@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Cache"],"struct":["FileCache","NoCache"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["reqwest"],"struct":["TowerClient"]};
+window.SIDEBAR_ITEMS = {"mod":["reqwest"],"struct":["BinFs","TowerClient"]};

@@ -1,9 +1,9 @@
 (function() {
-    var implementors = Object.fromEntries([["sophia_api",[]]]);
+    var implementors = Object.fromEntries([["sophia_api",[]],["sophia_rio",[["impl&lt;T&gt; <a class=\"trait\" href=\"sophia_api/source/_quad/trait.QuadSource.html\" title=\"trait sophia_api::source::_quad::QuadSource\">QuadSource</a> for <a class=\"struct\" href=\"sophia_rio/parser/struct.GeneralizedRioSource.html\" title=\"struct sophia_rio::parser::GeneralizedRioSource\">GeneralizedRioSource</a>&lt;T&gt;<div class=\"where\">where\n    T: <a class=\"trait\" href=\"rio_api/generalized/parser/trait.GeneralizedQuadsParser.html\" title=\"trait rio_api::generalized::parser::GeneralizedQuadsParser\">GeneralizedQuadsParser</a>,\n    T::<a class=\"associatedtype\" href=\"rio_api/generalized/parser/trait.GeneralizedQuadsParser.html#associatedtype.Error\" title=\"type rio_api::generalized::parser::GeneralizedQuadsParser::Error\">Error</a>: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/error/trait.Error.html\" title=\"trait core::error::Error\">Error</a> + 'static,</div>"],["impl&lt;T&gt; <a class=\"trait\" href=\"sophia_api/source/_quad/trait.QuadSource.html\" title=\"trait sophia_api::source::_quad::QuadSource\">QuadSource</a> for <a class=\"struct\" href=\"sophia_rio/parser/struct.StrictRioSource.html\" title=\"struct sophia_rio::parser::StrictRioSource\">StrictRioSource</a>&lt;T&gt;<div class=\"where\">where\n    T: <a class=\"trait\" href=\"rio_api/parser/trait.QuadsParser.html\" title=\"trait rio_api::parser::QuadsParser\">QuadsParser</a>,\n    T::<a class=\"associatedtype\" href=\"rio_api/parser/trait.QuadsParser.html#associatedtype.Error\" title=\"type rio_api::parser::QuadsParser::Error\">Error</a>: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/error/trait.Error.html\" title=\"trait core::error::Error\">Error</a> + 'static,</div>"]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
         window.pending_implementors = implementors;
     }
 })()
-//{"start":57,"fragment_lengths":[17]}
+//{"start":57,"fragment_lengths":[17,1739]}
