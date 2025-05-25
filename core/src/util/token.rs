@@ -30,7 +30,7 @@ pub fn get_current_token(
     for (entity, tokens, position, rope, helper) in &mut query {
         commands.entity(entity).remove::<TokenComponent>();
         let Some(offset) = position_to_offset(position.0, &rope.0) else {
-            debug!("Couldn't transform to an offset");
+            debug!("Couldn't transform to an offset ({:?})", position.0);
             continue;
         };
 

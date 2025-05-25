@@ -1,9 +1,13 @@
-use std::{collections::HashMap, fmt::Display, pin::Pin};
+use std::{collections::HashMap, fmt::Display, path::PathBuf, pin::Pin};
 
 use bevy_ecs::system::Resource;
 use futures::FutureExt;
-use lsp_core::client::{Client, ClientSync, Resp};
+use lsp_core::{
+    client::{Client, ClientSync, Resp},
+    prelude::FsTrait,
+};
 use lsp_types::{Diagnostic, MessageType, Url};
+use tokio::fs::{self, read_to_string, write};
 use tracing::info;
 
 pub mod reqwest {
@@ -11,6 +15,51 @@ pub mod reqwest {
         header::{HeaderMap, HeaderName, HeaderValue},
         Error, StatusCode, Url,
     };
+}
+
+// TODO: use other tmp file location
+#[derive(Debug)]
+pub struct BinFs(PathBuf);
+impl BinFs {
+    pub fn new() -> Self {
+        let mut tmp_dir = std::env::temp_dir();
+        tmp_dir.push("swls");
+        let mut c = 0;
+        tmp_dir.push(c.to_string());
+        while std::fs::exists(&tmp_dir).unwrap_or(false) {
+            tmp_dir.pop();
+            c += 1;
+            tmp_dir.push(c.to_string());
+        }
+        Self(tmp_dir)
+    }
+}
+
+#[tower_lsp::async_trait]
+impl FsTrait for BinFs {
+    fn virtual_url(&self, url: &str) -> Option<lsp_types::Url> {
+        let mut pb = self.0.clone();
+        if let Ok(url) = lsp_types::Url::parse(url) {
+            pb.push(url.path());
+        } else {
+            pb.push(url);
+        }
+        lsp_types::Url::from_file_path(pb).ok()
+    }
+
+    async fn read_file(&self, url: &lsp_types::Url) -> Option<String> {
+        let fp = url.to_file_path().ok()?;
+        let content = read_to_string(fp).await.ok()?;
+        Some(content)
+    }
+
+    async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()> {
+        let fp = url.to_file_path().ok()?;
+        if let Some(parent) = fp.parent() {
+            fs::create_dir_all(parent).await.ok()?;
+        }
+        write(fp, content.as_bytes()).await.ok()
+    }
 }
 
 #[derive(Resource, Clone)]

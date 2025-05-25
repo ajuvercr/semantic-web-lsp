@@ -8,7 +8,7 @@ mod fetch;
 use std::io::Write;
 
 use bevy_ecs::{system::Resource, world::World};
-use client::WebClient;
+use client::{WebClient, WebFs};
 use futures::{channel::mpsc::unbounded, stream::TryStreamExt, StreamExt};
 use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
@@ -63,6 +63,7 @@ fn setup_global_subscriber() {
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
+    tower_client: &tower_lsp::Client,
 ) -> (CommandSender, Vec<SemanticTokenType>) {
     let mut world = World::new();
 
@@ -86,6 +87,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     let sender = CommandSender(tx);
     world.insert_resource(sender.clone());
     world.insert_resource(client.clone());
+    world.insert_resource(WebFs::new(tower_client));
 
     let r = world.resource::<SemanticTokensDict>();
     let mut semantic_tokens: Vec<_> = (0..r.0.len()).map(|_| SemanticTokenType::KEYWORD).collect();
@@ -155,7 +157,7 @@ pub async fn serve(config: ServerConfig) -> Result<(), JsValue> {
     let output = output.try_into_async_write().map_err(|err| err.0)?;
 
     let (service, socket) = LspService::build(|client| {
-        let (sender, rt) = setup_world(WebClient::new(client.clone()));
+        let (sender, rt) = setup_world(WebClient::new(client.clone()), &client);
         Backend::new(sender, client, rt)
     })
     .finish();
@@ -196,7 +198,7 @@ pub async fn serve2(config: ServerConfig) -> Result<(), JsValue> {
     let output = wasm_streams::WritableStream::from_raw(output);
     let output = output.try_into_async_write().map_err(|err| err.0)?;
     let (service, socket) = LspService::build(|client| {
-        let (sender, rt) = setup_world(WebClient::new(client.clone()));
+        let (sender, rt) = setup_world(WebClient::new(client.clone()), &client);
         Backend::new(sender, client, rt)
     })
     .finish();

@@ -1,6 +1,5 @@
 use bevy_ecs::prelude::*;
 use lsp_types::Url;
-use systems::LovHelper;
 use tracing::instrument;
 
 use crate::{prelude::*, util::ns::owl};
@@ -8,24 +7,24 @@ use crate::{prelude::*, util::ns::owl};
 pub fn derive_prefix_links(
     mut query: Query<(Entity, &Prefixes, Option<&mut DocumentLinks>), Changed<Prefixes>>,
     mut commands: Commands,
-    helper: Res<LovHelper>,
-    cache: Res<Cache>,
+    // helper: Res<LovHelper>,
+    fs: Res<Fs>,
 ) {
     const SOURCE: &'static str = "prefix import";
-    for (e, turtle, mut links) in &mut query {
+    for (e, prefixes, mut links) in &mut query {
         let mut new_links = Vec::new();
-        for u in turtle.0.iter() {
-            if let Some(url) = helper.has_entry(&u).and_then(|e| e.url(&cache)) {
-                tracing::debug!(
-                    "Mapping prefix {}: {} to {}",
-                    u.prefix,
-                    u.url.as_str(),
-                    url.as_str()
-                );
-                new_links.push((url, SOURCE));
-            } else {
-                new_links.push((u.url.clone(), SOURCE));
-            }
+        for u in prefixes.0.iter() {
+            let url: Url =
+                fs.0.lov_url(u.url.as_str(), &u.prefix)
+                    .unwrap_or(u.url.clone());
+            tracing::debug!(
+                "Mapping prefix {}: {} to {}",
+                u.prefix,
+                u.url.as_str(),
+                url.as_str()
+            );
+
+            new_links.push((url.clone(), SOURCE));
         }
         if let Some(links) = links.as_mut() {
             links.retain(|e| e.1 != SOURCE);

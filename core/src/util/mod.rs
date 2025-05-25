@@ -3,16 +3,29 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use lsp_types::{Location, Position, Range};
+use lsp_types::{Location, Position, Range, Url};
 use ropey::Rope;
 
-use crate::Label;
+use crate::{prelude::Prefix, Label};
 
-pub mod cache;
+// pub mod cache;
+pub mod fs;
 /// Commonly used RDF prefixes
 pub mod ns;
 pub mod token;
 pub mod triple;
+
+// /// Maps http:// and https:// urls to virtual:// urls
+// /// This enables the editor to show them
+// pub fn make_virtual_url(url: &str, prefix: &str) -> Option<Url> {
+//     if !url.starts_with("http") {
+//         return None;
+//     }
+//
+//     let url = format!("virtual://prefix/{}.ttl", prefix);
+//
+//     lsp_types::Url::parse(&url).ok()
+// }
 
 pub fn range_to_range(range: &std::ops::Range<usize>, rope: &Rope) -> Option<Range> {
     let start = offset_to_position(range.start, rope)?;

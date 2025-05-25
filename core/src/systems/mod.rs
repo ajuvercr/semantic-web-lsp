@@ -18,8 +18,8 @@ pub use properties::{
 };
 mod lov;
 pub use lov::{
-    check_added_ontology_extract, fetch_lov_properties, finish_prefix_import,
-    init_onology_extractor, open_imports, FromPrefix, LovEntry, LovHelper, OntologyExtractor,
+    check_added_ontology_extract, fetch_lov_properties, init_onology_extractor, open_imports,
+    FromPrefix, OntologyExtractor,
 };
 use tracing::instrument;
 

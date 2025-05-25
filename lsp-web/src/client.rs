@@ -3,16 +3,61 @@ use std::{
     fmt::Display,
     future::Future,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
 };
 
 use bevy_ecs::system::Resource;
 use futures::FutureExt;
-use lsp_core::client::{Client, ClientSync, Resp};
-use lsp_types::{Diagnostic, MessageType, Url};
+use lsp_core::{
+    client::{Client, ClientSync, Resp},
+    prelude::{Fs, FsTrait},
+};
+use lsp_types::{Diagnostic, MessageType, TextEdit, Url, WorkspaceEdit};
 use tracing::info;
 
 use crate::fetch::local_fetch;
+
+#[derive(Debug)]
+pub struct WebFs(tower_lsp::Client);
+impl WebFs {
+    pub fn new(client: &tower_lsp::Client) -> Fs {
+        Fs(Arc::new(Self(client.clone())))
+    }
+}
+
+#[tower_lsp::async_trait]
+impl FsTrait for WebFs {
+    fn virtual_url(&self, url: &str) -> Option<lsp_types::Url> {
+        let st = if let Ok(url) = lsp_types::Url::parse(url) {
+            format!("virtual://swls/{}", url.path())
+        } else {
+            format!("virtual://swls/{}", url)
+        };
+        lsp_types::Url::parse(&st).ok()
+    }
+
+    async fn read_file(&self, url: &lsp_types::Url) -> Option<String> {
+        None
+    }
+
+    async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()> {
+        let mut map = HashMap::new();
+        map.insert(
+            url.clone(),
+            vec![TextEdit {
+                new_text: content.to_string(),
+                ..Default::default()
+            }],
+        );
+        let edit = WorkspaceEdit {
+            changes: Some(map),
+            ..Default::default()
+        };
+        self.0.apply_edit(edit).await;
+        Some(())
+    }
+}
 
 #[derive(Resource, Clone)]
 pub struct WebClient {

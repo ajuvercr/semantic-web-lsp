@@ -10,15 +10,14 @@ use bevy_ecs::{
 use completion::CompletionRequest;
 use futures::lock::Mutex;
 use goto_type::GotoTypeRequest;
-use lsp_types::*;
+use lsp_types::{request::SemanticTokensRefresh, *};
 use references::ReferencesRequest;
 use request::{GotoTypeDefinitionParams, GotoTypeDefinitionResponse};
 use ropey::Rope;
-use systems::LovHelper;
 use tower_lsp::{jsonrpc::Result, LanguageServer};
 use tracing::info;
 
-use crate::{prelude::*, Startup};
+use crate::{feature::goto_definition::GotoDefinitionRequest, prelude::*, Startup};
 
 #[derive(Debug)]
 pub struct Backend {
@@ -96,13 +95,13 @@ impl LanguageServer for Backend {
     async fn initialize(&self, _init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
         // iew
-        let cache = Cache::from_client(&self.client).await;
-        info!("Initialize2");
-        let helper = LovHelper::from_cache(&cache);
+        // let cache = Cache::from_client(&self.client).await;
+        // info!("Initialize2");
+        // let helper = LovHelper::from_cache(&cache);
 
         self.run(|world| {
-            world.insert_resource(cache);
-            world.insert_resource(helper);
+            // world.insert_resource(cache);
+            // world.insert_resource(helper);
             info!("Initialize3");
             world.run_schedule(Startup);
             info!("Initialize4");
@@ -233,19 +232,6 @@ impl LanguageServer for Backend {
     #[tracing::instrument(skip(self))]
     async fn shutdown(&self) -> Result<()> {
         info!("Shutting down!");
-
-        self.run(|world| {
-            match (
-                world.remove_resource::<Cache>(),
-                world.remove_resource::<LovHelper>(),
-            ) {
-                (Some(cache), Some(helper)) => {
-                    helper.save(&cache);
-                }
-                _ => {}
-            }
-        })
-        .await;
 
         Ok(())
     }
@@ -474,6 +460,9 @@ impl LanguageServer for Backend {
         if let Some(entity) = entity {
             self.entities.lock().await.insert(url, entity);
         }
+
+        let _ = self.client.send_request::<SemanticTokensRefresh>(()).await;
+        info!("Semantic tokens refresh");
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
@@ -527,58 +516,58 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let content = r#"@prefix foaf: <http://xmlns.com/foaf/0.1/>.
-
-<#me> foaf:knows <#you>."#;
-        let url = Url::parse("virtual://ontologies/myFile.ttl").unwrap();
-
-        let mut edits = HashMap::new();
-        edits.insert(
-            url.clone(),
-            vec![TextEdit::new(
-                Range::new(Position::new(0, 0), Position::new(0, 0)),
-                content.to_string(),
-            )],
-        );
-        let res = self.client.apply_edit(WorkspaceEdit::new(edits)).await;
-
-        Ok(Some(GotoDefinitionResponse::Scalar(Location::new(
-            url.clone(),
-            Range::new(Position::new(2, 0), Position::new(2, 5)),
-        ))))
-
-        // let entity = {
-        //     let map = self.entities.lock().await;
-        //     if let Some(entity) = map.get(
-        //         params
-        //             .text_document_position_params
-        //             .text_document
-        //             .uri
-        //             .as_str(),
-        //     ) {
-        //         entity.clone()
-        //     } else {
-        //         return Ok(None);
-        //     }
-        // };
+        //         let content = r#"@prefix foaf: <http://xmlns.com/foaf/0.1/>.
         //
-        // let mut pos = params.text_document_position_params.position;
-        // pos.character = if pos.character > 0 {
-        //     pos.character - 1
-        // } else {
-        //     pos.character
-        // };
+        // <#me> foaf:knows <#you>."#;
+        //         let url = Url::parse("virtual://ontologies/myFile.ttl").unwrap();
         //
-        // let arr = self
-        //     .run_schedule::<GotoDefinitionRequest>(
-        //         entity,
-        //         GotoDefinitionLabel,
-        //         (PositionComponent(pos), GotoDefinitionRequest(Vec::new())),
-        //     )
-        //     .await
-        //     .map(|x| GotoDefinitionResponse::Array(x.0));
+        //         let mut edits = HashMap::new();
+        //         edits.insert(
+        //             url.clone(),
+        //             vec![TextEdit::new(
+        //                 Range::new(Position::new(0, 0), Position::new(0, 0)),
+        //                 content.to_string(),
+        //             )],
+        //         );
+        //         let res = self.client.apply_edit(WorkspaceEdit::new(edits)).await;
         //
-        // Ok(arr)
+        //         Ok(Some(GotoDefinitionResponse::Scalar(Location::new(
+        //             url.clone(),
+        //             Range::new(Position::new(2, 0), Position::new(2, 5)),
+        //         ))))
+
+        let entity = {
+            let map = self.entities.lock().await;
+            if let Some(entity) = map.get(
+                params
+                    .text_document_position_params
+                    .text_document
+                    .uri
+                    .as_str(),
+            ) {
+                entity.clone()
+            } else {
+                return Ok(None);
+            }
+        };
+
+        let mut pos = params.text_document_position_params.position;
+        pos.character = if pos.character > 0 {
+            pos.character - 1
+        } else {
+            pos.character
+        };
+
+        let arr = self
+            .run_schedule::<GotoDefinitionRequest>(
+                entity,
+                GotoDefinitionLabel,
+                (PositionComponent(pos), GotoDefinitionRequest(Vec::new())),
+            )
+            .await
+            .map(|x| GotoDefinitionResponse::Array(x.0));
+
+        Ok(arr)
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document_position_params.text_document.uri.as_str()))]

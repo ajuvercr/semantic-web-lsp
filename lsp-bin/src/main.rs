@@ -1,8 +1,12 @@
-use std::{fs::File, io, sync::Mutex};
+use std::{
+    fs::File,
+    io,
+    sync::{Arc, Mutex},
+};
 
 use bevy_ecs::{system::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
-use lsp_bin::{timings, TowerClient};
+use lsp_bin::{client::BinFs, timings, TowerClient};
 use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
@@ -33,6 +37,7 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     let sender = CommandSender(tx);
     world.insert_resource(sender.clone());
     world.insert_resource(client.clone());
+    world.insert_resource(Fs(Arc::new(BinFs::new())));
 
     let r = world.resource::<SemanticTokensDict>();
     let mut semantic_tokens: Vec<_> = (0..r.0.len()).map(|_| SemanticTokenType::KEYWORD).collect();

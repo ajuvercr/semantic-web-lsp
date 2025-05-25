@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, pin::Pin};
 
-use lsp_types::{Diagnostic, MessageType, Url};
+use lsp_types::{Diagnostic, MessageType, Url, WorkspaceEdit};
 
 #[derive(Debug)]
 pub struct Resp {
@@ -18,12 +18,6 @@ pub trait Client: Clone + ClientSync {
         diags: Vec<Diagnostic>,
         version: Option<i32>,
     ) -> ();
-
-    // async fn fetch(
-    //     &self,
-    //     url: &str,
-    //     headers: HeaderMap<String, String>,
-    // ) -> std::result::Result<Resp, String>;
 }
 
 pub trait ClientSync {

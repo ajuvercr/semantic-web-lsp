@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fs::read_to_string, str::FromStr as _};
+use std::{collections::HashMap, fs::read_to_string};
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
 use lsp_types::{TextDocumentItem, Url};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sophia_api::{
     prelude::{Any, Dataset},
     quad::Quad,
@@ -13,7 +13,10 @@ use tracing::{debug, error, info, instrument, span};
 
 use crate::{
     prelude::*,
-    util::ns::{owl, rdfs},
+    util::{
+        fs::Fs,
+        ns::{owl, rdfs},
+    },
 };
 
 #[derive(Deserialize, Debug)]
@@ -65,19 +68,7 @@ async fn extract_file_url(prefix: &str, client: &impl Client) -> Option<String> 
     }
 }
 
-pub fn finish_prefix_import(
-    query: Query<(&FromPrefix, &RopeC), Added<FromPrefix>>,
-    mut helper: ResMut<LovHelper>,
-    cache: Res<Cache>,
-) {
-    for (p, rope) in &query {
-        tracing::debug!("Finishing import for {:?}", p.0);
-        if let Some(e) = helper.has_entry_mut(&p.0) {
-            let _ = e.save(&cache, &rope.to_string());
-        }
-    }
-}
-
+/// TODO: Add fs to read the file and open the document
 pub fn open_imports(
     query: Query<(&Triples, &RopeC), Changed<Triples>>,
     mut opened: Local<HashSet<String>>,
@@ -101,7 +92,7 @@ pub fn open_imports(
                 .ok()
                 .and_then(|p| read_to_string(p).ok())
             {
-                spawn_document(object, content, &sender.0, None);
+                spawn_document(object, content, &sender.0, |_, _| {});
             }
         }
     }
@@ -120,61 +111,43 @@ pub fn fetch_lov_properties<C: Client + Resource>(
     >,
     mut prefixes: Local<HashSet<String>>,
     client: Res<C>,
-    mut helper: ResMut<LovHelper>,
-    cache: Res<Cache>,
+    fs: Res<Fs>,
 ) {
-    // println!("fetch lov properties");
     for prefs in &query {
-        // println!("Found some turtle!");
         for prefix in prefs.0.iter() {
-            if let Some(e) = helper.has_entry_mut(&prefix) {
-                let name = e.name();
-                if !prefixes.contains(&name) {
-                    prefixes.insert(name);
-                    from_cache(&e, &cache, &sender);
-                }
-            } else {
-                let e = helper.create_entry(&prefix);
-                let name = e.name();
-                if !prefixes.contains(&name) {
-                    prefixes.insert(name);
-                    if let Some(url) = e.url(&cache) {
-                        // let prefix = prefix.prefix.0.clone();
-                        if let Some(local) = lov::LOCAL_PREFIXES
-                            .iter()
-                            .find(|x| x.location == prefix.url.as_str())
-                        {
-                            debug!("Local lov");
-                            local_lov(local, url, &sender);
-                        } else {
-                            debug!("Remove lov");
-                            let sender = sender.0.clone();
-                            let c = client.as_ref().clone();
-                            client.spawn(fetch_lov(prefix.clone(), url, c, sender));
-                        }
+            if !prefixes.contains(prefix.url.as_str()) {
+                prefixes.insert(prefix.url.to_string());
+                if let Some(url) = fs.0.lov_url(prefix.url.as_str(), &prefix.prefix) {
+                    info!("Other virtual url {}", url);
+                    if let Some(local) = lov::LOCAL_PREFIXES
+                        .iter()
+                        .find(|x| x.location == prefix.url.as_str())
+                    {
+                        debug!("Local lov");
+                        local_lov::<C>(local, url, &sender, fs.clone());
                     } else {
-                        debug!("Failed to find url");
+                        debug!("Remove lov");
+                        let sender = sender.0.clone();
+                        let c = client.as_ref().clone();
+                        client.spawn(fetch_lov(prefix.clone(), url, c, sender, fs.clone()));
                     }
                 } else {
-                    debug!("Prefixes is already present {}", name);
+                    debug!("Failed to find url");
                 }
+            } else {
+                debug!("Prefixes is already present {}", prefix.url);
             }
         }
     }
 }
 
-fn from_cache(e: &LovEntry, cache: &Cache, sender: &CommandSender) -> Option<()> {
-    debug!("Using cached {:?}", e);
-    let url = e.url(cache)?;
-    let content = cache.get_file(&e.name())?;
-
-    spawn_document(url, content, &sender.0, None);
-
-    Some(())
-}
-
 type Sender = futures::channel::mpsc::UnboundedSender<CommandQueue>;
-fn spawn_document(url: Url, content: String, sender: &Sender, from_prefix: Option<FromPrefix>) {
+fn spawn_document(
+    url: Url,
+    content: String,
+    sender: &Sender,
+    extra: impl FnOnce(Entity, &mut World) -> () + Send + Sync + 'static,
+) {
     let mut command_queue = CommandQueue::default();
     let item = TextDocumentItem {
         version: 1,
@@ -187,8 +160,8 @@ fn spawn_document(url: Url, content: String, sender: &Sender, from_prefix: Optio
         url.clone(),
         (
             RopeC(ropey::Rope::from_str(&content)),
-            Source(content),
-            Label(url), // this might crash
+            Source(content.clone()),
+            Label(url.clone()), // this might crash
             Wrapped(item),
             Types(HashMap::new()),
         ),
@@ -200,9 +173,9 @@ fn spawn_document(url: Url, content: String, sender: &Sender, from_prefix: Optio
         let span = span!(tracing::Level::INFO, "span lov");
         let _enter = span.enter();
         let e = spawn(world);
-        if let Some(from) = from_prefix {
-            world.entity_mut(e).insert(from);
-        }
+
+        extra(e, world);
+
         world.run_schedule(ParseLabel);
         drop(_enter);
     });
@@ -210,11 +183,29 @@ fn spawn_document(url: Url, content: String, sender: &Sender, from_prefix: Optio
     let _ = sender.unbounded_send(command_queue);
 }
 
-async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender) {
+fn extra_from_lov<C: Client + Resource>(
+    from: FromPrefix,
+    content: String,
+    url: Url,
+    fs: Fs,
+) -> impl FnOnce(Entity, &mut World) + Send + Sync + 'static {
+    move |e, world| {
+        world.entity_mut(e).insert(from);
+
+        let client = world.resource::<C>();
+        client.spawn(async move {
+            fs.0.write_file(&url, &content).await;
+        });
+    }
+}
+
+async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sender: Sender, fs: Fs) {
     if let Some(url) = extract_file_url(&prefix.prefix, &c).await {
         match c.fetch(&url, &std::collections::HashMap::new()).await {
             Ok(resp) if resp.status == 200 => {
-                spawn_document(label, resp.body, &sender, Some(FromPrefix(prefix)));
+                let extra =
+                    extra_from_lov::<C>(FromPrefix(prefix), resp.body.clone(), label.clone(), fs);
+                spawn_document(label, resp.body, &sender, extra);
             }
             Ok(resp) => {
                 error!("Fetch ({}) failed status {}", url, resp.status);
@@ -226,35 +217,34 @@ async fn fetch_lov<C: Client + Resource>(prefix: Prefix, label: Url, c: C, sende
     }
 }
 
-fn local_lov(local: &lov::LocalPrefix, label: Url, sender: &Res<CommandSender>) {
+fn local_lov<C: Client + Resource>(
+    local: &lov::LocalPrefix,
+    label: Url,
+    sender: &Res<CommandSender>,
+    fs: Fs,
+) {
     info!("Using local {}", local.name);
 
     let from = FromPrefix(Prefix {
         prefix: local.name.to_string(),
         url: Url::parse(&local.location).unwrap(),
     });
-    spawn_document(label, local.content.to_string(), &sender.0, Some(from));
+
+    let extra = extra_from_lov::<C>(from, local.content.to_string(), label.clone(), fs);
+    spawn_document(label, local.content.to_string(), &sender.0, extra);
 }
 
 #[derive(Component)]
 pub struct OntologyExtract;
 
 #[instrument(skip(commands))]
-pub fn init_onology_extractor(
-    mut commands: Commands,
-    mut helper: ResMut<LovHelper>,
-    cache: Res<Cache>,
-) {
+pub fn init_onology_extractor(mut commands: Commands, fs: Res<Fs>) {
     for local in lov::LOCAL_PREFIXES
         .iter()
         .filter(|x| ["rdf", "rdfs", "owl"].iter().any(|y| *y == x.name))
     {
-        // HERE
-        let entry = helper.create_entry(&Prefix {
-            prefix: local.name.to_string(),
-            url: lsp_types::Url::from_str(local.location).unwrap(),
-        });
-        let url = entry.url(&cache).unwrap();
+        let url = fs.0.lov_url(&local.location, &local.name).unwrap();
+        info!("Virtual url {}", url.to_string());
 
         // let url = lsp_types::Url::from_str(local.location).unwrap();
         let item = TextDocumentItem {
@@ -269,7 +259,7 @@ pub fn init_onology_extractor(
             (
                 Source(local.content.to_string()),
                 RopeC(ropey::Rope::from_str(local.content)),
-                Label(url), // this might crash
+                Label(url),
                 Wrapped(item),
                 Types(HashMap::new()),
             ),
@@ -381,121 +371,121 @@ impl OntologyExtractor {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum EntryState {
-    Ready,
-    Transit,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LovEntry {
-    prefix: String,
-    url: String,
-    num: usize,
-    state: EntryState,
-}
-
-impl LovEntry {
-    fn name(&self) -> String {
-        format!("{}-{}.ttl", self.num, self.prefix)
-    }
-    pub fn url(&self, cache: &Cache) -> Option<Url> {
-        self.file_url(cache).or_else(|| self.remote_url())
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn file_url(&self, cache: &Cache) -> Option<Url> {
-        let p = cache.path()?;
-        let url = p.join(self.name());
-        Url::from_file_path(url).ok()
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn file_url(&self, cache: &Cache) -> Option<Url> {
-        None
-    }
-
-    fn remote_url(&self) -> Option<Url> {
-        Url::from_str(&self.url).ok()
-    }
-
-    pub fn save(&mut self, cache: &Cache, content: &str) -> Option<()> {
-        self.state = EntryState::Ready;
-        cache.write_file(&self.name(), content)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Resource)]
-pub struct LovHelper {
-    entries: Vec<LovEntry>,
-}
-
-impl LovHelper {
-    fn try_from_cache(cache: &Cache) -> Option<Self> {
-        let c = cache.get_file("index.json")?;
-        info!("Found index file! {}", c);
-        serde_json::from_str(&c).ok()
-    }
-
-    pub fn from_cache(cache: &Cache) -> Self {
-        Self::try_from_cache(cache).unwrap_or_else(|| Self {
-            entries: Vec::new(),
-        })
-    }
-
-    pub fn save(mut self, cache: &Cache) -> Option<()> {
-        self.entries = self
-            .entries
-            .into_iter()
-            .filter(|x| x.state == EntryState::Ready)
-            .collect();
-        let st = serde_json::to_string(&self).ok()?;
-        info!("Save index file! {}", st);
-        cache.write_file("index.json", &st)
-    }
-
-    pub fn has_entry_mut(&mut self, prefix: &Prefix) -> Option<&mut LovEntry> {
-        self.entries
-            .iter_mut()
-            .find(|e| e.prefix == prefix.prefix && e.url == prefix.url.as_str())
-    }
-
-    pub fn has_entry(&self, prefix: &Prefix) -> Option<&LovEntry> {
-        self.entries
-            .iter()
-            .find(|e| e.prefix == prefix.prefix && e.url == prefix.url.as_str())
-    }
-
-    pub fn create_entry(&mut self, prefix: &Prefix) -> &LovEntry {
-        debug!("Create entry for {:?}", prefix);
-        if let Some(e) = self.entries.iter().enumerate().find_map(|(i, e)| {
-            (e.prefix == prefix.prefix && e.url == prefix.url.as_str()).then_some(i)
-        }) {
-            return &self.entries[e];
-        }
-        let c = self
-            .entries
-            .iter()
-            .filter(|x| x.prefix == prefix.prefix)
-            .count();
-        let entry = LovEntry {
-            prefix: prefix.prefix.to_string(),
-            url: prefix.url.to_string(),
-            num: c,
-            state: EntryState::Transit,
-        };
-        self.entries.push(entry);
-        self.entries.last().unwrap()
-    }
-
-    pub fn save_prefix(&mut self, cache: &Cache, prefix: &Prefix, content: &str) -> Option<()> {
-        let e = self
-            .entries
-            .iter_mut()
-            .find(|e| (e.prefix == prefix.prefix && e.url == prefix.url.as_str()))?;
-        e.save(cache, content)
-    }
-}
+// #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+// pub enum EntryState {
+//     Ready,
+//     Transit,
+// }
+//
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct LovEntry {
+//     prefix: String,
+//     url: String,
+//     num: usize,
+//     state: EntryState,
+// }
+//
+// impl LovEntry {
+//     fn name(&self) -> String {
+//         format!("{}-{}.ttl", self.num, self.prefix)
+//     }
+//     pub fn url(&self, cache: &Cache) -> Option<Url> {
+//         self.file_url(cache).or_else(|| self.remote_url())
+//     }
+//
+//     #[cfg(not(target_arch = "wasm32"))]
+//     fn file_url(&self, cache: &Cache) -> Option<Url> {
+//         let p = cache.path()?;
+//         let url = p.join(self.name());
+//         Url::from_file_path(url).ok()
+//     }
+//
+//     #[cfg(target_arch = "wasm32")]
+//     fn file_url(&self, cache: &Cache) -> Option<Url> {
+//         None
+//     }
+//
+//     fn remote_url(&self) -> Option<Url> {
+//         Url::from_str(&self.url).ok()
+//     }
+//
+//     pub fn save(&mut self, cache: &Cache, content: &str) -> Option<()> {
+//         self.state = EntryState::Ready;
+//         cache.write_file(&self.name(), content)
+//     }
+// }
+//
+// #[derive(Debug, Clone, Serialize, Deserialize, Resource)]
+// pub struct LovHelper {
+//     entries: Vec<LovEntry>,
+// }
+//
+// impl LovHelper {
+//     fn try_from_cache(cache: &Cache) -> Option<Self> {
+//         let c = cache.get_file("index.json")?;
+//         info!("Found index file! {}", c);
+//         serde_json::from_str(&c).ok()
+//     }
+//
+//     pub fn from_cache(cache: &Cache) -> Self {
+//         Self::try_from_cache(cache).unwrap_or_else(|| Self {
+//             entries: Vec::new(),
+//         })
+//     }
+//
+//     pub fn save(mut self, cache: &Cache) -> Option<()> {
+//         self.entries = self
+//             .entries
+//             .into_iter()
+//             .filter(|x| x.state == EntryState::Ready)
+//             .collect();
+//         let st = serde_json::to_string(&self).ok()?;
+//         info!("Save index file! {}", st);
+//         cache.write_file("index.json", &st)
+//     }
+//
+//     pub fn has_entry_mut(&mut self, prefix: &Prefix) -> Option<&mut LovEntry> {
+//         self.entries
+//             .iter_mut()
+//             .find(|e| e.prefix == prefix.prefix && e.url == prefix.url.as_str())
+//     }
+//
+//     pub fn has_entry(&self, prefix: &Prefix) -> Option<&LovEntry> {
+//         self.entries
+//             .iter()
+//             .find(|e| e.prefix == prefix.prefix && e.url == prefix.url.as_str())
+//     }
+//
+//     pub fn create_entry(&mut self, prefix: &Prefix) -> &LovEntry {
+//         debug!("Create entry for {:?}", prefix);
+//         if let Some(e) = self.entries.iter().enumerate().find_map(|(i, e)| {
+//             (e.prefix == prefix.prefix && e.url == prefix.url.as_str()).then_some(i)
+//         }) {
+//             return &self.entries[e];
+//         }
+//         let c = self
+//             .entries
+//             .iter()
+//             .filter(|x| x.prefix == prefix.prefix)
+//             .count();
+//         let entry = LovEntry {
+//             prefix: prefix.prefix.to_string(),
+//             url: prefix.url.to_string(),
+//             num: c,
+//             state: EntryState::Transit,
+//         };
+//         self.entries.push(entry);
+//         self.entries.last().unwrap()
+//     }
+//
+//     pub fn save_prefix(&mut self, cache: &Cache, prefix: &Prefix, content: &str) -> Option<()> {
+//         let e = self
+//             .entries
+//             .iter_mut()
+//             .find(|e| (e.prefix == prefix.prefix && e.url == prefix.url.as_str()))?;
+//         e.save(cache, content)
+//     }
+// }
 
 #[derive(Debug, Clone, Component)]
 pub struct FromPrefix(pub Prefix);

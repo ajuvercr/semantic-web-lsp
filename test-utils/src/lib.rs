@@ -5,7 +5,9 @@
 use std::{
     collections::HashMap,
     fmt::Display,
+    fs::{exists, remove_dir_all},
     future::Future,
+    path::PathBuf,
     pin::Pin,
     str::FromStr as _,
     sync::{
@@ -16,6 +18,7 @@ use std::{
     time::Duration,
 };
 
+use async_std::fs::{self, read_to_string};
 use bevy_ecs::prelude::*;
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver},
@@ -27,10 +30,10 @@ use lsp_core::{
     components::*,
     prelude::{
         diagnostics::{DiagnosticItem, DiagnosticPublisher},
-        Cache, NoCache,
+        Fs, FsTrait,
     },
     setup_schedule_labels,
-    systems::{handle_tasks, spawn_or_insert, LovHelper},
+    systems::{handle_tasks, spawn_or_insert},
     Startup,
 };
 use lsp_types::{Diagnostic, MessageType, TextDocumentItem, Url};
@@ -147,6 +150,50 @@ impl ClientSync for TestClient {
     }
 }
 
+#[derive(Debug)]
+pub struct TestFs(PathBuf);
+impl TestFs {
+    pub fn new() -> Self {
+        let mut tmp_dir = std::env::temp_dir();
+        tmp_dir.push("swls");
+        tmp_dir.push("test");
+
+        if exists(&tmp_dir).unwrap_or(false) {
+            let _ = remove_dir_all(&tmp_dir);
+        }
+
+        Self(tmp_dir)
+    }
+    pub async fn empty(&self) {}
+}
+
+#[tower_lsp::async_trait]
+impl FsTrait for TestFs {
+    fn virtual_url(&self, url: &str) -> Option<lsp_types::Url> {
+        let mut pb = self.0.clone();
+        if let Ok(url) = lsp_types::Url::parse(url) {
+            pb.push(url.path());
+        } else {
+            pb.push(url);
+        }
+        lsp_types::Url::from_file_path(pb).ok()
+    }
+
+    async fn read_file(&self, url: &lsp_types::Url) -> Option<String> {
+        let fp = url.to_file_path().ok()?;
+        let content = read_to_string(fp).await.ok()?;
+        Some(content)
+    }
+
+    async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()> {
+        let fp = url.to_file_path().ok()?;
+        if let Some(parent) = fp.parent() {
+            fs::create_dir_all(parent).await.ok()?;
+        }
+        fs::write(fp, content.as_bytes()).await.ok()
+    }
+}
+
 pub fn setup_world(
     client: TestClient,
     f: impl FnOnce(&mut World) -> (),
@@ -158,12 +205,7 @@ pub fn setup_world(
     world.insert_resource(CommandSender(tx));
     world.insert_resource(CommandReceiver(rx));
     world.insert_resource(client);
-
-    let cache = Cache::None(NoCache);
-    let helper = LovHelper::from_cache(&cache);
-
-    world.insert_resource(cache);
-    world.insert_resource(helper);
+    world.insert_resource(Fs(Arc::new(TestFs::new())));
 
     world.schedule_scope(lsp_core::Tasks, |_, schedule| {
         schedule.add_systems(handle_tasks);

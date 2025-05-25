@@ -1,8 +1,4 @@
-use bevy_ecs::{
-    schedule::{IntoSystemConfigs, ScheduleLabel},
-    system::Resource,
-    world::World,
-};
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 
 pub use crate::systems::{
     derive_classes, derive_prefix_links, derive_properties, derive_shapes, extract_type_hierarchy,
@@ -10,7 +6,7 @@ pub use crate::systems::{
 };
 use crate::{
     client::Client,
-    systems::{check_added_ontology_extract, derive_owl_imports_links, finish_prefix_import, open_imports},
+    systems::{check_added_ontology_extract, derive_owl_imports_links, open_imports},
 };
 
 /// Parse schedule barrier, after this system, triples should be derived
@@ -36,7 +32,6 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         infer_types.after(triples),
         derive_shapes.after(triples),
         check_added_ontology_extract.after(triples),
-        finish_prefix_import.after(triples),
         open_imports.after(triples),
     ));
     world.add_schedule(parse_schedule);

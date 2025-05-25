@@ -159,7 +159,7 @@ foa
 
         let links: &DocumentLinks = world.entity(entity).get().expect("document links exists");
         assert_eq!(links.len(), 1);
-        assert_eq!(links[0].0.as_str(), "http://xmlns.com/foaf/0.1/");
+        assert_eq!(links[0].0.as_str(), "file:///tmp/swls/test/foaf.ttl");
         assert_eq!(links[0].1, "prefix import");
     }
 }
