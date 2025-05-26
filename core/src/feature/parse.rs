@@ -32,7 +32,7 @@ pub fn setup_schedule<C: Client + Resource>(world: &mut World) {
         infer_types.after(triples),
         derive_shapes.after(triples),
         check_added_ontology_extract.after(triples),
-        open_imports.after(triples),
+        open_imports::<C>.after(triples),
     ));
     world.add_schedule(parse_schedule);
 }

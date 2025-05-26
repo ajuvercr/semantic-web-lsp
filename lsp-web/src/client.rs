@@ -13,10 +13,32 @@ use lsp_core::{
     client::{Client, ClientSync, Resp},
     prelude::{Fs, FsTrait},
 };
-use lsp_types::{Diagnostic, MessageType, TextEdit, Url, WorkspaceEdit};
+use lsp_types::{request::Request, Diagnostic, MessageType, TextEdit, Url, WorkspaceEdit};
+use serde::{Deserialize, Serialize};
 use tracing::info;
 
 use crate::fetch::local_fetch;
+
+#[derive(Serialize, Deserialize)]
+struct ReadFileParams {
+    url: lsp_types::Url,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum ReadFileResult {
+    Success { content: String },
+    Failed { error: String },
+}
+struct ReadFile;
+
+impl Request for ReadFile {
+    type Params = ReadFileParams;
+
+    type Result = ReadFileResult;
+
+    const METHOD: &'static str = "custom/readFile";
+}
 
 #[derive(Debug)]
 pub struct WebFs(tower_lsp::Client);
@@ -38,7 +60,21 @@ impl FsTrait for WebFs {
     }
 
     async fn read_file(&self, url: &lsp_types::Url) -> Option<String> {
-        None
+        match self
+            .0
+            .send_request::<ReadFile>(ReadFileParams { url: url.clone() })
+            .await
+        {
+            Ok(ReadFileResult::Success { content }) => Some(content),
+            Ok(ReadFileResult::Failed { error }) => {
+                tracing::error!("Failed {:?}", error);
+                None
+            }
+            Err(e) => {
+                tracing::error!("Failed {:?}", e);
+                None
+            }
+        }
     }
 
     async fn write_file(&self, url: &lsp_types::Url, content: &str) -> Option<()> {

@@ -197,6 +197,18 @@ export async function activate() {
         }
         return { applied };
     });
+
+    client.onRequest('custom/readFile', async (params: { url: string }) => {
+        const uri = params.url;
+        const vscodeUri = vscode.Uri.parse(uri);
+        try {
+            const doc = await vscode.workspace.openTextDocument(vscodeUri);
+            return { content: doc.getText() };
+        } catch (err) {
+            return { error: "" + err };
+        }
+    });
+
     server.start();
 
     await new Promise((res) => setTimeout(res, 200));

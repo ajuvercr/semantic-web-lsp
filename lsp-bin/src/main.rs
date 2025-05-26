@@ -79,6 +79,7 @@ fn setup_global_subscriber() -> impl Drop {
 
     let (flame_layer, _guard) = FlameLayer::with_file("/tmp/tracing.folded").unwrap();
     let fmt_layer = fmt::Layer::default()
+        .with_line_number(true)
         .with_writer(Mutex::new(target))
         .with_filter(LevelFilter::DEBUG);
 

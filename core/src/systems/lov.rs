@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::read_to_string};
+use std::collections::HashMap;
 
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use hashbrown::HashSet;
@@ -68,11 +68,12 @@ async fn extract_file_url(prefix: &str, client: &impl Client) -> Option<String> 
     }
 }
 
-/// TODO: Add fs to read the file and open the document
-pub fn open_imports(
+pub fn open_imports<C: Client + Resource>(
     query: Query<(&Triples, &RopeC), Changed<Triples>>,
     mut opened: Local<HashSet<String>>,
     sender: Res<CommandSender>,
+    fs: Res<Fs>,
+    client: Res<C>,
 ) {
     for (triples, _) in &query {
         for object in triples
@@ -86,14 +87,20 @@ pub fn open_imports(
             }
             opened.insert(object.as_str().to_string());
 
-            #[cfg(not(target_arch = "wasm32"))]
-            if let Some(content) = object
-                .to_file_path()
-                .ok()
-                .and_then(|p| read_to_string(p).ok())
-            {
-                spawn_document(object, content, &sender.0, |_, _| {});
-            }
+            let fs = fs.clone();
+            let sender = sender.clone();
+            let fut = async move {
+                if let Some(content) = fs.0.read_file(&object).await {
+                    spawn_document(object, content, &sender.0, |_, _| {});
+
+                    let mut command_queue = CommandQueue::default();
+                    command_queue.push(move |world: &mut World| {
+                        world.run_schedule(SaveLabel);
+                    });
+                    let _ = sender.unbounded_send(command_queue);
+                }
+            };
+            client.spawn(fut);
         }
     }
 }
