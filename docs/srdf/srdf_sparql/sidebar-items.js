@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["srdf_sparql_error","srdfsparql"]};

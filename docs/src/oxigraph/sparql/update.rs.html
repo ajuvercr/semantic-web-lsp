@@ -1,0 +1,452 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/oxigraph-0.4.11/src/sparql/update.rs`."><title>update.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="oxigraph" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="icon" href="https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">oxigraph/sparql/</div>update.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span><span class="kw">crate</span>::io::{RdfFormat, RdfParser};
+<a href=#2 id=2 data-nosnippet>2</a><span class="kw">use </span><span class="kw">crate</span>::model::{GraphName <span class="kw">as </span>OxGraphName, GraphNameRef, Quad <span class="kw">as </span>OxQuad};
+<a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span><span class="kw">crate</span>::sparql::algebra::QueryDataset;
+<a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span><span class="kw">crate</span>::sparql::dataset::DatasetView;
+<a href=#5 id=5 data-nosnippet>5</a><span class="kw">use </span><span class="kw">crate</span>::sparql::http::Client;
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use </span><span class="kw">crate</span>::sparql::{EvaluationError, Update, UpdateOptions};
+<a href=#7 id=7 data-nosnippet>7</a><span class="kw">use </span><span class="kw">crate</span>::storage::StorageWriter;
+<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span>oxiri::Iri;
+<a href=#9 id=9 data-nosnippet>9</a><span class="kw">use </span>oxrdfio::LoadedDocument;
+<a href=#10 id=10 data-nosnippet>10</a><span class="kw">use </span>rustc_hash::FxHashMap;
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">use </span>sparesults::QuerySolution;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">use </span>spareval::{QueryEvaluator, QueryResults};
+<a href=#13 id=13 data-nosnippet>13</a><span class="kw">use </span>spargebra::algebra::{GraphPattern, GraphTarget};
+<a href=#14 id=14 data-nosnippet>14</a><span class="kw">use </span>spargebra::term::{
+<a href=#15 id=15 data-nosnippet>15</a>    BlankNode, GraphName, GraphNamePattern, GroundQuad, GroundQuadPattern, GroundSubject,
+<a href=#16 id=16 data-nosnippet>16</a>    GroundTerm, GroundTermPattern, GroundTriple, GroundTriplePattern, NamedNode, NamedNodePattern,
+<a href=#17 id=17 data-nosnippet>17</a>    Quad, QuadPattern, Subject, Term, TermPattern, Triple, TriplePattern,
+<a href=#18 id=18 data-nosnippet>18</a>};
+<a href=#19 id=19 data-nosnippet>19</a><span class="kw">use </span>spargebra::{GraphUpdateOperation, Query};
+<a href=#20 id=20 data-nosnippet>20</a><span class="kw">use </span>std::io;
+<a href=#21 id=21 data-nosnippet>21</a><span class="kw">use </span>std::io::Read;
+<a href=#22 id=22 data-nosnippet>22</a>
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub fn </span>evaluate_update&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>: <span class="lifetime">'a</span>&gt;(
+<a href=#24 id=24 data-nosnippet>24</a>    transaction: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>StorageWriter&lt;<span class="lifetime">'b</span>&gt;,
+<a href=#25 id=25 data-nosnippet>25</a>    update: <span class="kw-2">&amp;</span>Update,
+<a href=#26 id=26 data-nosnippet>26</a>    options: <span class="kw-2">&amp;</span>UpdateOptions,
+<a href=#27 id=27 data-nosnippet>27</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#28 id=28 data-nosnippet>28</a>    SimpleUpdateEvaluator {
+<a href=#29 id=29 data-nosnippet>29</a>        transaction,
+<a href=#30 id=30 data-nosnippet>30</a>        base_iri: update.inner.base_iri.clone(),
+<a href=#31 id=31 data-nosnippet>31</a>        query_evaluator: options.query_options.clone().into_evaluator(),
+<a href=#32 id=32 data-nosnippet>32</a>        client: Client::new(
+<a href=#33 id=33 data-nosnippet>33</a>            options.query_options.http_timeout,
+<a href=#34 id=34 data-nosnippet>34</a>            options.query_options.http_redirection_limit,
+<a href=#35 id=35 data-nosnippet>35</a>        ),
+<a href=#36 id=36 data-nosnippet>36</a>    }
+<a href=#37 id=37 data-nosnippet>37</a>    .eval_all(<span class="kw-2">&amp;</span>update.inner.operations, <span class="kw-2">&amp;</span>update.using_datasets)
+<a href=#38 id=38 data-nosnippet>38</a>}
+<a href=#39 id=39 data-nosnippet>39</a>
+<a href=#40 id=40 data-nosnippet>40</a><span class="kw">struct </span>SimpleUpdateEvaluator&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>&gt; {
+<a href=#41 id=41 data-nosnippet>41</a>    transaction: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>StorageWriter&lt;<span class="lifetime">'b</span>&gt;,
+<a href=#42 id=42 data-nosnippet>42</a>    base_iri: <span class="prelude-ty">Option</span>&lt;Iri&lt;String&gt;&gt;,
+<a href=#43 id=43 data-nosnippet>43</a>    query_evaluator: QueryEvaluator,
+<a href=#44 id=44 data-nosnippet>44</a>    client: Client,
+<a href=#45 id=45 data-nosnippet>45</a>}
+<a href=#46 id=46 data-nosnippet>46</a>
+<a href=#47 id=47 data-nosnippet>47</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>: <span class="lifetime">'a</span>&gt; SimpleUpdateEvaluator&lt;<span class="lifetime">'a</span>, <span class="lifetime">'b</span>&gt; {
+<a href=#48 id=48 data-nosnippet>48</a>    <span class="kw">fn </span>eval_all(
+<a href=#49 id=49 data-nosnippet>49</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#50 id=50 data-nosnippet>50</a>        updates: <span class="kw-2">&amp;</span>[GraphUpdateOperation],
+<a href=#51 id=51 data-nosnippet>51</a>        using_datasets: <span class="kw-2">&amp;</span>[<span class="prelude-ty">Option</span>&lt;QueryDataset&gt;],
+<a href=#52 id=52 data-nosnippet>52</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#53 id=53 data-nosnippet>53</a>        <span class="kw">for </span>(update, using_dataset) <span class="kw">in </span>updates.iter().zip(using_datasets) {
+<a href=#54 id=54 data-nosnippet>54</a>            <span class="self">self</span>.eval(update, using_dataset)<span class="question-mark">?</span>;
+<a href=#55 id=55 data-nosnippet>55</a>        }
+<a href=#56 id=56 data-nosnippet>56</a>        <span class="prelude-val">Ok</span>(())
+<a href=#57 id=57 data-nosnippet>57</a>    }
+<a href=#58 id=58 data-nosnippet>58</a>
+<a href=#59 id=59 data-nosnippet>59</a>    <span class="kw">fn </span>eval(
+<a href=#60 id=60 data-nosnippet>60</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#61 id=61 data-nosnippet>61</a>        update: <span class="kw-2">&amp;</span>GraphUpdateOperation,
+<a href=#62 id=62 data-nosnippet>62</a>        using_dataset: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;QueryDataset&gt;,
+<a href=#63 id=63 data-nosnippet>63</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#64 id=64 data-nosnippet>64</a>        <span class="kw">match </span>update {
+<a href=#65 id=65 data-nosnippet>65</a>            GraphUpdateOperation::InsertData { data } =&gt; <span class="self">self</span>.eval_insert_data(data),
+<a href=#66 id=66 data-nosnippet>66</a>            GraphUpdateOperation::DeleteData { data } =&gt; <span class="self">self</span>.eval_delete_data(data),
+<a href=#67 id=67 data-nosnippet>67</a>            GraphUpdateOperation::DeleteInsert {
+<a href=#68 id=68 data-nosnippet>68</a>                delete,
+<a href=#69 id=69 data-nosnippet>69</a>                insert,
+<a href=#70 id=70 data-nosnippet>70</a>                pattern,
+<a href=#71 id=71 data-nosnippet>71</a>                ..
+<a href=#72 id=72 data-nosnippet>72</a>            } =&gt; <span class="self">self</span>.eval_delete_insert(
+<a href=#73 id=73 data-nosnippet>73</a>                delete,
+<a href=#74 id=74 data-nosnippet>74</a>                insert,
+<a href=#75 id=75 data-nosnippet>75</a>                using_dataset.as_ref().unwrap_or(<span class="kw-2">&amp;</span>QueryDataset::new()),
+<a href=#76 id=76 data-nosnippet>76</a>                pattern,
+<a href=#77 id=77 data-nosnippet>77</a>            ),
+<a href=#78 id=78 data-nosnippet>78</a>            GraphUpdateOperation::Load {
+<a href=#79 id=79 data-nosnippet>79</a>                silent,
+<a href=#80 id=80 data-nosnippet>80</a>                source,
+<a href=#81 id=81 data-nosnippet>81</a>                destination,
+<a href=#82 id=82 data-nosnippet>82</a>            } =&gt; {
+<a href=#83 id=83 data-nosnippet>83</a>                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.eval_load(source, destination) {
+<a href=#84 id=84 data-nosnippet>84</a>                    <span class="kw">if </span><span class="kw-2">*</span>silent {
+<a href=#85 id=85 data-nosnippet>85</a>                        <span class="prelude-val">Ok</span>(())
+<a href=#86 id=86 data-nosnippet>86</a>                    } <span class="kw">else </span>{
+<a href=#87 id=87 data-nosnippet>87</a>                        <span class="prelude-val">Err</span>(error)
+<a href=#88 id=88 data-nosnippet>88</a>                    }
+<a href=#89 id=89 data-nosnippet>89</a>                } <span class="kw">else </span>{
+<a href=#90 id=90 data-nosnippet>90</a>                    <span class="prelude-val">Ok</span>(())
+<a href=#91 id=91 data-nosnippet>91</a>                }
+<a href=#92 id=92 data-nosnippet>92</a>            }
+<a href=#93 id=93 data-nosnippet>93</a>            GraphUpdateOperation::Clear { graph, silent } =&gt; <span class="self">self</span>.eval_clear(graph, <span class="kw-2">*</span>silent),
+<a href=#94 id=94 data-nosnippet>94</a>            GraphUpdateOperation::Create { graph, silent } =&gt; <span class="self">self</span>.eval_create(graph, <span class="kw-2">*</span>silent),
+<a href=#95 id=95 data-nosnippet>95</a>            GraphUpdateOperation::Drop { graph, silent } =&gt; <span class="self">self</span>.eval_drop(graph, <span class="kw-2">*</span>silent),
+<a href=#96 id=96 data-nosnippet>96</a>        }
+<a href=#97 id=97 data-nosnippet>97</a>    }
+<a href=#98 id=98 data-nosnippet>98</a>
+<a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">fn </span>eval_insert_data(<span class="kw-2">&amp;mut </span><span class="self">self</span>, data: <span class="kw-2">&amp;</span>[Quad]) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#100 id=100 data-nosnippet>100</a>        <span class="kw">let </span><span class="kw-2">mut </span>bnodes = FxHashMap::default();
+<a href=#101 id=101 data-nosnippet>101</a>        <span class="kw">for </span>quad <span class="kw">in </span>data {
+<a href=#102 id=102 data-nosnippet>102</a>            <span class="kw">let </span>quad = <span class="self">Self</span>::convert_quad(quad, <span class="kw-2">&amp;mut </span>bnodes);
+<a href=#103 id=103 data-nosnippet>103</a>            <span class="self">self</span>.transaction.insert(quad.as_ref())<span class="question-mark">?</span>;
+<a href=#104 id=104 data-nosnippet>104</a>        }
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="prelude-val">Ok</span>(())
+<a href=#106 id=106 data-nosnippet>106</a>    }
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a>    <span class="kw">fn </span>eval_delete_data(<span class="kw-2">&amp;mut </span><span class="self">self</span>, data: <span class="kw-2">&amp;</span>[GroundQuad]) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#109 id=109 data-nosnippet>109</a>        <span class="kw">for </span>quad <span class="kw">in </span>data {
+<a href=#110 id=110 data-nosnippet>110</a>            <span class="kw">let </span>quad = <span class="self">Self</span>::convert_ground_quad(quad);
+<a href=#111 id=111 data-nosnippet>111</a>            <span class="self">self</span>.transaction.remove(quad.as_ref())<span class="question-mark">?</span>;
+<a href=#112 id=112 data-nosnippet>112</a>        }
+<a href=#113 id=113 data-nosnippet>113</a>        <span class="prelude-val">Ok</span>(())
+<a href=#114 id=114 data-nosnippet>114</a>    }
+<a href=#115 id=115 data-nosnippet>115</a>
+<a href=#116 id=116 data-nosnippet>116</a>    <span class="kw">fn </span>eval_delete_insert(
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#118 id=118 data-nosnippet>118</a>        delete: <span class="kw-2">&amp;</span>[GroundQuadPattern],
+<a href=#119 id=119 data-nosnippet>119</a>        insert: <span class="kw-2">&amp;</span>[QuadPattern],
+<a href=#120 id=120 data-nosnippet>120</a>        using: <span class="kw-2">&amp;</span>QueryDataset,
+<a href=#121 id=121 data-nosnippet>121</a>        algebra: <span class="kw-2">&amp;</span>GraphPattern,
+<a href=#122 id=122 data-nosnippet>122</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">let </span>QueryResults::Solutions(solutions) = <span class="self">self</span>.query_evaluator.clone().execute(
+<a href=#124 id=124 data-nosnippet>124</a>            DatasetView::new(<span class="self">self</span>.transaction.reader(), using),
+<a href=#125 id=125 data-nosnippet>125</a>            <span class="kw-2">&amp;</span>Query::Select {
+<a href=#126 id=126 data-nosnippet>126</a>                dataset: <span class="prelude-val">None</span>,
+<a href=#127 id=127 data-nosnippet>127</a>                pattern: algebra.clone(),
+<a href=#128 id=128 data-nosnippet>128</a>                base_iri: <span class="self">self</span>.base_iri.clone(),
+<a href=#129 id=129 data-nosnippet>129</a>            },
+<a href=#130 id=130 data-nosnippet>130</a>        )<span class="question-mark">?
+<a href=#131 id=131 data-nosnippet>131</a>        </span><span class="kw">else </span>{
+<a href=#132 id=132 data-nosnippet>132</a>            <span class="macro">unreachable!</span>(<span class="string">"We provided a SELECT query, we must get back solutions"</span>)
+<a href=#133 id=133 data-nosnippet>133</a>        };
+<a href=#134 id=134 data-nosnippet>134</a>
+<a href=#135 id=135 data-nosnippet>135</a>        <span class="kw">let </span><span class="kw-2">mut </span>bnodes = FxHashMap::default();
+<a href=#136 id=136 data-nosnippet>136</a>        <span class="kw">for </span>solution <span class="kw">in </span>solutions {
+<a href=#137 id=137 data-nosnippet>137</a>            <span class="kw">let </span>solution = solution<span class="question-mark">?</span>;
+<a href=#138 id=138 data-nosnippet>138</a>            <span class="kw">for </span>quad <span class="kw">in </span>delete {
+<a href=#139 id=139 data-nosnippet>139</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(quad) = <span class="self">Self</span>::fill_ground_quad_pattern(quad, <span class="kw-2">&amp;</span>solution) {
+<a href=#140 id=140 data-nosnippet>140</a>                    <span class="self">self</span>.transaction.remove(quad.as_ref())<span class="question-mark">?</span>;
+<a href=#141 id=141 data-nosnippet>141</a>                }
+<a href=#142 id=142 data-nosnippet>142</a>            }
+<a href=#143 id=143 data-nosnippet>143</a>            <span class="kw">for </span>quad <span class="kw">in </span>insert {
+<a href=#144 id=144 data-nosnippet>144</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(quad) = <span class="self">Self</span>::fill_quad_pattern(quad, <span class="kw-2">&amp;</span>solution, <span class="kw-2">&amp;mut </span>bnodes) {
+<a href=#145 id=145 data-nosnippet>145</a>                    <span class="self">self</span>.transaction.insert(quad.as_ref())<span class="question-mark">?</span>;
+<a href=#146 id=146 data-nosnippet>146</a>                }
+<a href=#147 id=147 data-nosnippet>147</a>            }
+<a href=#148 id=148 data-nosnippet>148</a>            bnodes.clear();
+<a href=#149 id=149 data-nosnippet>149</a>        }
+<a href=#150 id=150 data-nosnippet>150</a>        <span class="prelude-val">Ok</span>(())
+<a href=#151 id=151 data-nosnippet>151</a>    }
+<a href=#152 id=152 data-nosnippet>152</a>
+<a href=#153 id=153 data-nosnippet>153</a>    <span class="kw">fn </span>eval_load(<span class="kw-2">&amp;mut </span><span class="self">self</span>, from: <span class="kw-2">&amp;</span>NamedNode, to: <span class="kw-2">&amp;</span>GraphName) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#154 id=154 data-nosnippet>154</a>        <span class="kw">let </span>(content_type, body) = <span class="self">self
+<a href=#155 id=155 data-nosnippet>155</a>            </span>.client
+<a href=#156 id=156 data-nosnippet>156</a>            .get(
+<a href=#157 id=157 data-nosnippet>157</a>                from.as_str(),
+<a href=#158 id=158 data-nosnippet>158</a>                <span class="string">"application/n-triples, text/turtle, application/rdf+xml"</span>,
+<a href=#159 id=159 data-nosnippet>159</a>            )
+<a href=#160 id=160 data-nosnippet>160</a>            .map_err(|e| EvaluationError::Service(Box::new(e)))<span class="question-mark">?</span>;
+<a href=#161 id=161 data-nosnippet>161</a>        <span class="kw">let </span>format = RdfFormat::from_media_type(<span class="kw-2">&amp;</span>content_type)
+<a href=#162 id=162 data-nosnippet>162</a>            .ok_or_else(|| EvaluationError::UnsupportedContentType(content_type))<span class="question-mark">?</span>;
+<a href=#163 id=163 data-nosnippet>163</a>        <span class="kw">let </span>to_graph_name = <span class="kw">match </span>to {
+<a href=#164 id=164 data-nosnippet>164</a>            GraphName::NamedNode(graph_name) =&gt; graph_name.into(),
+<a href=#165 id=165 data-nosnippet>165</a>            GraphName::DefaultGraph =&gt; GraphNameRef::DefaultGraph,
+<a href=#166 id=166 data-nosnippet>166</a>        };
+<a href=#167 id=167 data-nosnippet>167</a>        <span class="kw">let </span>client = <span class="self">self</span>.client.clone();
+<a href=#168 id=168 data-nosnippet>168</a>        <span class="kw">let </span>parser = RdfParser::from_format(format)
+<a href=#169 id=169 data-nosnippet>169</a>            .rename_blank_nodes()
+<a href=#170 id=170 data-nosnippet>170</a>            .without_named_graphs()
+<a href=#171 id=171 data-nosnippet>171</a>            .with_default_graph(to_graph_name)
+<a href=#172 id=172 data-nosnippet>172</a>            .with_base_iri(from.as_str())
+<a href=#173 id=173 data-nosnippet>173</a>            .map_err(|e| {
+<a href=#174 id=174 data-nosnippet>174</a>                EvaluationError::Service(Box::new(io::Error::new(
+<a href=#175 id=175 data-nosnippet>175</a>                    io::ErrorKind::InvalidInput,
+<a href=#176 id=176 data-nosnippet>176</a>                    <span class="macro">format!</span>(<span class="string">"Invalid URL: {from}: {e}"</span>),
+<a href=#177 id=177 data-nosnippet>177</a>                )))
+<a href=#178 id=178 data-nosnippet>178</a>            })<span class="question-mark">?
+<a href=#179 id=179 data-nosnippet>179</a>            </span>.for_reader(body)
+<a href=#180 id=180 data-nosnippet>180</a>            .with_document_loader(<span class="kw">move </span>|url| {
+<a href=#181 id=181 data-nosnippet>181</a>                <span class="kw">let </span>(content_type, <span class="kw-2">mut </span>body) = client.get(
+<a href=#182 id=182 data-nosnippet>182</a>                    url,
+<a href=#183 id=183 data-nosnippet>183</a>                    <span class="string">"application/n-triples, text/turtle, application/rdf+xml, application/ld+json"</span>,
+<a href=#184 id=184 data-nosnippet>184</a>                )<span class="question-mark">?</span>;
+<a href=#185 id=185 data-nosnippet>185</a>                <span class="kw">let </span><span class="kw-2">mut </span>content = Vec::new();
+<a href=#186 id=186 data-nosnippet>186</a>                body.read_to_end(<span class="kw-2">&amp;mut </span>content)<span class="question-mark">?</span>;
+<a href=#187 id=187 data-nosnippet>187</a>                <span class="prelude-val">Ok</span>(LoadedDocument {
+<a href=#188 id=188 data-nosnippet>188</a>                    url: url.into(),
+<a href=#189 id=189 data-nosnippet>189</a>                    content,
+<a href=#190 id=190 data-nosnippet>190</a>                    format: RdfFormat::from_media_type(<span class="kw-2">&amp;</span>content_type)
+<a href=#191 id=191 data-nosnippet>191</a>                        .ok_or_else(|| EvaluationError::UnsupportedContentType(content_type))<span class="question-mark">?</span>,
+<a href=#192 id=192 data-nosnippet>192</a>                })
+<a href=#193 id=193 data-nosnippet>193</a>            });
+<a href=#194 id=194 data-nosnippet>194</a>        <span class="kw">for </span>q <span class="kw">in </span>parser {
+<a href=#195 id=195 data-nosnippet>195</a>            <span class="self">self</span>.transaction.insert(q<span class="question-mark">?</span>.as_ref())<span class="question-mark">?</span>;
+<a href=#196 id=196 data-nosnippet>196</a>        }
+<a href=#197 id=197 data-nosnippet>197</a>        <span class="prelude-val">Ok</span>(())
+<a href=#198 id=198 data-nosnippet>198</a>    }
+<a href=#199 id=199 data-nosnippet>199</a>
+<a href=#200 id=200 data-nosnippet>200</a>    <span class="kw">fn </span>eval_create(<span class="kw-2">&amp;mut </span><span class="self">self</span>, graph_name: <span class="kw-2">&amp;</span>NamedNode, silent: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#201 id=201 data-nosnippet>201</a>        <span class="kw">if </span><span class="self">self</span>.transaction.insert_named_graph(graph_name.into())<span class="question-mark">? </span>|| silent {
+<a href=#202 id=202 data-nosnippet>202</a>            <span class="prelude-val">Ok</span>(())
+<a href=#203 id=203 data-nosnippet>203</a>        } <span class="kw">else </span>{
+<a href=#204 id=204 data-nosnippet>204</a>            <span class="prelude-val">Err</span>(EvaluationError::GraphAlreadyExists(graph_name.clone()))
+<a href=#205 id=205 data-nosnippet>205</a>        }
+<a href=#206 id=206 data-nosnippet>206</a>    }
+<a href=#207 id=207 data-nosnippet>207</a>
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="kw">fn </span>eval_clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>, graph: <span class="kw-2">&amp;</span>GraphTarget, silent: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#209 id=209 data-nosnippet>209</a>        <span class="kw">match </span>graph {
+<a href=#210 id=210 data-nosnippet>210</a>            GraphTarget::NamedNode(graph_name) =&gt; {
+<a href=#211 id=211 data-nosnippet>211</a>                <span class="kw">if </span><span class="self">self
+<a href=#212 id=212 data-nosnippet>212</a>                    </span>.transaction
+<a href=#213 id=213 data-nosnippet>213</a>                    .reader()
+<a href=#214 id=214 data-nosnippet>214</a>                    .contains_named_graph(<span class="kw-2">&amp;</span>graph_name.as_ref().into())<span class="question-mark">?
+<a href=#215 id=215 data-nosnippet>215</a>                </span>{
+<a href=#216 id=216 data-nosnippet>216</a>                    <span class="prelude-val">Ok</span>(<span class="self">self</span>.transaction.clear_graph(graph_name.into())<span class="question-mark">?</span>)
+<a href=#217 id=217 data-nosnippet>217</a>                } <span class="kw">else if </span>silent {
+<a href=#218 id=218 data-nosnippet>218</a>                    <span class="prelude-val">Ok</span>(())
+<a href=#219 id=219 data-nosnippet>219</a>                } <span class="kw">else </span>{
+<a href=#220 id=220 data-nosnippet>220</a>                    <span class="prelude-val">Err</span>(EvaluationError::GraphDoesNotExist(graph_name.clone()))
+<a href=#221 id=221 data-nosnippet>221</a>                }
+<a href=#222 id=222 data-nosnippet>222</a>            }
+<a href=#223 id=223 data-nosnippet>223</a>            GraphTarget::DefaultGraph =&gt; {
+<a href=#224 id=224 data-nosnippet>224</a>                <span class="self">self</span>.transaction.clear_graph(GraphNameRef::DefaultGraph)<span class="question-mark">?</span>;
+<a href=#225 id=225 data-nosnippet>225</a>                <span class="prelude-val">Ok</span>(())
+<a href=#226 id=226 data-nosnippet>226</a>            }
+<a href=#227 id=227 data-nosnippet>227</a>            GraphTarget::NamedGraphs =&gt; <span class="prelude-val">Ok</span>(<span class="self">self</span>.transaction.clear_all_named_graphs()<span class="question-mark">?</span>),
+<a href=#228 id=228 data-nosnippet>228</a>            GraphTarget::AllGraphs =&gt; <span class="prelude-val">Ok</span>(<span class="self">self</span>.transaction.clear_all_graphs()<span class="question-mark">?</span>),
+<a href=#229 id=229 data-nosnippet>229</a>        }
+<a href=#230 id=230 data-nosnippet>230</a>    }
+<a href=#231 id=231 data-nosnippet>231</a>
+<a href=#232 id=232 data-nosnippet>232</a>    <span class="kw">fn </span>eval_drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>, graph: <span class="kw-2">&amp;</span>GraphTarget, silent: bool) -&gt; <span class="prelude-ty">Result</span>&lt;(), EvaluationError&gt; {
+<a href=#233 id=233 data-nosnippet>233</a>        <span class="kw">match </span>graph {
+<a href=#234 id=234 data-nosnippet>234</a>            GraphTarget::NamedNode(graph_name) =&gt; {
+<a href=#235 id=235 data-nosnippet>235</a>                <span class="kw">if </span><span class="self">self</span>.transaction.remove_named_graph(graph_name.into())<span class="question-mark">? </span>|| silent {
+<a href=#236 id=236 data-nosnippet>236</a>                    <span class="prelude-val">Ok</span>(())
+<a href=#237 id=237 data-nosnippet>237</a>                } <span class="kw">else </span>{
+<a href=#238 id=238 data-nosnippet>238</a>                    <span class="prelude-val">Err</span>(EvaluationError::GraphDoesNotExist(graph_name.clone()))
+<a href=#239 id=239 data-nosnippet>239</a>                }
+<a href=#240 id=240 data-nosnippet>240</a>            }
+<a href=#241 id=241 data-nosnippet>241</a>            GraphTarget::DefaultGraph =&gt; {
+<a href=#242 id=242 data-nosnippet>242</a>                <span class="prelude-val">Ok</span>(<span class="self">self</span>.transaction.clear_graph(GraphNameRef::DefaultGraph)<span class="question-mark">?</span>)
+<a href=#243 id=243 data-nosnippet>243</a>            }
+<a href=#244 id=244 data-nosnippet>244</a>            GraphTarget::NamedGraphs =&gt; <span class="prelude-val">Ok</span>(<span class="self">self</span>.transaction.remove_all_named_graphs()<span class="question-mark">?</span>),
+<a href=#245 id=245 data-nosnippet>245</a>            GraphTarget::AllGraphs =&gt; <span class="prelude-val">Ok</span>(<span class="self">self</span>.transaction.clear()<span class="question-mark">?</span>),
+<a href=#246 id=246 data-nosnippet>246</a>        }
+<a href=#247 id=247 data-nosnippet>247</a>    }
+<a href=#248 id=248 data-nosnippet>248</a>
+<a href=#249 id=249 data-nosnippet>249</a>    <span class="kw">fn </span>convert_quad(quad: <span class="kw-2">&amp;</span>Quad, bnodes: <span class="kw-2">&amp;mut </span>FxHashMap&lt;BlankNode, BlankNode&gt;) -&gt; OxQuad {
+<a href=#250 id=250 data-nosnippet>250</a>        OxQuad {
+<a href=#251 id=251 data-nosnippet>251</a>            subject: <span class="kw">match </span><span class="kw-2">&amp;</span>quad.subject {
+<a href=#252 id=252 data-nosnippet>252</a>                Subject::NamedNode(subject) =&gt; subject.clone().into(),
+<a href=#253 id=253 data-nosnippet>253</a>                Subject::BlankNode(subject) =&gt; <span class="self">Self</span>::convert_blank_node(subject, bnodes).into(),
+<a href=#254 id=254 data-nosnippet>254</a>                Subject::Triple(subject) =&gt; <span class="self">Self</span>::convert_triple(subject, bnodes).into(),
+<a href=#255 id=255 data-nosnippet>255</a>            },
+<a href=#256 id=256 data-nosnippet>256</a>            predicate: quad.predicate.clone(),
+<a href=#257 id=257 data-nosnippet>257</a>            object: <span class="kw">match </span><span class="kw-2">&amp;</span>quad.object {
+<a href=#258 id=258 data-nosnippet>258</a>                Term::NamedNode(object) =&gt; object.clone().into(),
+<a href=#259 id=259 data-nosnippet>259</a>                Term::BlankNode(object) =&gt; <span class="self">Self</span>::convert_blank_node(object, bnodes).into(),
+<a href=#260 id=260 data-nosnippet>260</a>                Term::Literal(object) =&gt; object.clone().into(),
+<a href=#261 id=261 data-nosnippet>261</a>                Term::Triple(subject) =&gt; <span class="self">Self</span>::convert_triple(subject, bnodes).into(),
+<a href=#262 id=262 data-nosnippet>262</a>            },
+<a href=#263 id=263 data-nosnippet>263</a>            graph_name: <span class="kw">match </span><span class="kw-2">&amp;</span>quad.graph_name {
+<a href=#264 id=264 data-nosnippet>264</a>                GraphName::NamedNode(graph_name) =&gt; graph_name.clone().into(),
+<a href=#265 id=265 data-nosnippet>265</a>                GraphName::DefaultGraph =&gt; OxGraphName::DefaultGraph,
+<a href=#266 id=266 data-nosnippet>266</a>            },
+<a href=#267 id=267 data-nosnippet>267</a>        }
+<a href=#268 id=268 data-nosnippet>268</a>    }
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a>    <span class="kw">fn </span>convert_triple(triple: <span class="kw-2">&amp;</span>Triple, bnodes: <span class="kw-2">&amp;mut </span>FxHashMap&lt;BlankNode, BlankNode&gt;) -&gt; Triple {
+<a href=#271 id=271 data-nosnippet>271</a>        Triple {
+<a href=#272 id=272 data-nosnippet>272</a>            subject: <span class="kw">match </span><span class="kw-2">&amp;</span>triple.subject {
+<a href=#273 id=273 data-nosnippet>273</a>                Subject::NamedNode(subject) =&gt; subject.clone().into(),
+<a href=#274 id=274 data-nosnippet>274</a>                Subject::BlankNode(subject) =&gt; <span class="self">Self</span>::convert_blank_node(subject, bnodes).into(),
+<a href=#275 id=275 data-nosnippet>275</a>                Subject::Triple(subject) =&gt; <span class="self">Self</span>::convert_triple(subject, bnodes).into(),
+<a href=#276 id=276 data-nosnippet>276</a>            },
+<a href=#277 id=277 data-nosnippet>277</a>            predicate: triple.predicate.clone(),
+<a href=#278 id=278 data-nosnippet>278</a>            object: <span class="kw">match </span><span class="kw-2">&amp;</span>triple.object {
+<a href=#279 id=279 data-nosnippet>279</a>                Term::NamedNode(object) =&gt; object.clone().into(),
+<a href=#280 id=280 data-nosnippet>280</a>                Term::BlankNode(object) =&gt; <span class="self">Self</span>::convert_blank_node(object, bnodes).into(),
+<a href=#281 id=281 data-nosnippet>281</a>                Term::Literal(object) =&gt; object.clone().into(),
+<a href=#282 id=282 data-nosnippet>282</a>                Term::Triple(subject) =&gt; <span class="self">Self</span>::convert_triple(subject, bnodes).into(),
+<a href=#283 id=283 data-nosnippet>283</a>            },
+<a href=#284 id=284 data-nosnippet>284</a>        }
+<a href=#285 id=285 data-nosnippet>285</a>    }
+<a href=#286 id=286 data-nosnippet>286</a>
+<a href=#287 id=287 data-nosnippet>287</a>    <span class="kw">fn </span>convert_blank_node(
+<a href=#288 id=288 data-nosnippet>288</a>        node: <span class="kw-2">&amp;</span>BlankNode,
+<a href=#289 id=289 data-nosnippet>289</a>        bnodes: <span class="kw-2">&amp;mut </span>FxHashMap&lt;BlankNode, BlankNode&gt;,
+<a href=#290 id=290 data-nosnippet>290</a>    ) -&gt; BlankNode {
+<a href=#291 id=291 data-nosnippet>291</a>        bnodes.entry(node.clone()).or_default().clone()
+<a href=#292 id=292 data-nosnippet>292</a>    }
+<a href=#293 id=293 data-nosnippet>293</a>
+<a href=#294 id=294 data-nosnippet>294</a>    <span class="kw">fn </span>convert_ground_quad(quad: <span class="kw-2">&amp;</span>GroundQuad) -&gt; OxQuad {
+<a href=#295 id=295 data-nosnippet>295</a>        OxQuad {
+<a href=#296 id=296 data-nosnippet>296</a>            subject: <span class="kw">match </span><span class="kw-2">&amp;</span>quad.subject {
+<a href=#297 id=297 data-nosnippet>297</a>                GroundSubject::NamedNode(subject) =&gt; subject.clone().into(),
+<a href=#298 id=298 data-nosnippet>298</a>                GroundSubject::Triple(subject) =&gt; <span class="self">Self</span>::convert_ground_triple(subject).into(),
+<a href=#299 id=299 data-nosnippet>299</a>            },
+<a href=#300 id=300 data-nosnippet>300</a>            predicate: quad.predicate.clone(),
+<a href=#301 id=301 data-nosnippet>301</a>            object: <span class="kw">match </span><span class="kw-2">&amp;</span>quad.object {
+<a href=#302 id=302 data-nosnippet>302</a>                GroundTerm::NamedNode(object) =&gt; object.clone().into(),
+<a href=#303 id=303 data-nosnippet>303</a>                GroundTerm::Literal(object) =&gt; object.clone().into(),
+<a href=#304 id=304 data-nosnippet>304</a>                GroundTerm::Triple(subject) =&gt; <span class="self">Self</span>::convert_ground_triple(subject).into(),
+<a href=#305 id=305 data-nosnippet>305</a>            },
+<a href=#306 id=306 data-nosnippet>306</a>            graph_name: <span class="kw">match </span><span class="kw-2">&amp;</span>quad.graph_name {
+<a href=#307 id=307 data-nosnippet>307</a>                GraphName::NamedNode(graph_name) =&gt; graph_name.clone().into(),
+<a href=#308 id=308 data-nosnippet>308</a>                GraphName::DefaultGraph =&gt; OxGraphName::DefaultGraph,
+<a href=#309 id=309 data-nosnippet>309</a>            },
+<a href=#310 id=310 data-nosnippet>310</a>        }
+<a href=#311 id=311 data-nosnippet>311</a>    }
+<a href=#312 id=312 data-nosnippet>312</a>
+<a href=#313 id=313 data-nosnippet>313</a>    <span class="kw">fn </span>convert_ground_triple(triple: <span class="kw-2">&amp;</span>GroundTriple) -&gt; Triple {
+<a href=#314 id=314 data-nosnippet>314</a>        Triple {
+<a href=#315 id=315 data-nosnippet>315</a>            subject: <span class="kw">match </span><span class="kw-2">&amp;</span>triple.subject {
+<a href=#316 id=316 data-nosnippet>316</a>                GroundSubject::NamedNode(subject) =&gt; subject.clone().into(),
+<a href=#317 id=317 data-nosnippet>317</a>                GroundSubject::Triple(subject) =&gt; <span class="self">Self</span>::convert_ground_triple(subject).into(),
+<a href=#318 id=318 data-nosnippet>318</a>            },
+<a href=#319 id=319 data-nosnippet>319</a>            predicate: triple.predicate.clone(),
+<a href=#320 id=320 data-nosnippet>320</a>            object: <span class="kw">match </span><span class="kw-2">&amp;</span>triple.object {
+<a href=#321 id=321 data-nosnippet>321</a>                GroundTerm::NamedNode(object) =&gt; object.clone().into(),
+<a href=#322 id=322 data-nosnippet>322</a>                GroundTerm::Literal(object) =&gt; object.clone().into(),
+<a href=#323 id=323 data-nosnippet>323</a>                GroundTerm::Triple(subject) =&gt; <span class="self">Self</span>::convert_ground_triple(subject).into(),
+<a href=#324 id=324 data-nosnippet>324</a>            },
+<a href=#325 id=325 data-nosnippet>325</a>        }
+<a href=#326 id=326 data-nosnippet>326</a>    }
+<a href=#327 id=327 data-nosnippet>327</a>
+<a href=#328 id=328 data-nosnippet>328</a>    <span class="kw">fn </span>fill_quad_pattern(
+<a href=#329 id=329 data-nosnippet>329</a>        quad: <span class="kw-2">&amp;</span>QuadPattern,
+<a href=#330 id=330 data-nosnippet>330</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#331 id=331 data-nosnippet>331</a>        bnodes: <span class="kw-2">&amp;mut </span>FxHashMap&lt;BlankNode, BlankNode&gt;,
+<a href=#332 id=332 data-nosnippet>332</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;OxQuad&gt; {
+<a href=#333 id=333 data-nosnippet>333</a>        <span class="prelude-val">Some</span>(OxQuad {
+<a href=#334 id=334 data-nosnippet>334</a>            subject: <span class="kw">match </span><span class="self">Self</span>::fill_term_or_var(<span class="kw-2">&amp;</span>quad.subject, solution, bnodes)<span class="question-mark">? </span>{
+<a href=#335 id=335 data-nosnippet>335</a>                Term::NamedNode(node) =&gt; node.into(),
+<a href=#336 id=336 data-nosnippet>336</a>                Term::BlankNode(node) =&gt; node.into(),
+<a href=#337 id=337 data-nosnippet>337</a>                Term::Triple(triple) =&gt; triple.into(),
+<a href=#338 id=338 data-nosnippet>338</a>                Term::Literal(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+<a href=#339 id=339 data-nosnippet>339</a>            },
+<a href=#340 id=340 data-nosnippet>340</a>            predicate: <span class="self">Self</span>::fill_named_node_or_var(<span class="kw-2">&amp;</span>quad.predicate, solution)<span class="question-mark">?</span>,
+<a href=#341 id=341 data-nosnippet>341</a>            object: <span class="self">Self</span>::fill_term_or_var(<span class="kw-2">&amp;</span>quad.object, solution, bnodes)<span class="question-mark">?</span>,
+<a href=#342 id=342 data-nosnippet>342</a>            graph_name: <span class="self">Self</span>::fill_graph_name_or_var(<span class="kw-2">&amp;</span>quad.graph_name, solution)<span class="question-mark">?</span>,
+<a href=#343 id=343 data-nosnippet>343</a>        })
+<a href=#344 id=344 data-nosnippet>344</a>    }
+<a href=#345 id=345 data-nosnippet>345</a>
+<a href=#346 id=346 data-nosnippet>346</a>    <span class="kw">fn </span>fill_term_or_var(
+<a href=#347 id=347 data-nosnippet>347</a>        term: <span class="kw-2">&amp;</span>TermPattern,
+<a href=#348 id=348 data-nosnippet>348</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#349 id=349 data-nosnippet>349</a>        bnodes: <span class="kw-2">&amp;mut </span>FxHashMap&lt;BlankNode, BlankNode&gt;,
+<a href=#350 id=350 data-nosnippet>350</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;Term&gt; {
+<a href=#351 id=351 data-nosnippet>351</a>        <span class="prelude-val">Some</span>(<span class="kw">match </span>term {
+<a href=#352 id=352 data-nosnippet>352</a>            TermPattern::NamedNode(term) =&gt; term.clone().into(),
+<a href=#353 id=353 data-nosnippet>353</a>            TermPattern::BlankNode(bnode) =&gt; <span class="self">Self</span>::convert_blank_node(bnode, bnodes).into(),
+<a href=#354 id=354 data-nosnippet>354</a>            TermPattern::Literal(term) =&gt; term.clone().into(),
+<a href=#355 id=355 data-nosnippet>355</a>            TermPattern::Triple(triple) =&gt; {
+<a href=#356 id=356 data-nosnippet>356</a>                <span class="self">Self</span>::fill_triple_pattern(triple, solution, bnodes)<span class="question-mark">?</span>.into()
+<a href=#357 id=357 data-nosnippet>357</a>            }
+<a href=#358 id=358 data-nosnippet>358</a>            TermPattern::Variable(v) =&gt; solution.get(v)<span class="question-mark">?</span>.clone(),
+<a href=#359 id=359 data-nosnippet>359</a>        })
+<a href=#360 id=360 data-nosnippet>360</a>    }
+<a href=#361 id=361 data-nosnippet>361</a>
+<a href=#362 id=362 data-nosnippet>362</a>    <span class="kw">fn </span>fill_named_node_or_var(
+<a href=#363 id=363 data-nosnippet>363</a>        term: <span class="kw-2">&amp;</span>NamedNodePattern,
+<a href=#364 id=364 data-nosnippet>364</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#365 id=365 data-nosnippet>365</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;NamedNode&gt; {
+<a href=#366 id=366 data-nosnippet>366</a>        <span class="prelude-val">Some</span>(<span class="kw">match </span>term {
+<a href=#367 id=367 data-nosnippet>367</a>            NamedNodePattern::NamedNode(term) =&gt; term.clone(),
+<a href=#368 id=368 data-nosnippet>368</a>            NamedNodePattern::Variable(v) =&gt; {
+<a href=#369 id=369 data-nosnippet>369</a>                <span class="kw">if let </span>Term::NamedNode(s) = solution.get(v)<span class="question-mark">? </span>{
+<a href=#370 id=370 data-nosnippet>370</a>                    s.clone()
+<a href=#371 id=371 data-nosnippet>371</a>                } <span class="kw">else </span>{
+<a href=#372 id=372 data-nosnippet>372</a>                    <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#373 id=373 data-nosnippet>373</a>                }
+<a href=#374 id=374 data-nosnippet>374</a>            }
+<a href=#375 id=375 data-nosnippet>375</a>        })
+<a href=#376 id=376 data-nosnippet>376</a>    }
+<a href=#377 id=377 data-nosnippet>377</a>
+<a href=#378 id=378 data-nosnippet>378</a>    <span class="kw">fn </span>fill_graph_name_or_var(
+<a href=#379 id=379 data-nosnippet>379</a>        term: <span class="kw-2">&amp;</span>GraphNamePattern,
+<a href=#380 id=380 data-nosnippet>380</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#381 id=381 data-nosnippet>381</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;OxGraphName&gt; {
+<a href=#382 id=382 data-nosnippet>382</a>        <span class="prelude-val">Some</span>(<span class="kw">match </span>term {
+<a href=#383 id=383 data-nosnippet>383</a>            GraphNamePattern::NamedNode(term) =&gt; term.clone().into(),
+<a href=#384 id=384 data-nosnippet>384</a>            GraphNamePattern::DefaultGraph =&gt; OxGraphName::DefaultGraph,
+<a href=#385 id=385 data-nosnippet>385</a>            GraphNamePattern::Variable(v) =&gt; <span class="kw">match </span>solution.get(v)<span class="question-mark">? </span>{
+<a href=#386 id=386 data-nosnippet>386</a>                Term::NamedNode(node) =&gt; node.clone().into(),
+<a href=#387 id=387 data-nosnippet>387</a>                Term::BlankNode(node) =&gt; node.clone().into(),
+<a href=#388 id=388 data-nosnippet>388</a>                Term::Triple(<span class="kw">_</span>) | Term::Literal(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+<a href=#389 id=389 data-nosnippet>389</a>            },
+<a href=#390 id=390 data-nosnippet>390</a>        })
+<a href=#391 id=391 data-nosnippet>391</a>    }
+<a href=#392 id=392 data-nosnippet>392</a>
+<a href=#393 id=393 data-nosnippet>393</a>    <span class="kw">fn </span>fill_triple_pattern(
+<a href=#394 id=394 data-nosnippet>394</a>        triple: <span class="kw-2">&amp;</span>TriplePattern,
+<a href=#395 id=395 data-nosnippet>395</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#396 id=396 data-nosnippet>396</a>        bnodes: <span class="kw-2">&amp;mut </span>FxHashMap&lt;BlankNode, BlankNode&gt;,
+<a href=#397 id=397 data-nosnippet>397</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;Triple&gt; {
+<a href=#398 id=398 data-nosnippet>398</a>        <span class="prelude-val">Some</span>(Triple {
+<a href=#399 id=399 data-nosnippet>399</a>            subject: <span class="kw">match </span><span class="self">Self</span>::fill_term_or_var(<span class="kw-2">&amp;</span>triple.subject, solution, bnodes)<span class="question-mark">? </span>{
+<a href=#400 id=400 data-nosnippet>400</a>                Term::NamedNode(node) =&gt; node.into(),
+<a href=#401 id=401 data-nosnippet>401</a>                Term::BlankNode(node) =&gt; node.into(),
+<a href=#402 id=402 data-nosnippet>402</a>                Term::Triple(triple) =&gt; triple.into(),
+<a href=#403 id=403 data-nosnippet>403</a>                Term::Literal(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+<a href=#404 id=404 data-nosnippet>404</a>            },
+<a href=#405 id=405 data-nosnippet>405</a>            predicate: <span class="self">Self</span>::fill_named_node_or_var(<span class="kw-2">&amp;</span>triple.predicate, solution)<span class="question-mark">?</span>,
+<a href=#406 id=406 data-nosnippet>406</a>            object: <span class="self">Self</span>::fill_term_or_var(<span class="kw-2">&amp;</span>triple.object, solution, bnodes)<span class="question-mark">?</span>,
+<a href=#407 id=407 data-nosnippet>407</a>        })
+<a href=#408 id=408 data-nosnippet>408</a>    }
+<a href=#409 id=409 data-nosnippet>409</a>    <span class="kw">fn </span>fill_ground_quad_pattern(
+<a href=#410 id=410 data-nosnippet>410</a>        quad: <span class="kw-2">&amp;</span>GroundQuadPattern,
+<a href=#411 id=411 data-nosnippet>411</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#412 id=412 data-nosnippet>412</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;OxQuad&gt; {
+<a href=#413 id=413 data-nosnippet>413</a>        <span class="prelude-val">Some</span>(OxQuad {
+<a href=#414 id=414 data-nosnippet>414</a>            subject: <span class="kw">match </span><span class="self">Self</span>::fill_ground_term_or_var(<span class="kw-2">&amp;</span>quad.subject, solution)<span class="question-mark">? </span>{
+<a href=#415 id=415 data-nosnippet>415</a>                Term::NamedNode(node) =&gt; node.into(),
+<a href=#416 id=416 data-nosnippet>416</a>                Term::BlankNode(node) =&gt; node.into(),
+<a href=#417 id=417 data-nosnippet>417</a>                Term::Triple(triple) =&gt; triple.into(),
+<a href=#418 id=418 data-nosnippet>418</a>                Term::Literal(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+<a href=#419 id=419 data-nosnippet>419</a>            },
+<a href=#420 id=420 data-nosnippet>420</a>            predicate: <span class="self">Self</span>::fill_named_node_or_var(<span class="kw-2">&amp;</span>quad.predicate, solution)<span class="question-mark">?</span>,
+<a href=#421 id=421 data-nosnippet>421</a>            object: <span class="self">Self</span>::fill_ground_term_or_var(<span class="kw-2">&amp;</span>quad.object, solution)<span class="question-mark">?</span>,
+<a href=#422 id=422 data-nosnippet>422</a>            graph_name: <span class="self">Self</span>::fill_graph_name_or_var(<span class="kw-2">&amp;</span>quad.graph_name, solution)<span class="question-mark">?</span>,
+<a href=#423 id=423 data-nosnippet>423</a>        })
+<a href=#424 id=424 data-nosnippet>424</a>    }
+<a href=#425 id=425 data-nosnippet>425</a>
+<a href=#426 id=426 data-nosnippet>426</a>    <span class="kw">fn </span>fill_ground_term_or_var(term: <span class="kw-2">&amp;</span>GroundTermPattern, solution: <span class="kw-2">&amp;</span>QuerySolution) -&gt; <span class="prelude-ty">Option</span>&lt;Term&gt; {
+<a href=#427 id=427 data-nosnippet>427</a>        <span class="prelude-val">Some</span>(<span class="kw">match </span>term {
+<a href=#428 id=428 data-nosnippet>428</a>            GroundTermPattern::NamedNode(term) =&gt; term.clone().into(),
+<a href=#429 id=429 data-nosnippet>429</a>            GroundTermPattern::Literal(term) =&gt; term.clone().into(),
+<a href=#430 id=430 data-nosnippet>430</a>            GroundTermPattern::Triple(triple) =&gt; {
+<a href=#431 id=431 data-nosnippet>431</a>                <span class="self">Self</span>::fill_ground_triple_pattern(triple, solution)<span class="question-mark">?</span>.into()
+<a href=#432 id=432 data-nosnippet>432</a>            }
+<a href=#433 id=433 data-nosnippet>433</a>            GroundTermPattern::Variable(v) =&gt; solution.get(v)<span class="question-mark">?</span>.clone(),
+<a href=#434 id=434 data-nosnippet>434</a>        })
+<a href=#435 id=435 data-nosnippet>435</a>    }
+<a href=#436 id=436 data-nosnippet>436</a>
+<a href=#437 id=437 data-nosnippet>437</a>    <span class="kw">fn </span>fill_ground_triple_pattern(
+<a href=#438 id=438 data-nosnippet>438</a>        triple: <span class="kw-2">&amp;</span>GroundTriplePattern,
+<a href=#439 id=439 data-nosnippet>439</a>        solution: <span class="kw-2">&amp;</span>QuerySolution,
+<a href=#440 id=440 data-nosnippet>440</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;Triple&gt; {
+<a href=#441 id=441 data-nosnippet>441</a>        <span class="prelude-val">Some</span>(Triple {
+<a href=#442 id=442 data-nosnippet>442</a>            subject: <span class="kw">match </span><span class="self">Self</span>::fill_ground_term_or_var(<span class="kw-2">&amp;</span>triple.subject, solution)<span class="question-mark">? </span>{
+<a href=#443 id=443 data-nosnippet>443</a>                Term::NamedNode(node) =&gt; node.into(),
+<a href=#444 id=444 data-nosnippet>444</a>                Term::BlankNode(node) =&gt; node.into(),
+<a href=#445 id=445 data-nosnippet>445</a>                Term::Triple(triple) =&gt; triple.into(),
+<a href=#446 id=446 data-nosnippet>446</a>                Term::Literal(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+<a href=#447 id=447 data-nosnippet>447</a>            },
+<a href=#448 id=448 data-nosnippet>448</a>            predicate: <span class="self">Self</span>::fill_named_node_or_var(<span class="kw-2">&amp;</span>triple.predicate, solution)<span class="question-mark">?</span>,
+<a href=#449 id=449 data-nosnippet>449</a>            object: <span class="self">Self</span>::fill_ground_term_or_var(<span class="kw-2">&amp;</span>triple.object, solution)<span class="question-mark">?</span>,
+<a href=#450 id=450 data-nosnippet>450</a>        })
+<a href=#451 id=451 data-nosnippet>451</a>    }
+<a href=#452 id=452 data-nosnippet>452</a>}</code></pre></div></section></main></body></html>

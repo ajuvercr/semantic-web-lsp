@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TermKind"],"trait":["BlankNode","Iri","Literal","Rdf","Subject","Term","Triple"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["rudof","rudof_config","rudof_error","shapes_graph_source"]};

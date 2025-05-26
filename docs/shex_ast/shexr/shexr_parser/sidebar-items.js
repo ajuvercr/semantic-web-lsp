@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["shape_and","shape_expr","shape_or"],"struct":["ShExRParser"]};

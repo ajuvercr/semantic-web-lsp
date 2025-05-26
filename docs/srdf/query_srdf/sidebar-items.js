@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["QuerySolution","QuerySolutions","VarName"],"trait":["Sparql","VariableSolutionIndex"]};

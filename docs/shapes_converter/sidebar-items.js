@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_REPLACE_IRI_BY_LABEL"],"fn":["find_annotation"],"mod":["converter_config","converter_error","landing_html_template","shacl_to_shex","shex_to_html","shex_to_sparql","shex_to_uml"]};

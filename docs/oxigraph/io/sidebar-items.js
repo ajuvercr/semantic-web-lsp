@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DatasetFormat","GraphFormat","JsonLdProfile","RdfFormat","RdfParseError"],"mod":["read","write"],"struct":["JsonLdProfileSet","LoadedDocument","RdfParser","RdfSerializer","RdfSyntaxError","ReaderQuadParser","SliceQuadParser","TextPosition","WriterQuadSerializer"]};

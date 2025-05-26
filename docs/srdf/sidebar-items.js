@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["combine_parsers","combine_rdf_parser_impl","int","rdf_parser"],"mod":["async_srdf","bnode","lang","literal","matcher","neighs","numeric_literal","object","query_srdf","rdf","rdf_data_config","rdf_format","shacl_path","srdf","srdf_basic","srdf_builder","srdf_graph","srdf_parser","srdf_sparql","vocab"]};

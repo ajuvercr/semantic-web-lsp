@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["annotation","ast2ir","dependency_graph","node_constraint","node_kind","object_value","preds","schema","schema_ir","schema_ir_error","sem_act","shape","shape_expr","shape_label","shape_label_idx","triple_expr_idx","value_set","value_set_value","xs_facet"]};

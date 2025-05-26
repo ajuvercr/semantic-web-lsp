@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CanonicalizationAlgorithm"],"struct":["Dataset","GraphView","GraphViewIter","GraphViewMut","Iter"]};

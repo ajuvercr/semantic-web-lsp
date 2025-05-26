@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/toml_edit-0.22.22/src/parser/key.rs`."><title>key.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="toml_edit" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">toml_edit/parser/</div>key.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::ops::RangeInclusive;
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/toml_edit-0.22.26/src/parser/key.rs`."><title>key.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="toml_edit" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">toml_edit/parser/</div>key.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::ops::RangeInclusive;
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>winnow::combinator::peek;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>winnow::combinator::separated;
@@ -17,7 +17,7 @@
 <a href=#17 id=17 data-nosnippet>17</a>
 <a href=#18 id=18 data-nosnippet>18</a><span class="comment">// key = simple-key / dotted-key
 <a href=#19 id=19 data-nosnippet>19</a>// dotted-key = simple-key 1*( dot-sep simple-key )
-<a href=#20 id=20 data-nosnippet>20</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>key(input: <span class="kw-2">&amp;mut </span>Input&lt;<span class="lifetime">'_</span>&gt;) -&gt; PResult&lt;Vec&lt;Key&gt;&gt; {
+<a href=#20 id=20 data-nosnippet>20</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>key(input: <span class="kw-2">&amp;mut </span>Input&lt;<span class="lifetime">'_</span>&gt;) -&gt; ModalResult&lt;Vec&lt;Key&gt;&gt; {
 <a href=#21 id=21 data-nosnippet>21</a>    <span class="kw">let </span><span class="kw-2">mut </span>key_path = trace(
 <a href=#22 id=22 data-nosnippet>22</a>        <span class="string">"dotted-key"</span>,
 <a href=#23 id=23 data-nosnippet>23</a>        separated(
@@ -68,7 +68,7 @@
 <a href=#68 id=68 data-nosnippet>68</a>
 <a href=#69 id=69 data-nosnippet>69</a><span class="comment">// simple-key = quoted-key / unquoted-key
 <a href=#70 id=70 data-nosnippet>70</a>// quoted-key = basic-string / literal-string
-<a href=#71 id=71 data-nosnippet>71</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>simple_key(input: <span class="kw-2">&amp;mut </span>Input&lt;<span class="lifetime">'_</span>&gt;) -&gt; PResult&lt;(RawString, InternalString)&gt; {
+<a href=#71 id=71 data-nosnippet>71</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>simple_key(input: <span class="kw-2">&amp;mut </span>Input&lt;<span class="lifetime">'_</span>&gt;) -&gt; ModalResult&lt;(RawString, InternalString)&gt; {
 <a href=#72 id=72 data-nosnippet>72</a>    trace(
 <a href=#73 id=73 data-nosnippet>73</a>        <span class="string">"simple-key"</span>,
 <a href=#74 id=74 data-nosnippet>74</a>        <span class="macro">dispatch!</span> {peek(any);
@@ -87,7 +87,7 @@
 <a href=#87 id=87 data-nosnippet>87</a>}
 <a href=#88 id=88 data-nosnippet>88</a>
 <a href=#89 id=89 data-nosnippet>89</a><span class="comment">// unquoted-key = 1*( ALPHA / DIGIT / %x2D / %x5F ) ; A-Z / a-z / 0-9 / - / _
-<a href=#90 id=90 data-nosnippet>90</a></span><span class="kw">fn </span>unquoted_key&lt;<span class="lifetime">'i</span>&gt;(input: <span class="kw-2">&amp;mut </span>Input&lt;<span class="lifetime">'i</span>&gt;) -&gt; PResult&lt;<span class="kw-2">&amp;</span><span class="lifetime">'i </span>str&gt; {
+<a href=#90 id=90 data-nosnippet>90</a></span><span class="kw">fn </span>unquoted_key&lt;<span class="lifetime">'i</span>&gt;(input: <span class="kw-2">&amp;mut </span>Input&lt;<span class="lifetime">'i</span>&gt;) -&gt; ModalResult&lt;<span class="kw-2">&amp;</span><span class="lifetime">'i </span>str&gt; {
 <a href=#91 id=91 data-nosnippet>91</a>    trace(
 <a href=#92 id=92 data-nosnippet>92</a>        <span class="string">"unquoted-key"</span>,
 <a href=#93 id=93 data-nosnippet>93</a>        take_while(<span class="number">1</span>.., UNQUOTED_CHAR)
@@ -96,44 +96,39 @@
 <a href=#96 id=96 data-nosnippet>96</a>    .parse_next(input)
 <a href=#97 id=97 data-nosnippet>97</a>}
 <a href=#98 id=98 data-nosnippet>98</a>
-<a href=#99 id=99 data-nosnippet>99</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>is_unquoted_char(c: u8) -&gt; bool {
-<a href=#100 id=100 data-nosnippet>100</a>    <span class="kw">use </span>winnow::stream::ContainsToken;
-<a href=#101 id=101 data-nosnippet>101</a>    UNQUOTED_CHAR.contains_token(c)
-<a href=#102 id=102 data-nosnippet>102</a>}
-<a href=#103 id=103 data-nosnippet>103</a>
-<a href=#104 id=104 data-nosnippet>104</a><span class="kw">const </span>UNQUOTED_CHAR: (
-<a href=#105 id=105 data-nosnippet>105</a>    RangeInclusive&lt;u8&gt;,
-<a href=#106 id=106 data-nosnippet>106</a>    RangeInclusive&lt;u8&gt;,
-<a href=#107 id=107 data-nosnippet>107</a>    RangeInclusive&lt;u8&gt;,
-<a href=#108 id=108 data-nosnippet>108</a>    u8,
-<a href=#109 id=109 data-nosnippet>109</a>    u8,
-<a href=#110 id=110 data-nosnippet>110</a>) = (<span class="string">b'A'</span>..=<span class="string">b'Z'</span>, <span class="string">b'a'</span>..=<span class="string">b'z'</span>, <span class="string">b'0'</span>..=<span class="string">b'9'</span>, <span class="string">b'-'</span>, <span class="string">b'_'</span>);
-<a href=#111 id=111 data-nosnippet>111</a>
-<a href=#112 id=112 data-nosnippet>112</a><span class="comment">// dot-sep   = ws %x2E ws  ; . Period
-<a href=#113 id=113 data-nosnippet>113</a></span><span class="kw">const </span>DOT_SEP: u8 = <span class="string">b'.'</span>;
-<a href=#114 id=114 data-nosnippet>114</a>
-<a href=#115 id=115 data-nosnippet>115</a><span class="attr">#[cfg(test)]
-<a href=#116 id=116 data-nosnippet>116</a>#[cfg(feature = <span class="string">"parse"</span>)]
-<a href=#117 id=117 data-nosnippet>117</a>#[cfg(feature = <span class="string">"display"</span>)]
-<a href=#118 id=118 data-nosnippet>118</a></span><span class="kw">mod </span>test {
-<a href=#119 id=119 data-nosnippet>119</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#120 id=120 data-nosnippet>120</a>
-<a href=#121 id=121 data-nosnippet>121</a>    <span class="attr">#[test]
-<a href=#122 id=122 data-nosnippet>122</a>    </span><span class="kw">fn </span>keys() {
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">let </span>cases = [
-<a href=#124 id=124 data-nosnippet>124</a>            (<span class="string">"a"</span>, <span class="string">"a"</span>),
-<a href=#125 id=125 data-nosnippet>125</a>            (<span class="string">r#""hello\n ""#</span>, <span class="string">"hello\n "</span>),
-<a href=#126 id=126 data-nosnippet>126</a>            (<span class="string">r"'hello\n '"</span>, <span class="string">"hello\\n "</span>),
-<a href=#127 id=127 data-nosnippet>127</a>        ];
-<a href=#128 id=128 data-nosnippet>128</a>
-<a href=#129 id=129 data-nosnippet>129</a>        <span class="kw">for </span>(input, expected) <span class="kw">in </span>cases {
-<a href=#130 id=130 data-nosnippet>130</a>            <span class="macro">dbg!</span>(input);
-<a href=#131 id=131 data-nosnippet>131</a>            <span class="kw">let </span>parsed = simple_key.parse(new_input(input));
-<a href=#132 id=132 data-nosnippet>132</a>            <span class="macro">assert_eq!</span>(
-<a href=#133 id=133 data-nosnippet>133</a>                parsed,
-<a href=#134 id=134 data-nosnippet>134</a>                <span class="prelude-val">Ok</span>((RawString::with_span(<span class="number">0</span>..(input.len())), expected.into())),
-<a href=#135 id=135 data-nosnippet>135</a>                <span class="string">"Parsing {input:?}"
-<a href=#136 id=136 data-nosnippet>136</a>            </span>);
-<a href=#137 id=137 data-nosnippet>137</a>        }
-<a href=#138 id=138 data-nosnippet>138</a>    }
-<a href=#139 id=139 data-nosnippet>139</a>}</code></pre></div></section></main></body></html>
+<a href=#99 id=99 data-nosnippet>99</a><span class="kw">const </span>UNQUOTED_CHAR: (
+<a href=#100 id=100 data-nosnippet>100</a>    RangeInclusive&lt;u8&gt;,
+<a href=#101 id=101 data-nosnippet>101</a>    RangeInclusive&lt;u8&gt;,
+<a href=#102 id=102 data-nosnippet>102</a>    RangeInclusive&lt;u8&gt;,
+<a href=#103 id=103 data-nosnippet>103</a>    u8,
+<a href=#104 id=104 data-nosnippet>104</a>    u8,
+<a href=#105 id=105 data-nosnippet>105</a>) = (<span class="string">b'A'</span>..=<span class="string">b'Z'</span>, <span class="string">b'a'</span>..=<span class="string">b'z'</span>, <span class="string">b'0'</span>..=<span class="string">b'9'</span>, <span class="string">b'-'</span>, <span class="string">b'_'</span>);
+<a href=#106 id=106 data-nosnippet>106</a>
+<a href=#107 id=107 data-nosnippet>107</a><span class="comment">// dot-sep   = ws %x2E ws  ; . Period
+<a href=#108 id=108 data-nosnippet>108</a></span><span class="kw">const </span>DOT_SEP: u8 = <span class="string">b'.'</span>;
+<a href=#109 id=109 data-nosnippet>109</a>
+<a href=#110 id=110 data-nosnippet>110</a><span class="attr">#[cfg(test)]
+<a href=#111 id=111 data-nosnippet>111</a>#[cfg(feature = <span class="string">"parse"</span>)]
+<a href=#112 id=112 data-nosnippet>112</a>#[cfg(feature = <span class="string">"display"</span>)]
+<a href=#113 id=113 data-nosnippet>113</a></span><span class="kw">mod </span>test {
+<a href=#114 id=114 data-nosnippet>114</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#115 id=115 data-nosnippet>115</a>
+<a href=#116 id=116 data-nosnippet>116</a>    <span class="attr">#[test]
+<a href=#117 id=117 data-nosnippet>117</a>    </span><span class="kw">fn </span>keys() {
+<a href=#118 id=118 data-nosnippet>118</a>        <span class="kw">let </span>cases = [
+<a href=#119 id=119 data-nosnippet>119</a>            (<span class="string">"a"</span>, <span class="string">"a"</span>),
+<a href=#120 id=120 data-nosnippet>120</a>            (<span class="string">r#""hello\n ""#</span>, <span class="string">"hello\n "</span>),
+<a href=#121 id=121 data-nosnippet>121</a>            (<span class="string">r"'hello\n '"</span>, <span class="string">"hello\\n "</span>),
+<a href=#122 id=122 data-nosnippet>122</a>        ];
+<a href=#123 id=123 data-nosnippet>123</a>
+<a href=#124 id=124 data-nosnippet>124</a>        <span class="kw">for </span>(input, expected) <span class="kw">in </span>cases {
+<a href=#125 id=125 data-nosnippet>125</a>            <span class="macro">dbg!</span>(input);
+<a href=#126 id=126 data-nosnippet>126</a>            <span class="kw">let </span>parsed = simple_key.parse(new_input(input));
+<a href=#127 id=127 data-nosnippet>127</a>            <span class="macro">assert_eq!</span>(
+<a href=#128 id=128 data-nosnippet>128</a>                parsed,
+<a href=#129 id=129 data-nosnippet>129</a>                <span class="prelude-val">Ok</span>((RawString::with_span(<span class="number">0</span>..(input.len())), expected.into())),
+<a href=#130 id=130 data-nosnippet>130</a>                <span class="string">"Parsing {input:?}"
+<a href=#131 id=131 data-nosnippet>131</a>            </span>);
+<a href=#132 id=132 data-nosnippet>132</a>        }
+<a href=#133 id=133 data-nosnippet>133</a>    }
+<a href=#134 id=134 data-nosnippet>134</a>}</code></pre></div></section></main></body></html>

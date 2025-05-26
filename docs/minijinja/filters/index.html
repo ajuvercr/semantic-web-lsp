@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Filter functions and abstractions."><title>minijinja::filters - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="minijinja" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../static.files/storage-82c7156e.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button><a class="logo-container" href="../../minijinja/index.html"><img src="https://github.com/mitsuhiko/minijinja/raw/main/artwork/logo-square.png" alt=""></a></nav><nav class="sidebar"><div class="sidebar-crate"><a class="logo-container" href="../../minijinja/index.html"><img src="https://github.com/mitsuhiko/minijinja/raw/main/artwork/logo-square.png" alt="logo"></a><h2><a href="../../minijinja/index.html">minijinja</a><span class="version">2.10.2</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module filters</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#using-filters" title="Using Filters">Using Filters</a></li><li><a href="#custom-filters" title="Custom Filters">Custom Filters</a></li><li><a href="#accessing-state" title="Accessing State">Accessing State</a></li><li><a href="#filter-configuration" title="Filter configuration">Filter configuration</a></li><li><a href="#built-in-filters" title="Built-in Filters">Built-in Filters</a></li></ul><h3><a href="#functions">Module Items</a></h3><ul class="block"><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="../index.html">In crate minijinja</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">minijinja</a></div><h1>Module <span>filters</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/minijinja/filters.rs.html#1-1480">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Filter functions and abstractions.</p>
+<p>MiniJinja inherits from Jinja2 the concept of filter functions.  These are functions
+which are applied to values to modify them.  For example the expression <code>{{ 42|filter(23) }}</code>
+invokes the filter <code>filter</code> with the arguments <code>42</code> and <code>23</code>.</p>
+<p>MiniJinja comes with some built-in filters that are listed below. To create a
+custom filter write a function that takes at least a value, then registers it
+with <a href="../struct.Environment.html#method.add_filter" title="method minijinja::Environment::add_filter"><code>add_filter</code></a>.</p>
+<h2 id="using-filters"><a class="doc-anchor" href="#using-filters">§</a>Using Filters</h2>
+<p>Using filters in templates is possible in all places an expression is permitted.
+This means they are not just used for printing but also are useful for iteration
+or similar situations.</p>
+<p>Motivating example:</p>
+<div class="example-wrap"><pre class="language-jinja"><code>&lt;dl&gt;
+{% for key, value in config|items %}
+  &lt;dt&gt;{{ key }}
+  &lt;dd&gt;&lt;pre&gt;{{ value|tojson }}&lt;/pre&gt;
+{% endfor %}
+&lt;/dl&gt;</code></pre></div><h2 id="custom-filters"><a class="doc-anchor" href="#custom-filters">§</a>Custom Filters</h2>
+<p>A custom filter is just a simple function which accepts its inputs
+as parameters and then returns a new value.  For instance the following
+shows a filter which takes an input value and replaces whitespace with
+dashes and converts it to lowercase:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>slugify(value: String) -&gt; String {
+    value.to_lowercase().split_whitespace().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;().join(<span class="string">"-"</span>)
+}
+
+env.add_filter(<span class="string">"slugify"</span>, slugify);</code></pre></div>
+<p>MiniJinja will perform the necessary conversions automatically.  For more
+information see the <a href="../functions/trait.Function.html" title="trait minijinja::functions::Function"><code>Function</code></a> trait.</p>
+<h2 id="accessing-state"><a class="doc-anchor" href="#accessing-state">§</a>Accessing State</h2>
+<p>In some cases it can be necessary to access the execution <a href="../struct.State.html" title="struct minijinja::State"><code>State</code></a>.  Since a borrowed
+state implements <a href="../value/trait.ArgType.html" title="trait minijinja::value::ArgType"><code>ArgType</code></a> it’s possible to add a
+parameter that holds the state.  For instance the following filter appends
+the current template name to the string:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>minijinja::{Value, State};
+
+<span class="kw">fn </span>append_template(state: <span class="kw-2">&amp;</span>State, value: <span class="kw-2">&amp;</span>Value) -&gt; String {
+    <span class="macro">format!</span>(<span class="string">"{}-{}"</span>, value, state.name())
+}
+
+env.add_filter(<span class="string">"append_template"</span>, append_template);</code></pre></div>
+<h2 id="filter-configuration"><a class="doc-anchor" href="#filter-configuration">§</a>Filter configuration</h2>
+<p>The recommended pattern for filters to change their behavior is to leverage global
+variables in the template.  For instance take a filter that performs date formatting.
+You might want to change the default time format format on a per-template basis
+without having to update every filter invocation.  In this case the recommended
+pattern is to reserve upper case variables and look them up in the filter:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>minijinja::State;
+
+<span class="kw">fn </span>timeformat(state: <span class="kw-2">&amp;</span>State, ts: f64) -&gt; String {
+    <span class="kw">let </span>configured_format = state.lookup(<span class="string">"TIME_FORMAT"</span>);
+    <span class="kw">let </span>format = configured_format
+        .as_ref()
+        .and_then(|x| x.as_str())
+        .unwrap_or(<span class="string">"HH:MM:SS"</span>);
+    format_unix_timestamp(ts, format)
+}
+
+env.add_filter(<span class="string">"timeformat"</span>, timeformat);</code></pre></div>
+<p>This then later lets a user override the default either by using
+<a href="../struct.Environment.html#method.add_global" title="method minijinja::Environment::add_global"><code>add_global</code></a> or by passing it with the
+<a href="../macro.context.html" title="macro minijinja::context"><code>context!</code></a> macro or similar.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>ctx = <span class="macro">context!</span> {
+    TIME_FORMAT =&gt; <span class="string">"HH:MM"</span>,
+    ..other_variables
+};</code></pre></div>
+<h2 id="built-in-filters"><a class="doc-anchor" href="#built-in-filters">§</a>Built-in Filters</h2>
+<p>When the <code>builtins</code> feature is enabled a range of built-in filters are
+automatically added to the environment.  These are also all provided in
+this module.  Note though that these functions are not to be
+called from Rust code as their exact interface (arguments and return types)
+might change from one MiniJinja version to another.</p>
+<p>Some additional filters are available in the
+<a href="https://crates.io/crates/minijinja-contrib"><code>minijinja-contrib</code></a> crate.</p>
+</div></details><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.abs.html" title="fn minijinja::filters::abs">abs</a></dt><dd>Returns the absolute value of a number.</dd><dt><a class="fn" href="fn.attr.html" title="fn minijinja::filters::attr">attr</a></dt><dd>Looks up an attribute.</dd><dt><a class="fn" href="fn.batch.html" title="fn minijinja::filters::batch">batch</a></dt><dd>Batch items.</dd><dt><a class="fn" href="fn.bool.html" title="fn minijinja::filters::bool">bool</a></dt><dd>Converts the value into a boolean value.</dd><dt><a class="fn" href="fn.capitalize.html" title="fn minijinja::filters::capitalize">capitalize</a></dt><dd>Convert the string with all its characters lowercased
+apart from the first char which is uppercased.</dd><dt><a class="fn" href="fn.default.html" title="fn minijinja::filters::default">default</a></dt><dd>If the value is undefined it will return the passed default value,
+otherwise the value of the variable:</dd><dt><a class="fn" href="fn.dictsort.html" title="fn minijinja::filters::dictsort">dictsort</a></dt><dd>Dict sorting functionality.</dd><dt><a class="fn" href="fn.escape.html" title="fn minijinja::filters::escape">escape</a></dt><dd>Escapes a string.  By default to HTML.</dd><dt><a class="fn" href="fn.first.html" title="fn minijinja::filters::first">first</a></dt><dd>Returns the first item from an iterable.</dd><dt><a class="fn" href="fn.float.html" title="fn minijinja::filters::float">float</a></dt><dd>Converts a value into a float.</dd><dt><a class="fn" href="fn.groupby.html" title="fn minijinja::filters::groupby">groupby</a></dt><dd>Group a sequence of objects by an attribute.</dd><dt><a class="fn" href="fn.indent.html" title="fn minijinja::filters::indent">indent</a></dt><dd>Indents Value with spaces</dd><dt><a class="fn" href="fn.int.html" title="fn minijinja::filters::int">int</a></dt><dd>Converts a value into an integer.</dd><dt><a class="fn" href="fn.items.html" title="fn minijinja::filters::items">items</a></dt><dd>Returns an iterable of pairs (items) from a mapping.</dd><dt><a class="fn" href="fn.join.html" title="fn minijinja::filters::join">join</a></dt><dd>Joins a sequence by a character</dd><dt><a class="fn" href="fn.last.html" title="fn minijinja::filters::last">last</a></dt><dd>Returns the last item from an iterable.</dd><dt><a class="fn" href="fn.length.html" title="fn minijinja::filters::length">length</a></dt><dd>Returns the “length” of the value</dd><dt><a class="fn" href="fn.lines.html" title="fn minijinja::filters::lines">lines</a></dt><dd>Splits a string into lines.</dd><dt><a class="fn" href="fn.list.html" title="fn minijinja::filters::list">list</a></dt><dd>Converts the input value into a list.</dd><dt><a class="fn" href="fn.lower.html" title="fn minijinja::filters::lower">lower</a></dt><dd>Converts a value to lowercase.</dd><dt><a class="fn" href="fn.map.html" title="fn minijinja::filters::map">map</a></dt><dd>Applies a filter to a sequence of objects or looks up an attribute.</dd><dt><a class="fn" href="fn.max.html" title="fn minijinja::filters::max">max</a></dt><dd>Returns the largest item from an iterable.</dd><dt><a class="fn" href="fn.min.html" title="fn minijinja::filters::min">min</a></dt><dd>Returns the smallest item from an iterable.</dd><dt><a class="fn" href="fn.pprint.html" title="fn minijinja::filters::pprint">pprint</a></dt><dd>Pretty print a variable.</dd><dt><a class="fn" href="fn.reject.html" title="fn minijinja::filters::reject">reject</a></dt><dd>Creates a new sequence of values that don’t pass a test.</dd><dt><a class="fn" href="fn.rejectattr.html" title="fn minijinja::filters::rejectattr">rejectattr</a></dt><dd>Creates a new sequence of values of which an attribute does not pass a test.</dd><dt><a class="fn" href="fn.replace.html" title="fn minijinja::filters::replace">replace</a></dt><dd>Does a string replace.</dd><dt><a class="fn" href="fn.reverse.html" title="fn minijinja::filters::reverse">reverse</a></dt><dd>Reverses an iterable or string</dd><dt><a class="fn" href="fn.round.html" title="fn minijinja::filters::round">round</a></dt><dd>Round the number to a given precision.</dd><dt><a class="fn" href="fn.safe.html" title="fn minijinja::filters::safe">safe</a></dt><dd>Marks a value as safe.  This converts it into a string.</dd><dt><a class="fn" href="fn.select.html" title="fn minijinja::filters::select">select</a></dt><dd>Creates a new sequence of values that pass a test.</dd><dt><a class="fn" href="fn.selectattr.html" title="fn minijinja::filters::selectattr">selectattr</a></dt><dd>Creates a new sequence of values of which an attribute passes a test.</dd><dt><a class="fn" href="fn.slice.html" title="fn minijinja::filters::slice">slice</a></dt><dd>Slice an iterable and return a list of lists containing
+those items.</dd><dt><a class="fn" href="fn.sort.html" title="fn minijinja::filters::sort">sort</a></dt><dd>Returns the sorted version of the given list.</dd><dt><a class="fn" href="fn.split.html" title="fn minijinja::filters::split">split</a></dt><dd>Split a string into its substrings, using <code>split</code> as the separator string.</dd><dt><a class="fn" href="fn.string.html" title="fn minijinja::filters::string">string</a></dt><dd>Converts a value into a string if it’s not one already.</dd><dt><a class="fn" href="fn.sum.html" title="fn minijinja::filters::sum">sum</a></dt><dd>Sums up all the values in a sequence.</dd><dt><a class="fn" href="fn.title.html" title="fn minijinja::filters::title">title</a></dt><dd>Converts a value to title case.</dd><dt><a class="fn" href="fn.trim.html" title="fn minijinja::filters::trim">trim</a></dt><dd>Trims a value</dd><dt><a class="fn" href="fn.unique.html" title="fn minijinja::filters::unique">unique</a></dt><dd>Returns a list of unique items from the given iterable.</dd><dt><a class="fn" href="fn.upper.html" title="fn minijinja::filters::upper">upper</a></dt><dd>Converts a value to uppercase.</dd></dl></section></div></main></body></html>

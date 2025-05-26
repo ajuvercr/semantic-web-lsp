@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["deriv_n"],"struct":["DerivN"]};

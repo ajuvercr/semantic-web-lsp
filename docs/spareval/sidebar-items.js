@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ExpressionTerm","QueryEvaluationError","QueryResults"],"struct":["ExpressionTriple","InternalQuad","QueryEvaluator","QueryExplanation","QuerySolution","QuerySolutionIter","QueryTripleIter"],"trait":["DefaultServiceHandler","QueryableDataset","ServiceHandler"]};

@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["nom",[]],["shex_compact",[["impl <a class=\"trait\" href=\"nom/error/trait.FromExternalError.html\" title=\"trait nom::error::FromExternalError\">FromExternalError</a>&lt;<a class=\"struct\" href=\"nom_locate/struct.LocatedSpan.html\" title=\"struct nom_locate::LocatedSpan\">LocatedSpan</a>&lt;&amp;<a class=\"primitive\" href=\"https://doc.rust-lang.org/1.87.0/std/primitive.str.html\">str</a>&gt;, <a class=\"struct\" href=\"https://doc.rust-lang.org/1.87.0/core/num/dec2flt/struct.ParseFloatError.html\" title=\"struct core::num::dec2flt::ParseFloatError\">ParseFloatError</a>&gt; for <a class=\"struct\" href=\"shex_compact/struct.LocatedParseError.html\" title=\"struct shex_compact::LocatedParseError\">LocatedParseError</a>"],["impl <a class=\"trait\" href=\"nom/error/trait.FromExternalError.html\" title=\"trait nom::error::FromExternalError\">FromExternalError</a>&lt;<a class=\"struct\" href=\"nom_locate/struct.LocatedSpan.html\" title=\"struct nom_locate::LocatedSpan\">LocatedSpan</a>&lt;&amp;<a class=\"primitive\" href=\"https://doc.rust-lang.org/1.87.0/std/primitive.str.html\">str</a>&gt;, <a class=\"struct\" href=\"https://doc.rust-lang.org/1.87.0/core/num/error/struct.ParseIntError.html\" title=\"struct core::num::error::ParseIntError\">ParseIntError</a>&gt; for <a class=\"struct\" href=\"shex_compact/struct.LocatedParseError.html\" title=\"struct shex_compact::LocatedParseError\">LocatedParseError</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[10,1425]}

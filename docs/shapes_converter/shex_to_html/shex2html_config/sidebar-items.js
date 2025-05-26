@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_COLOR_PROPERTY_NAME","DEFAULT_LANDING_PAGE_NAME","DEFAULT_SHAPE_TEMPLATE_NAME"],"enum":["ShEx2HtmlConfigError"],"struct":["ShEx2HtmlConfig"]};

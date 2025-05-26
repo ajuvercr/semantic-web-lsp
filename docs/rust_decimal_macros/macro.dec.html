@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Transform a literal number directly to a `Decimal` at compile time."><title>dec in rust_decimal_macros - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="rust_decimal_macros" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../static.files/storage-82c7156e.js"></script><script defer src="sidebar-items.js"></script><script defer src="../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc macro"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../rust_decimal_macros/index.html">rust_<wbr>decimal_<wbr>macros</a><span class="version">1.37.1</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">dec</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#option-radix" title="Option `radix`">Option <code>radix</code></a></li><li><a href="#option-exp" title="Option `exp`">Option <code>exp</code></a></li><li><a href="#example" title="Example">Example</a></li></ul></section><div id="rustdoc-modnav"><h2 class="in-crate"><a href="index.html">In crate rust_<wbr>decimal_<wbr>macros</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="index.html">rust_decimal_macros</a></div><h1>Macro <span class="macro">dec</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/rust_decimal_macros/lib.rs.html#85-109">Source</a> </span></div><pre class="rust item-decl"><code>dec!() { <span class="comment">/* proc-macro */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Transform a literal number directly to a <code>Decimal</code> at compile time.</p>
+<p>Any Rust number format works, for example:</p>
+<ul>
+<li><code>dec!(1)</code>, <code>dec!(-1)</code>, <code>dec!(1_999)</code>, <code>dec!(- 1_999)</code></li>
+<li><code>dec!(0b1)</code>, <code>dec!(-0b1_1111)</code>, <code>dec!(0o1)</code>, <code>dec!(-0o1_777)</code>, <code>dec!(0x1)</code>, <code>dec!(-0x1_Ffff)</code></li>
+<li><code>dec!(1.)</code>, <code>dec!(-1.111_009)</code>, <code>dec!(1e6)</code>, <code>dec!(-1.2e+6)</code>, <code>dec!(12e-6)</code>, <code>dec!(-1.2e-6)</code></li>
+</ul>
+<h4 id="option-radix"><a class="doc-anchor" href="#option-radix">§</a>Option <code>radix</code></h4>
+<p>You can give it integers (not float-like) in any radix from 2 to 36 inclusive, using the letters too:
+<code>dec!(100, radix 2) == 4</code>, <code>dec!(-1_222, radix 3) == -53</code>, <code>dec!(z1, radix 36) == 1261</code>,
+<code>dec!(-1_xyz, radix 36) == -90683</code></p>
+<h4 id="option-exp"><a class="doc-anchor" href="#option-exp">§</a>Option <code>exp</code></h4>
+<p>This is the same as the <code>e</code> 10’s exponent in float syntax (except as a Rust expression it doesn’t accept
+a unary <code>+</code>.) You need this for other radixes. Currently, it must be between -28 and +28 inclusive:
+<code>dec!(10, radix 2, exp 5) == 200_000</code>, <code>dec!( -1_777, exp -3, radix 8) == dec!(-1.023)</code></p>
+<h2 id="example"><a class="doc-anchor" href="#example">§</a>Example</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rust_decimal_macros::dec;
+
+<span class="comment">// If the reexportable feature is enabled, `Decimal` needs to be in scope
+</span><span class="attr">#[cfg(feature = <span class="string">"reexportable"</span>)]
+</span><span class="kw">use </span>rust_decimal::Decimal;
+
+<span class="kw">let </span>number = <span class="macro">dec!</span>(<span class="number">1.2345</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"1.2345"</span>, number.to_string());
+<span class="kw">let </span>number = <span class="macro">dec!</span>(-<span class="number">5.4321</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"-5.4321"</span>, number.to_string());
+<span class="kw">let </span>number = <span class="macro">dec!</span>(-<span class="number">0o1_777</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"-1023"</span>, number.to_string());
+<span class="kw">let </span>number = <span class="macro">dec!</span>(-<span class="number">1_777</span>, radix <span class="number">8</span>);
+<span class="macro">assert_eq!</span>(<span class="string">"-1023"</span>, number.to_string());</code></pre></div>
+</div></details></section></div></main></body></html>

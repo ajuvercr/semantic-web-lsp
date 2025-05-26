@@ -1,0 +1,1850 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/minijinja-2.10.2/src/value/mod.rs`."><title>mod.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="minijinja" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../../../static.files/storage-82c7156e.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">minijinja/value/</div>mod.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Provides a dynamic value type abstraction.
+<a href=#2 id=2 data-nosnippet>2</a>//!
+<a href=#3 id=3 data-nosnippet>3</a>//! This module gives access to a dynamically typed value which is used by
+<a href=#4 id=4 data-nosnippet>4</a>//! the template engine during execution.
+<a href=#5 id=5 data-nosnippet>5</a>//!
+<a href=#6 id=6 data-nosnippet>6</a>//! For the most part the existence of the value type can be ignored as
+<a href=#7 id=7 data-nosnippet>7</a>//! MiniJinja will perform the necessary conversions for you.  For instance
+<a href=#8 id=8 data-nosnippet>8</a>//! if you write a filter that converts a string you can directly declare the
+<a href=#9 id=9 data-nosnippet>9</a>//! filter to take a [`String`].  However for some more advanced use cases it's
+<a href=#10 id=10 data-nosnippet>10</a>//! useful to know that this type exists.
+<a href=#11 id=11 data-nosnippet>11</a>//!
+<a href=#12 id=12 data-nosnippet>12</a>//! # Basic Value Conversions
+<a href=#13 id=13 data-nosnippet>13</a>//!
+<a href=#14 id=14 data-nosnippet>14</a>//! Values are typically created via the [`From`] trait:
+<a href=#15 id=15 data-nosnippet>15</a>//!
+<a href=#16 id=16 data-nosnippet>16</a>//! ```
+<a href=#17 id=17 data-nosnippet>17</a>//! use std::collections::BTreeMap;
+<a href=#18 id=18 data-nosnippet>18</a>//! # use minijinja::value::Value;
+<a href=#19 id=19 data-nosnippet>19</a>//! let int_value = Value::from(42);
+<a href=#20 id=20 data-nosnippet>20</a>//! let none_value = Value::from(());
+<a href=#21 id=21 data-nosnippet>21</a>//! let true_value = Value::from(true);
+<a href=#22 id=22 data-nosnippet>22</a>//! let map = Value::from({
+<a href=#23 id=23 data-nosnippet>23</a>//!     let mut m = BTreeMap::new();
+<a href=#24 id=24 data-nosnippet>24</a>//!     m.insert("foo", 1);
+<a href=#25 id=25 data-nosnippet>25</a>//!     m.insert("bar", 2);
+<a href=#26 id=26 data-nosnippet>26</a>//!     m
+<a href=#27 id=27 data-nosnippet>27</a>//! });
+<a href=#28 id=28 data-nosnippet>28</a>//! ```
+<a href=#29 id=29 data-nosnippet>29</a>//!
+<a href=#30 id=30 data-nosnippet>30</a>//! Or via the [`FromIterator`] trait which can create sequences or maps.  When
+<a href=#31 id=31 data-nosnippet>31</a>//! given a tuple it creates maps, otherwise it makes a sequence.
+<a href=#32 id=32 data-nosnippet>32</a>//!
+<a href=#33 id=33 data-nosnippet>33</a>//! ```
+<a href=#34 id=34 data-nosnippet>34</a>//! # use minijinja::value::Value;
+<a href=#35 id=35 data-nosnippet>35</a>//! // collection into a sequence
+<a href=#36 id=36 data-nosnippet>36</a>//! let value: Value = (1..10).into_iter().collect();
+<a href=#37 id=37 data-nosnippet>37</a>//!
+<a href=#38 id=38 data-nosnippet>38</a>//! // collection into a map
+<a href=#39 id=39 data-nosnippet>39</a>//! let value: Value = [("key", "value")].into_iter().collect();
+<a href=#40 id=40 data-nosnippet>40</a>//! ```
+<a href=#41 id=41 data-nosnippet>41</a>//!
+<a href=#42 id=42 data-nosnippet>42</a>//! For certain types of iterators (`Send` + `Sync` + `'static`) it's also
+<a href=#43 id=43 data-nosnippet>43</a>//! possible to make the value lazily iterate over the value by using the
+<a href=#44 id=44 data-nosnippet>44</a>//! [`Value::make_iterable`] function instead.  Whenever the value requires
+<a href=#45 id=45 data-nosnippet>45</a>//! iteration, the function is called to create that iterator.
+<a href=#46 id=46 data-nosnippet>46</a>//!
+<a href=#47 id=47 data-nosnippet>47</a>//! ```
+<a href=#48 id=48 data-nosnippet>48</a>//! # use minijinja::value::Value;
+<a href=#49 id=49 data-nosnippet>49</a>//! let value: Value = Value::make_iterable(|| 1..10);
+<a href=#50 id=50 data-nosnippet>50</a>//! ```
+<a href=#51 id=51 data-nosnippet>51</a>//!
+<a href=#52 id=52 data-nosnippet>52</a>//! To to into the inverse directly the various [`TryFrom`]
+<a href=#53 id=53 data-nosnippet>53</a>//! implementations can be used:
+<a href=#54 id=54 data-nosnippet>54</a>//!
+<a href=#55 id=55 data-nosnippet>55</a>//! ```
+<a href=#56 id=56 data-nosnippet>56</a>//! # use minijinja::value::Value;
+<a href=#57 id=57 data-nosnippet>57</a>//! use std::convert::TryFrom;
+<a href=#58 id=58 data-nosnippet>58</a>//! let v = u64::try_from(Value::from(42)).unwrap();
+<a href=#59 id=59 data-nosnippet>59</a>//! ```
+<a href=#60 id=60 data-nosnippet>60</a>//!
+<a href=#61 id=61 data-nosnippet>61</a>//! The special [`Undefined`](Value::UNDEFINED) value also exists but does not
+<a href=#62 id=62 data-nosnippet>62</a>//! have a rust equivalent.  It can be created via the [`UNDEFINED`](Value::UNDEFINED)
+<a href=#63 id=63 data-nosnippet>63</a>//! constant.
+<a href=#64 id=64 data-nosnippet>64</a>//!
+<a href=#65 id=65 data-nosnippet>65</a>//! # Collections
+<a href=#66 id=66 data-nosnippet>66</a>//!
+<a href=#67 id=67 data-nosnippet>67</a>//! The standard library's collection types such as
+<a href=#68 id=68 data-nosnippet>68</a>//! [`HashMap`](std::collections::HashMap), [`Vec`] and various others from the
+<a href=#69 id=69 data-nosnippet>69</a>//! collections module are implemented are objects.  There is a cavet here which is
+<a href=#70 id=70 data-nosnippet>70</a>//! that maps can only have string or [`Value`] as key.  The values in the collections
+<a href=#71 id=71 data-nosnippet>71</a>//! are lazily converted into value when accessed or iterated over.   These types can
+<a href=#72 id=72 data-nosnippet>72</a>//! be constructed either from [`Value::from`] or [`Value::from_object`].  Because the
+<a href=#73 id=73 data-nosnippet>73</a>//! types are boxed unchanged, you can also downcast them.
+<a href=#74 id=74 data-nosnippet>74</a>//!
+<a href=#75 id=75 data-nosnippet>75</a>//! ```rust
+<a href=#76 id=76 data-nosnippet>76</a>//! # use minijinja::Value;
+<a href=#77 id=77 data-nosnippet>77</a>//! let vec = Value::from(vec![1i32, 2, 3, 4]);
+<a href=#78 id=78 data-nosnippet>78</a>//! let vec_ref = vec.downcast_object_ref::&lt;Vec&lt;i32&gt;&gt;().unwrap();
+<a href=#79 id=79 data-nosnippet>79</a>//! assert_eq!(vec_ref, &amp;vec![1, 2, 3, 4]);
+<a href=#80 id=80 data-nosnippet>80</a>//! ```
+<a href=#81 id=81 data-nosnippet>81</a>//!
+<a href=#82 id=82 data-nosnippet>82</a>//! **Caveat:** for convenience reasons maps with `&amp;str` keys can be stored.  The keys
+<a href=#83 id=83 data-nosnippet>83</a>//! however are converted into `Arc&lt;str&gt;`.
+<a href=#84 id=84 data-nosnippet>84</a>//!
+<a href=#85 id=85 data-nosnippet>85</a>//! # Serde Conversions
+<a href=#86 id=86 data-nosnippet>86</a>//!
+<a href=#87 id=87 data-nosnippet>87</a>//! MiniJinja will usually however create values via an indirection via [`serde`] when
+<a href=#88 id=88 data-nosnippet>88</a>//! a template is rendered or an expression is evaluated.  This can also be
+<a href=#89 id=89 data-nosnippet>89</a>//! triggered manually by using the [`Value::from_serialize`] method:
+<a href=#90 id=90 data-nosnippet>90</a>//!
+<a href=#91 id=91 data-nosnippet>91</a>//! ```
+<a href=#92 id=92 data-nosnippet>92</a>//! # use minijinja::value::Value;
+<a href=#93 id=93 data-nosnippet>93</a>//! let value = Value::from_serialize(&amp;[1, 2, 3]);
+<a href=#94 id=94 data-nosnippet>94</a>//! ```
+<a href=#95 id=95 data-nosnippet>95</a>//!
+<a href=#96 id=96 data-nosnippet>96</a>//! The inverse of that operation is to pass a value directly as serializer to
+<a href=#97 id=97 data-nosnippet>97</a>//! a type that supports deserialization.  This requires the `deserialization`
+<a href=#98 id=98 data-nosnippet>98</a>//! feature.
+<a href=#99 id=99 data-nosnippet>99</a>//!
+<a href=#100 id=100 data-nosnippet>100</a></span><span class="attr">#![cfg_attr(
+<a href=#101 id=101 data-nosnippet>101</a>    feature = <span class="string">"deserialization"</span>,
+<a href=#102 id=102 data-nosnippet>102</a>    doc = <span class="string">r"
+<a href=#103 id=103 data-nosnippet>103</a>```
+<a href=#104 id=104 data-nosnippet>104</a># use minijinja::value::Value;
+<a href=#105 id=105 data-nosnippet>105</a>use serde::Deserialize;
+<a href=#106 id=106 data-nosnippet>106</a>let value = Value::from(vec![1, 2, 3]);
+<a href=#107 id=107 data-nosnippet>107</a>let vec = Vec::&lt;i32&gt;::deserialize(value).unwrap();
+<a href=#108 id=108 data-nosnippet>108</a>```
+<a href=#109 id=109 data-nosnippet>109</a>"
+<a href=#110 id=110 data-nosnippet>110</a></span>)]
+<a href=#111 id=111 data-nosnippet>111</a></span><span class="doccomment">//!
+<a href=#112 id=112 data-nosnippet>112</a>//! # Value Function Arguments
+<a href=#113 id=113 data-nosnippet>113</a>//!
+<a href=#114 id=114 data-nosnippet>114</a>//! [Filters](crate::filters) and [tests](crate::tests) can take values as arguments
+<a href=#115 id=115 data-nosnippet>115</a>//! but optionally also rust types directly.  This conversion for function arguments
+<a href=#116 id=116 data-nosnippet>116</a>//! is performed by the [`FunctionArgs`] and related traits ([`ArgType`], [`FunctionResult`]).
+<a href=#117 id=117 data-nosnippet>117</a>//!
+<a href=#118 id=118 data-nosnippet>118</a>//! # Memory Management
+<a href=#119 id=119 data-nosnippet>119</a>//!
+<a href=#120 id=120 data-nosnippet>120</a>//! Values are immutable objects which are internally reference counted which
+<a href=#121 id=121 data-nosnippet>121</a>//! means they can be copied relatively cheaply.  Special care must be taken
+<a href=#122 id=122 data-nosnippet>122</a>//! so that cycles are not created to avoid causing memory leaks.
+<a href=#123 id=123 data-nosnippet>123</a>//!
+<a href=#124 id=124 data-nosnippet>124</a>//! # HTML Escaping
+<a href=#125 id=125 data-nosnippet>125</a>//!
+<a href=#126 id=126 data-nosnippet>126</a>//! MiniJinja inherits the general desire to be clever about escaping.  For this
+<a href=#127 id=127 data-nosnippet>127</a>//! purpose a value will (when auto escaping is enabled) always be escaped.  To
+<a href=#128 id=128 data-nosnippet>128</a>//! prevent this behavior the [`safe`](crate::filters::safe) filter can be used
+<a href=#129 id=129 data-nosnippet>129</a>//! in the template.  Outside of templates the [`Value::from_safe_string`] method
+<a href=#130 id=130 data-nosnippet>130</a>//! can be used to achieve the same result.
+<a href=#131 id=131 data-nosnippet>131</a>//!
+<a href=#132 id=132 data-nosnippet>132</a>//! # Dynamic Objects
+<a href=#133 id=133 data-nosnippet>133</a>//!
+<a href=#134 id=134 data-nosnippet>134</a>//! Values can also hold "dynamic" objects.  These are objects which implement the
+<a href=#135 id=135 data-nosnippet>135</a>//! [`Object`] trait.  These can be used to implement dynamic functionality such
+<a href=#136 id=136 data-nosnippet>136</a>//! as stateful values and more.  Dynamic objects are internally also used to
+<a href=#137 id=137 data-nosnippet>137</a>//! implement the special `loop` variable, macros and similar things.
+<a href=#138 id=138 data-nosnippet>138</a>//!
+<a href=#139 id=139 data-nosnippet>139</a>//! To create a [`Value`] from a dynamic object use [`Value::from_object`],
+<a href=#140 id=140 data-nosnippet>140</a>//! [`Value::from_dyn_object`]:
+<a href=#141 id=141 data-nosnippet>141</a>//!
+<a href=#142 id=142 data-nosnippet>142</a>//! ```rust
+<a href=#143 id=143 data-nosnippet>143</a>//! # use std::sync::Arc;
+<a href=#144 id=144 data-nosnippet>144</a>//! # use minijinja::value::{Value, Object, DynObject};
+<a href=#145 id=145 data-nosnippet>145</a>//! #[derive(Debug)]
+<a href=#146 id=146 data-nosnippet>146</a>//! struct Foo;
+<a href=#147 id=147 data-nosnippet>147</a>//!
+<a href=#148 id=148 data-nosnippet>148</a>//! impl Object for Foo {
+<a href=#149 id=149 data-nosnippet>149</a>//!     /* implementation */
+<a href=#150 id=150 data-nosnippet>150</a>//! }
+<a href=#151 id=151 data-nosnippet>151</a>//!
+<a href=#152 id=152 data-nosnippet>152</a>//! let value = Value::from_object(Foo);
+<a href=#153 id=153 data-nosnippet>153</a>//! let value = Value::from_dyn_object(Arc::new(Foo));
+<a href=#154 id=154 data-nosnippet>154</a>//! ```
+<a href=#155 id=155 data-nosnippet>155</a>//!
+<a href=#156 id=156 data-nosnippet>156</a>//! # Invalid Values
+<a href=#157 id=157 data-nosnippet>157</a>//!
+<a href=#158 id=158 data-nosnippet>158</a>//! MiniJinja knows the concept of an "invalid value".  These are rare in practice
+<a href=#159 id=159 data-nosnippet>159</a>//! and should not be used, but they are needed in some situations.  An invalid value
+<a href=#160 id=160 data-nosnippet>160</a>//! looks like a value but working with that value in the context of the engine will
+<a href=#161 id=161 data-nosnippet>161</a>//! fail in most situations.  In principle an invalid value is a value that holds an
+<a href=#162 id=162 data-nosnippet>162</a>//! error internally.  It's created with [`From`]:
+<a href=#163 id=163 data-nosnippet>163</a>//!
+<a href=#164 id=164 data-nosnippet>164</a>//! ```
+<a href=#165 id=165 data-nosnippet>165</a>//! use minijinja::{Value, Error, ErrorKind};
+<a href=#166 id=166 data-nosnippet>166</a>//! let error = Error::new(ErrorKind::InvalidOperation, "failed to generate an item");
+<a href=#167 id=167 data-nosnippet>167</a>//! let invalid_value = Value::from(error);
+<a href=#168 id=168 data-nosnippet>168</a>//! ```
+<a href=#169 id=169 data-nosnippet>169</a>//!
+<a href=#170 id=170 data-nosnippet>170</a>//! Invalid values are typically encountered in the following situations:
+<a href=#171 id=171 data-nosnippet>171</a>//!
+<a href=#172 id=172 data-nosnippet>172</a>//! - serialization fails with an error: this is the case when a value is crated
+<a href=#173 id=173 data-nosnippet>173</a>//!   via [`Value::from_serialize`] and the underlying [`Serialize`] implementation
+<a href=#174 id=174 data-nosnippet>174</a>//!   fails with an error.
+<a href=#175 id=175 data-nosnippet>175</a>//! - fallible iteration: there might be situations where an iterator cannot indicate
+<a href=#176 id=176 data-nosnippet>176</a>//!   failure ahead of iteration and must abort.  In that case the only option an
+<a href=#177 id=177 data-nosnippet>177</a>//!   iterator in MiniJinja has is to create an invalid value.
+<a href=#178 id=178 data-nosnippet>178</a>//!
+<a href=#179 id=179 data-nosnippet>179</a>//! It's generally recommende to ignore the existence of invalid objects and let them
+<a href=#180 id=180 data-nosnippet>180</a>//! fail naturally as they are encountered.
+<a href=#181 id=181 data-nosnippet>181</a>//!
+<a href=#182 id=182 data-nosnippet>182</a>//! # Notes on Bytes and Strings
+<a href=#183 id=183 data-nosnippet>183</a>//!
+<a href=#184 id=184 data-nosnippet>184</a>//! Usually one would pass strings to templates as Jinja is entirely based on string
+<a href=#185 id=185 data-nosnippet>185</a>//! rendering.  However there are situations where it can be useful to pass bytes instead.
+<a href=#186 id=186 data-nosnippet>186</a>//! As such MiniJinja allows a value type to carry bytes even though there is no syntax
+<a href=#187 id=187 data-nosnippet>187</a>//! within the template language to create a byte literal.
+<a href=#188 id=188 data-nosnippet>188</a>//!
+<a href=#189 id=189 data-nosnippet>189</a>//! When rendering bytes as strings, MiniJinja will attempt to interpret them as
+<a href=#190 id=190 data-nosnippet>190</a>//! lossy utf-8.  This is a bit different to Jinja2 which in Python 3 stopped
+<a href=#191 id=191 data-nosnippet>191</a>//! rendering byte strings as strings.  This is an intentional change that was
+<a href=#192 id=192 data-nosnippet>192</a>//! deemed acceptable given how infrequently bytes are used but how relatively
+<a href=#193 id=193 data-nosnippet>193</a>//! commonly bytes are often holding "almost utf-8" in templates.  Most
+<a href=#194 id=194 data-nosnippet>194</a>//! conversions to strings also will do almost the same.  The debug rendering of
+<a href=#195 id=195 data-nosnippet>195</a>//! bytes however is different and bytes are not iterable.  Like strings however
+<a href=#196 id=196 data-nosnippet>196</a>//! they can be sliced and indexed, but they will be sliced by bytes and not by
+<a href=#197 id=197 data-nosnippet>197</a>//! characters.
+<a href=#198 id=198 data-nosnippet>198</a>
+<a href=#199 id=199 data-nosnippet>199</a></span><span class="comment">// this module is based on the content module in insta which in turn is based
+<a href=#200 id=200 data-nosnippet>200</a>// on the content module in serde::private::ser.
+<a href=#201 id=201 data-nosnippet>201</a>
+<a href=#202 id=202 data-nosnippet>202</a></span><span class="kw">use </span>core::str;
+<a href=#203 id=203 data-nosnippet>203</a><span class="kw">use </span>std::cell::{Cell, RefCell};
+<a href=#204 id=204 data-nosnippet>204</a><span class="kw">use </span>std::cmp::Ordering;
+<a href=#205 id=205 data-nosnippet>205</a><span class="kw">use </span>std::collections::BTreeMap;
+<a href=#206 id=206 data-nosnippet>206</a><span class="kw">use </span>std::fmt;
+<a href=#207 id=207 data-nosnippet>207</a><span class="kw">use </span>std::hash::{Hash, Hasher};
+<a href=#208 id=208 data-nosnippet>208</a><span class="kw">use </span>std::sync::{Arc, Mutex};
+<a href=#209 id=209 data-nosnippet>209</a>
+<a href=#210 id=210 data-nosnippet>210</a><span class="kw">use </span>serde::ser::{Serialize, SerializeTupleStruct, Serializer};
+<a href=#211 id=211 data-nosnippet>211</a>
+<a href=#212 id=212 data-nosnippet>212</a><span class="kw">use </span><span class="kw">crate</span>::error::{Error, ErrorKind};
+<a href=#213 id=213 data-nosnippet>213</a><span class="kw">use </span><span class="kw">crate</span>::functions;
+<a href=#214 id=214 data-nosnippet>214</a><span class="kw">use </span><span class="kw">crate</span>::utils::OnDrop;
+<a href=#215 id=215 data-nosnippet>215</a><span class="kw">use </span><span class="kw">crate</span>::value::ops::as_f64;
+<a href=#216 id=216 data-nosnippet>216</a><span class="kw">use </span><span class="kw">crate</span>::value::serialize::transform;
+<a href=#217 id=217 data-nosnippet>217</a><span class="kw">use </span><span class="kw">crate</span>::vm::State;
+<a href=#218 id=218 data-nosnippet>218</a>
+<a href=#219 id=219 data-nosnippet>219</a><span class="kw">pub use </span><span class="kw">crate</span>::value::argtypes::{from_args, ArgType, FunctionArgs, FunctionResult, Kwargs, Rest};
+<a href=#220 id=220 data-nosnippet>220</a><span class="kw">pub use </span><span class="kw">crate</span>::value::merge_object::merge_maps;
+<a href=#221 id=221 data-nosnippet>221</a><span class="kw">pub use </span><span class="kw">crate</span>::value::object::{DynObject, Enumerator, Object, ObjectExt, ObjectRepr};
+<a href=#222 id=222 data-nosnippet>222</a>
+<a href=#223 id=223 data-nosnippet>223</a><span class="attr">#[macro_use]
+<a href=#224 id=224 data-nosnippet>224</a></span><span class="kw">mod </span>type_erase;
+<a href=#225 id=225 data-nosnippet>225</a><span class="kw">mod </span>argtypes;
+<a href=#226 id=226 data-nosnippet>226</a><span class="attr">#[cfg(feature = <span class="string">"deserialization"</span>)]
+<a href=#227 id=227 data-nosnippet>227</a></span><span class="kw">mod </span>deserialize;
+<a href=#228 id=228 data-nosnippet>228</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>merge_object;
+<a href=#229 id=229 data-nosnippet>229</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>namespace_object;
+<a href=#230 id=230 data-nosnippet>230</a><span class="kw">mod </span>object;
+<a href=#231 id=231 data-nosnippet>231</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>ops;
+<a href=#232 id=232 data-nosnippet>232</a><span class="kw">mod </span>serialize;
+<a href=#233 id=233 data-nosnippet>233</a>
+<a href=#234 id=234 data-nosnippet>234</a><span class="attr">#[cfg(feature = <span class="string">"deserialization"</span>)]
+<a href=#235 id=235 data-nosnippet>235</a></span><span class="kw">pub use </span><span class="self">self</span>::deserialize::ViaDeserialize;
+<a href=#236 id=236 data-nosnippet>236</a>
+<a href=#237 id=237 data-nosnippet>237</a><span class="comment">// We use in-band signalling to roundtrip some internal values.  This is
+<a href=#238 id=238 data-nosnippet>238</a>// not ideal but unfortunately there is no better system in serde today.
+<a href=#239 id=239 data-nosnippet>239</a></span><span class="kw">const </span>VALUE_HANDLE_MARKER: <span class="kw-2">&amp;</span>str = <span class="string">"\x01__minijinja_ValueHandle"</span>;
+<a href=#240 id=240 data-nosnippet>240</a>
+<a href=#241 id=241 data-nosnippet>241</a><span class="attr">#[cfg(feature = <span class="string">"preserve_order"</span>)]
+<a href=#242 id=242 data-nosnippet>242</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>ValueMap = indexmap::IndexMap&lt;Value, Value&gt;;
+<a href=#243 id=243 data-nosnippet>243</a>
+<a href=#244 id=244 data-nosnippet>244</a><span class="attr">#[cfg(not(feature = <span class="string">"preserve_order"</span>))]
+<a href=#245 id=245 data-nosnippet>245</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>ValueMap = std::collections::BTreeMap&lt;Value, Value&gt;;
+<a href=#246 id=246 data-nosnippet>246</a>
+<a href=#247 id=247 data-nosnippet>247</a><span class="attr">#[inline(always)]
+<a href=#248 id=248 data-nosnippet>248</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>value_map_with_capacity(capacity: usize) -&gt; ValueMap {
+<a href=#249 id=249 data-nosnippet>249</a>    <span class="attr">#[cfg(not(feature = <span class="string">"preserve_order"</span>))]
+<a href=#250 id=250 data-nosnippet>250</a>    </span>{
+<a href=#251 id=251 data-nosnippet>251</a>        <span class="kw">let _ </span>= capacity;
+<a href=#252 id=252 data-nosnippet>252</a>        ValueMap::new()
+<a href=#253 id=253 data-nosnippet>253</a>    }
+<a href=#254 id=254 data-nosnippet>254</a>    <span class="attr">#[cfg(feature = <span class="string">"preserve_order"</span>)]
+<a href=#255 id=255 data-nosnippet>255</a>    </span>{
+<a href=#256 id=256 data-nosnippet>256</a>        ValueMap::with_capacity(<span class="kw">crate</span>::utils::untrusted_size_hint(capacity))
+<a href=#257 id=257 data-nosnippet>257</a>    }
+<a href=#258 id=258 data-nosnippet>258</a>}
+<a href=#259 id=259 data-nosnippet>259</a>
+<a href=#260 id=260 data-nosnippet>260</a><span class="macro">thread_local!</span> {
+<a href=#261 id=261 data-nosnippet>261</a>    <span class="kw">static </span>INTERNAL_SERIALIZATION: Cell&lt;bool&gt; = <span class="kw">const </span>{ Cell::new(<span class="bool-val">false</span>) };
+<a href=#262 id=262 data-nosnippet>262</a>
+<a href=#263 id=263 data-nosnippet>263</a>    <span class="comment">// This should be an AtomicU64 but sadly 32bit targets do not necessarily have
+<a href=#264 id=264 data-nosnippet>264</a>    // AtomicU64 available.
+<a href=#265 id=265 data-nosnippet>265</a>    </span><span class="kw">static </span>LAST_VALUE_HANDLE: Cell&lt;u32&gt; = <span class="kw">const </span>{ Cell::new(<span class="number">0</span>) };
+<a href=#266 id=266 data-nosnippet>266</a>    <span class="kw">static </span>VALUE_HANDLES: RefCell&lt;BTreeMap&lt;u32, Value&gt;&gt; = <span class="kw">const </span>{ RefCell::new(BTreeMap::new()) };
+<a href=#267 id=267 data-nosnippet>267</a>}
+<a href=#268 id=268 data-nosnippet>268</a>
+<a href=#269 id=269 data-nosnippet>269</a><span class="doccomment">/// Function that returns true when serialization for [`Value`] is taking place.
+<a href=#270 id=270 data-nosnippet>270</a>///
+<a href=#271 id=271 data-nosnippet>271</a>/// MiniJinja internally creates [`Value`] objects from all values passed to the
+<a href=#272 id=272 data-nosnippet>272</a>/// engine.  It does this by going through the regular serde serialization trait.
+<a href=#273 id=273 data-nosnippet>273</a>/// In some cases users might want to customize the serialization specifically for
+<a href=#274 id=274 data-nosnippet>274</a>/// MiniJinja because they want to tune the object for the template engine
+<a href=#275 id=275 data-nosnippet>275</a>/// independently of what is normally serialized to disk.
+<a href=#276 id=276 data-nosnippet>276</a>///
+<a href=#277 id=277 data-nosnippet>277</a>/// This function returns `true` when MiniJinja is serializing to [`Value`] and
+<a href=#278 id=278 data-nosnippet>278</a>/// `false` otherwise.  You can call this within your own [`Serialize`]
+<a href=#279 id=279 data-nosnippet>279</a>/// implementation to change the output format.
+<a href=#280 id=280 data-nosnippet>280</a>///
+<a href=#281 id=281 data-nosnippet>281</a>/// This is particularly useful as serialization for MiniJinja does not need to
+<a href=#282 id=282 data-nosnippet>282</a>/// support deserialization.  So it becomes possible to completely change what
+<a href=#283 id=283 data-nosnippet>283</a>/// gets sent there, even at the cost of serializing something that cannot be
+<a href=#284 id=284 data-nosnippet>284</a>/// deserialized.
+<a href=#285 id=285 data-nosnippet>285</a></span><span class="kw">pub fn </span>serializing_for_value() -&gt; bool {
+<a href=#286 id=286 data-nosnippet>286</a>    INTERNAL_SERIALIZATION.with(|flag| flag.get())
+<a href=#287 id=287 data-nosnippet>287</a>}
+<a href=#288 id=288 data-nosnippet>288</a>
+<a href=#289 id=289 data-nosnippet>289</a><span class="kw">fn </span>mark_internal_serialization() -&gt; <span class="kw">impl </span>Drop {
+<a href=#290 id=290 data-nosnippet>290</a>    <span class="kw">let </span>old = INTERNAL_SERIALIZATION.with(|flag| {
+<a href=#291 id=291 data-nosnippet>291</a>        <span class="kw">let </span>old = flag.get();
+<a href=#292 id=292 data-nosnippet>292</a>        flag.set(<span class="bool-val">true</span>);
+<a href=#293 id=293 data-nosnippet>293</a>        old
+<a href=#294 id=294 data-nosnippet>294</a>    });
+<a href=#295 id=295 data-nosnippet>295</a>    OnDrop::new(<span class="kw">move </span>|| {
+<a href=#296 id=296 data-nosnippet>296</a>        <span class="kw">if </span>!old {
+<a href=#297 id=297 data-nosnippet>297</a>            INTERNAL_SERIALIZATION.with(|flag| flag.set(<span class="bool-val">false</span>));
+<a href=#298 id=298 data-nosnippet>298</a>        }
+<a href=#299 id=299 data-nosnippet>299</a>    })
+<a href=#300 id=300 data-nosnippet>300</a>}
+<a href=#301 id=301 data-nosnippet>301</a>
+<a href=#302 id=302 data-nosnippet>302</a><span class="doccomment">/// Describes the kind of value.
+<a href=#303 id=303 data-nosnippet>303</a></span><span class="attr">#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+<a href=#304 id=304 data-nosnippet>304</a>#[non_exhaustive]
+<a href=#305 id=305 data-nosnippet>305</a></span><span class="kw">pub enum </span>ValueKind {
+<a href=#306 id=306 data-nosnippet>306</a>    <span class="doccomment">/// The value is undefined
+<a href=#307 id=307 data-nosnippet>307</a>    </span>Undefined,
+<a href=#308 id=308 data-nosnippet>308</a>    <span class="doccomment">/// The value is the none singleton (`()`)
+<a href=#309 id=309 data-nosnippet>309</a>    </span><span class="prelude-val">None</span>,
+<a href=#310 id=310 data-nosnippet>310</a>    <span class="doccomment">/// The value is a [`bool`]
+<a href=#311 id=311 data-nosnippet>311</a>    </span>Bool,
+<a href=#312 id=312 data-nosnippet>312</a>    <span class="doccomment">/// The value is a number of a supported type.
+<a href=#313 id=313 data-nosnippet>313</a>    </span>Number,
+<a href=#314 id=314 data-nosnippet>314</a>    <span class="doccomment">/// The value is a string.
+<a href=#315 id=315 data-nosnippet>315</a>    </span>String,
+<a href=#316 id=316 data-nosnippet>316</a>    <span class="doccomment">/// The value is a byte array.
+<a href=#317 id=317 data-nosnippet>317</a>    </span>Bytes,
+<a href=#318 id=318 data-nosnippet>318</a>    <span class="doccomment">/// The value is an array of other values.
+<a href=#319 id=319 data-nosnippet>319</a>    </span>Seq,
+<a href=#320 id=320 data-nosnippet>320</a>    <span class="doccomment">/// The value is a key/value mapping.
+<a href=#321 id=321 data-nosnippet>321</a>    </span>Map,
+<a href=#322 id=322 data-nosnippet>322</a>    <span class="doccomment">/// An iterable
+<a href=#323 id=323 data-nosnippet>323</a>    </span>Iterable,
+<a href=#324 id=324 data-nosnippet>324</a>    <span class="doccomment">/// A plain object without specific behavior.
+<a href=#325 id=325 data-nosnippet>325</a>    </span>Plain,
+<a href=#326 id=326 data-nosnippet>326</a>    <span class="doccomment">/// This value is invalid (holds an error).
+<a href=#327 id=327 data-nosnippet>327</a>    ///
+<a href=#328 id=328 data-nosnippet>328</a>    /// This can happen when a serialization error occurred or the engine
+<a href=#329 id=329 data-nosnippet>329</a>    /// encountered a failure in a place where an error can otherwise not
+<a href=#330 id=330 data-nosnippet>330</a>    /// be produced.  Interacting with such values in the context of the
+<a href=#331 id=331 data-nosnippet>331</a>    /// template evaluation process will attempt to propagate the error.
+<a href=#332 id=332 data-nosnippet>332</a>    </span>Invalid,
+<a href=#333 id=333 data-nosnippet>333</a>}
+<a href=#334 id=334 data-nosnippet>334</a>
+<a href=#335 id=335 data-nosnippet>335</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>ValueKind {
+<a href=#336 id=336 data-nosnippet>336</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#337 id=337 data-nosnippet>337</a>        f.write_str(<span class="kw">match </span><span class="kw-2">*</span><span class="self">self </span>{
+<a href=#338 id=338 data-nosnippet>338</a>            ValueKind::Undefined =&gt; <span class="string">"undefined"</span>,
+<a href=#339 id=339 data-nosnippet>339</a>            ValueKind::None =&gt; <span class="string">"none"</span>,
+<a href=#340 id=340 data-nosnippet>340</a>            ValueKind::Bool =&gt; <span class="string">"bool"</span>,
+<a href=#341 id=341 data-nosnippet>341</a>            ValueKind::Number =&gt; <span class="string">"number"</span>,
+<a href=#342 id=342 data-nosnippet>342</a>            ValueKind::String =&gt; <span class="string">"string"</span>,
+<a href=#343 id=343 data-nosnippet>343</a>            ValueKind::Bytes =&gt; <span class="string">"bytes"</span>,
+<a href=#344 id=344 data-nosnippet>344</a>            ValueKind::Seq =&gt; <span class="string">"sequence"</span>,
+<a href=#345 id=345 data-nosnippet>345</a>            ValueKind::Map =&gt; <span class="string">"map"</span>,
+<a href=#346 id=346 data-nosnippet>346</a>            ValueKind::Iterable =&gt; <span class="string">"iterator"</span>,
+<a href=#347 id=347 data-nosnippet>347</a>            ValueKind::Plain =&gt; <span class="string">"plain object"</span>,
+<a href=#348 id=348 data-nosnippet>348</a>            ValueKind::Invalid =&gt; <span class="string">"invalid value"</span>,
+<a href=#349 id=349 data-nosnippet>349</a>        })
+<a href=#350 id=350 data-nosnippet>350</a>    }
+<a href=#351 id=351 data-nosnippet>351</a>}
+<a href=#352 id=352 data-nosnippet>352</a>
+<a href=#353 id=353 data-nosnippet>353</a><span class="doccomment">/// Type type of string
+<a href=#354 id=354 data-nosnippet>354</a></span><span class="attr">#[derive(Copy, Clone, Debug)]
+<a href=#355 id=355 data-nosnippet>355</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>StringType {
+<a href=#356 id=356 data-nosnippet>356</a>    Normal,
+<a href=#357 id=357 data-nosnippet>357</a>    Safe,
+<a href=#358 id=358 data-nosnippet>358</a>}
+<a href=#359 id=359 data-nosnippet>359</a>
+<a href=#360 id=360 data-nosnippet>360</a><span class="doccomment">/// Type type of undefined
+<a href=#361 id=361 data-nosnippet>361</a></span><span class="attr">#[derive(Copy, Clone, Debug)]
+<a href=#362 id=362 data-nosnippet>362</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>UndefinedType {
+<a href=#363 id=363 data-nosnippet>363</a>    Default,
+<a href=#364 id=364 data-nosnippet>364</a>    Silent,
+<a href=#365 id=365 data-nosnippet>365</a>}
+<a href=#366 id=366 data-nosnippet>366</a>
+<a href=#367 id=367 data-nosnippet>367</a><span class="doccomment">/// Wraps an internal copyable value but marks it as packed.
+<a href=#368 id=368 data-nosnippet>368</a>///
+<a href=#369 id=369 data-nosnippet>369</a>/// This is used for `i128`/`u128` in the value repr to avoid
+<a href=#370 id=370 data-nosnippet>370</a>/// the excessive 16 byte alignment.
+<a href=#371 id=371 data-nosnippet>371</a></span><span class="attr">#[derive(Copy, Debug)]
+<a href=#372 id=372 data-nosnippet>372</a>#[cfg_attr(feature = <span class="string">"unstable_machinery_serde"</span>, derive(serde::Serialize))]
+<a href=#373 id=373 data-nosnippet>373</a>#[repr(packed)]
+<a href=#374 id=374 data-nosnippet>374</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>Packed&lt;T: Copy&gt;(<span class="kw">pub </span>T);
+<a href=#375 id=375 data-nosnippet>375</a>
+<a href=#376 id=376 data-nosnippet>376</a><span class="kw">impl</span>&lt;T: Copy&gt; Clone <span class="kw">for </span>Packed&lt;T&gt; {
+<a href=#377 id=377 data-nosnippet>377</a>    <span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self </span>{
+<a href=#378 id=378 data-nosnippet>378</a>        <span class="kw-2">*</span><span class="self">self
+<a href=#379 id=379 data-nosnippet>379</a>    </span>}
+<a href=#380 id=380 data-nosnippet>380</a>}
+<a href=#381 id=381 data-nosnippet>381</a>
+<a href=#382 id=382 data-nosnippet>382</a><span class="doccomment">/// Max size of a small str.
+<a href=#383 id=383 data-nosnippet>383</a>///
+<a href=#384 id=384 data-nosnippet>384</a>/// Logic: Value is 24 bytes. 1 byte is for the discriminant. One byte is
+<a href=#385 id=385 data-nosnippet>385</a>/// needed for the small str length.
+<a href=#386 id=386 data-nosnippet>386</a></span><span class="kw">const </span>SMALL_STR_CAP: usize = <span class="number">22</span>;
+<a href=#387 id=387 data-nosnippet>387</a>
+<a href=#388 id=388 data-nosnippet>388</a><span class="doccomment">/// Helper to store string data inline.
+<a href=#389 id=389 data-nosnippet>389</a></span><span class="attr">#[derive(Clone)]
+<a href=#390 id=390 data-nosnippet>390</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>SmallStr {
+<a href=#391 id=391 data-nosnippet>391</a>    len: u8,
+<a href=#392 id=392 data-nosnippet>392</a>    buf: [u8; SMALL_STR_CAP],
+<a href=#393 id=393 data-nosnippet>393</a>}
+<a href=#394 id=394 data-nosnippet>394</a>
+<a href=#395 id=395 data-nosnippet>395</a><span class="kw">impl </span>SmallStr {
+<a href=#396 id=396 data-nosnippet>396</a>    <span class="kw">pub fn </span>try_new(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;SmallStr&gt; {
+<a href=#397 id=397 data-nosnippet>397</a>        <span class="kw">let </span>len = s.len();
+<a href=#398 id=398 data-nosnippet>398</a>        <span class="kw">if </span>len &lt;= SMALL_STR_CAP {
+<a href=#399 id=399 data-nosnippet>399</a>            <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; SMALL_STR_CAP];
+<a href=#400 id=400 data-nosnippet>400</a>            buf[..len].copy_from_slice(s.as_bytes());
+<a href=#401 id=401 data-nosnippet>401</a>            <span class="prelude-val">Some</span>(SmallStr {
+<a href=#402 id=402 data-nosnippet>402</a>                len: len <span class="kw">as </span>u8,
+<a href=#403 id=403 data-nosnippet>403</a>                buf,
+<a href=#404 id=404 data-nosnippet>404</a>            })
+<a href=#405 id=405 data-nosnippet>405</a>        } <span class="kw">else </span>{
+<a href=#406 id=406 data-nosnippet>406</a>            <span class="prelude-val">None
+<a href=#407 id=407 data-nosnippet>407</a>        </span>}
+<a href=#408 id=408 data-nosnippet>408</a>    }
+<a href=#409 id=409 data-nosnippet>409</a>
+<a href=#410 id=410 data-nosnippet>410</a>    <span class="kw">pub fn </span>as_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+<a href=#411 id=411 data-nosnippet>411</a>        <span class="comment">// SAFETY: This is safe because we only place well-formed utf-8 strings
+<a href=#412 id=412 data-nosnippet>412</a>        </span><span class="kw">unsafe </span>{ std::str::from_utf8_unchecked(<span class="kw-2">&amp;</span><span class="self">self</span>.buf[..<span class="self">self</span>.len <span class="kw">as </span>usize]) }
+<a href=#413 id=413 data-nosnippet>413</a>    }
+<a href=#414 id=414 data-nosnippet>414</a>
+<a href=#415 id=415 data-nosnippet>415</a>    <span class="kw">pub fn </span>is_empty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#416 id=416 data-nosnippet>416</a>        <span class="self">self</span>.len == <span class="number">0
+<a href=#417 id=417 data-nosnippet>417</a>    </span>}
+<a href=#418 id=418 data-nosnippet>418</a>}
+<a href=#419 id=419 data-nosnippet>419</a>
+<a href=#420 id=420 data-nosnippet>420</a><span class="attr">#[derive(Clone)]
+<a href=#421 id=421 data-nosnippet>421</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>ValueRepr {
+<a href=#422 id=422 data-nosnippet>422</a>    <span class="prelude-val">None</span>,
+<a href=#423 id=423 data-nosnippet>423</a>    Undefined(UndefinedType),
+<a href=#424 id=424 data-nosnippet>424</a>    Bool(bool),
+<a href=#425 id=425 data-nosnippet>425</a>    U64(u64),
+<a href=#426 id=426 data-nosnippet>426</a>    I64(i64),
+<a href=#427 id=427 data-nosnippet>427</a>    F64(f64),
+<a href=#428 id=428 data-nosnippet>428</a>    Invalid(Arc&lt;Error&gt;),
+<a href=#429 id=429 data-nosnippet>429</a>    U128(Packed&lt;u128&gt;),
+<a href=#430 id=430 data-nosnippet>430</a>    I128(Packed&lt;i128&gt;),
+<a href=#431 id=431 data-nosnippet>431</a>    String(Arc&lt;str&gt;, StringType),
+<a href=#432 id=432 data-nosnippet>432</a>    SmallStr(SmallStr),
+<a href=#433 id=433 data-nosnippet>433</a>    Bytes(Arc&lt;Vec&lt;u8&gt;&gt;),
+<a href=#434 id=434 data-nosnippet>434</a>    Object(DynObject),
+<a href=#435 id=435 data-nosnippet>435</a>}
+<a href=#436 id=436 data-nosnippet>436</a>
+<a href=#437 id=437 data-nosnippet>437</a><span class="kw">impl </span>fmt::Debug <span class="kw">for </span>ValueRepr {
+<a href=#438 id=438 data-nosnippet>438</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#439 id=439 data-nosnippet>439</a>        <span class="kw">match </span><span class="kw-2">*</span><span class="self">self </span>{
+<a href=#440 id=440 data-nosnippet>440</a>            ValueRepr::Undefined(<span class="kw">_</span>) =&gt; f.write_str(<span class="string">"undefined"</span>),
+<a href=#441 id=441 data-nosnippet>441</a>            ValueRepr::Bool(<span class="kw-2">ref </span>val) =&gt; fmt::Debug::fmt(val, f),
+<a href=#442 id=442 data-nosnippet>442</a>            ValueRepr::U64(<span class="kw-2">ref </span>val) =&gt; fmt::Debug::fmt(val, f),
+<a href=#443 id=443 data-nosnippet>443</a>            ValueRepr::I64(<span class="kw-2">ref </span>val) =&gt; fmt::Debug::fmt(val, f),
+<a href=#444 id=444 data-nosnippet>444</a>            ValueRepr::F64(<span class="kw-2">ref </span>val) =&gt; fmt::Debug::fmt(val, f),
+<a href=#445 id=445 data-nosnippet>445</a>            ValueRepr::None =&gt; f.write_str(<span class="string">"none"</span>),
+<a href=#446 id=446 data-nosnippet>446</a>            ValueRepr::Invalid(<span class="kw-2">ref </span>val) =&gt; <span class="macro">write!</span>(f, <span class="string">"&lt;invalid value: {}&gt;"</span>, val),
+<a href=#447 id=447 data-nosnippet>447</a>            ValueRepr::U128(val) =&gt; fmt::Debug::fmt(<span class="kw-2">&amp;</span>{ val.<span class="number">0 </span>}, f),
+<a href=#448 id=448 data-nosnippet>448</a>            ValueRepr::I128(val) =&gt; fmt::Debug::fmt(<span class="kw-2">&amp;</span>{ val.<span class="number">0 </span>}, f),
+<a href=#449 id=449 data-nosnippet>449</a>            ValueRepr::String(<span class="kw-2">ref </span>val, <span class="kw">_</span>) =&gt; fmt::Debug::fmt(val, f),
+<a href=#450 id=450 data-nosnippet>450</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>val) =&gt; fmt::Debug::fmt(val.as_str(), f),
+<a href=#451 id=451 data-nosnippet>451</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>val) =&gt; {
+<a href=#452 id=452 data-nosnippet>452</a>                <span class="macro">write!</span>(f, <span class="string">"b'"</span>)<span class="question-mark">?</span>;
+<a href=#453 id=453 data-nosnippet>453</a>                <span class="kw">for </span><span class="kw-2">&amp;</span>b <span class="kw">in </span>val.iter() {
+<a href=#454 id=454 data-nosnippet>454</a>                    <span class="kw">if </span>b == <span class="string">b'"' </span>{
+<a href=#455 id=455 data-nosnippet>455</a>                        <span class="macro">write!</span>(f, <span class="string">"\""</span>)<span class="question-mark">?
+<a href=#456 id=456 data-nosnippet>456</a>                    </span>} <span class="kw">else </span>{
+<a href=#457 id=457 data-nosnippet>457</a>                        <span class="macro">write!</span>(f, <span class="string">"{}"</span>, b.escape_ascii())<span class="question-mark">?</span>;
+<a href=#458 id=458 data-nosnippet>458</a>                    }
+<a href=#459 id=459 data-nosnippet>459</a>                }
+<a href=#460 id=460 data-nosnippet>460</a>                <span class="macro">write!</span>(f, <span class="string">"'"</span>)
+<a href=#461 id=461 data-nosnippet>461</a>            }
+<a href=#462 id=462 data-nosnippet>462</a>            ValueRepr::Object(<span class="kw-2">ref </span>val) =&gt; val.render(f),
+<a href=#463 id=463 data-nosnippet>463</a>        }
+<a href=#464 id=464 data-nosnippet>464</a>    }
+<a href=#465 id=465 data-nosnippet>465</a>}
+<a href=#466 id=466 data-nosnippet>466</a>
+<a href=#467 id=467 data-nosnippet>467</a><span class="kw">impl </span>Hash <span class="kw">for </span>Value {
+<a href=#468 id=468 data-nosnippet>468</a>    <span class="kw">fn </span>hash&lt;H: Hasher&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, state: <span class="kw-2">&amp;mut </span>H) {
+<a href=#469 id=469 data-nosnippet>469</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#470 id=470 data-nosnippet>470</a>            ValueRepr::None | ValueRepr::Undefined(<span class="kw">_</span>) =&gt; <span class="number">0u8</span>.hash(state),
+<a href=#471 id=471 data-nosnippet>471</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; s.hash(state),
+<a href=#472 id=472 data-nosnippet>472</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; s.as_str().hash(state),
+<a href=#473 id=473 data-nosnippet>473</a>            ValueRepr::Bool(b) =&gt; b.hash(state),
+<a href=#474 id=474 data-nosnippet>474</a>            ValueRepr::Invalid(<span class="kw-2">ref </span>e) =&gt; (e.kind(), e.detail()).hash(state),
+<a href=#475 id=475 data-nosnippet>475</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; b.hash(state),
+<a href=#476 id=476 data-nosnippet>476</a>            ValueRepr::Object(<span class="kw-2">ref </span>d) =&gt; d.hash(state),
+<a href=#477 id=477 data-nosnippet>477</a>            ValueRepr::U64(<span class="kw">_</span>)
+<a href=#478 id=478 data-nosnippet>478</a>            | ValueRepr::I64(<span class="kw">_</span>)
+<a href=#479 id=479 data-nosnippet>479</a>            | ValueRepr::F64(<span class="kw">_</span>)
+<a href=#480 id=480 data-nosnippet>480</a>            | ValueRepr::U128(<span class="kw">_</span>)
+<a href=#481 id=481 data-nosnippet>481</a>            | ValueRepr::I128(<span class="kw">_</span>) =&gt; {
+<a href=#482 id=482 data-nosnippet>482</a>                <span class="kw">if let </span><span class="prelude-val">Ok</span>(val) = i64::try_from(<span class="self">self</span>.clone()) {
+<a href=#483 id=483 data-nosnippet>483</a>                    val.hash(state)
+<a href=#484 id=484 data-nosnippet>484</a>                } <span class="kw">else </span>{
+<a href=#485 id=485 data-nosnippet>485</a>                    as_f64(<span class="self">self</span>, <span class="bool-val">true</span>).map(|x| x.to_bits()).hash(state)
+<a href=#486 id=486 data-nosnippet>486</a>                }
+<a href=#487 id=487 data-nosnippet>487</a>            }
+<a href=#488 id=488 data-nosnippet>488</a>        }
+<a href=#489 id=489 data-nosnippet>489</a>    }
+<a href=#490 id=490 data-nosnippet>490</a>}
+<a href=#491 id=491 data-nosnippet>491</a>
+<a href=#492 id=492 data-nosnippet>492</a><span class="doccomment">/// Represents a dynamically typed value in the template engine.
+<a href=#493 id=493 data-nosnippet>493</a></span><span class="attr">#[derive(Clone)]
+<a href=#494 id=494 data-nosnippet>494</a></span><span class="kw">pub struct </span>Value(<span class="kw">pub</span>(<span class="kw">crate</span>) ValueRepr);
+<a href=#495 id=495 data-nosnippet>495</a>
+<a href=#496 id=496 data-nosnippet>496</a><span class="kw">impl </span>PartialEq <span class="kw">for </span>Value {
+<a href=#497 id=497 data-nosnippet>497</a>    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
+<a href=#498 id=498 data-nosnippet>498</a>        <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span>other.<span class="number">0</span>) {
+<a href=#499 id=499 data-nosnippet>499</a>            (<span class="kw-2">&amp;</span>ValueRepr::None, <span class="kw-2">&amp;</span>ValueRepr::None) =&gt; <span class="bool-val">true</span>,
+<a href=#500 id=500 data-nosnippet>500</a>            (<span class="kw-2">&amp;</span>ValueRepr::Undefined(<span class="kw">_</span>), <span class="kw-2">&amp;</span>ValueRepr::Undefined(<span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
+<a href=#501 id=501 data-nosnippet>501</a>            (<span class="kw-2">&amp;</span>ValueRepr::String(<span class="kw-2">ref </span>a, <span class="kw">_</span>), <span class="kw-2">&amp;</span>ValueRepr::String(<span class="kw-2">ref </span>b, <span class="kw">_</span>)) =&gt; a == b,
+<a href=#502 id=502 data-nosnippet>502</a>            (<span class="kw-2">&amp;</span>ValueRepr::SmallStr(<span class="kw-2">ref </span>a), <span class="kw-2">&amp;</span>ValueRepr::SmallStr(<span class="kw-2">ref </span>b)) =&gt; a.as_str() == b.as_str(),
+<a href=#503 id=503 data-nosnippet>503</a>            (<span class="kw-2">&amp;</span>ValueRepr::Bytes(<span class="kw-2">ref </span>a), <span class="kw-2">&amp;</span>ValueRepr::Bytes(<span class="kw-2">ref </span>b)) =&gt; a == b,
+<a href=#504 id=504 data-nosnippet>504</a>            <span class="kw">_ </span>=&gt; <span class="kw">match </span>ops::coerce(<span class="self">self</span>, other, <span class="bool-val">false</span>) {
+<a href=#505 id=505 data-nosnippet>505</a>                <span class="prelude-val">Some</span>(ops::CoerceResult::F64(a, b)) =&gt; a == b,
+<a href=#506 id=506 data-nosnippet>506</a>                <span class="prelude-val">Some</span>(ops::CoerceResult::I128(a, b)) =&gt; a == b,
+<a href=#507 id=507 data-nosnippet>507</a>                <span class="prelude-val">Some</span>(ops::CoerceResult::Str(a, b)) =&gt; a == b,
+<a href=#508 id=508 data-nosnippet>508</a>                <span class="prelude-val">None </span>=&gt; {
+<a href=#509 id=509 data-nosnippet>509</a>                    <span class="kw">if let </span>(<span class="prelude-val">Some</span>(a), <span class="prelude-val">Some</span>(b)) = (<span class="self">self</span>.as_object(), other.as_object()) {
+<a href=#510 id=510 data-nosnippet>510</a>                        <span class="kw">if </span>a.is_same_object(b) {
+<a href=#511 id=511 data-nosnippet>511</a>                            <span class="kw">return </span><span class="bool-val">true</span>;
+<a href=#512 id=512 data-nosnippet>512</a>                        } <span class="kw">else if </span>a.is_same_object_type(b) {
+<a href=#513 id=513 data-nosnippet>513</a>                            <span class="kw">if let </span><span class="prelude-val">Some</span>(rv) = a.custom_cmp(b) {
+<a href=#514 id=514 data-nosnippet>514</a>                                <span class="kw">return </span>rv == Ordering::Equal;
+<a href=#515 id=515 data-nosnippet>515</a>                            }
+<a href=#516 id=516 data-nosnippet>516</a>                        }
+<a href=#517 id=517 data-nosnippet>517</a>                        <span class="kw">match </span>(a.repr(), b.repr()) {
+<a href=#518 id=518 data-nosnippet>518</a>                            (ObjectRepr::Map, ObjectRepr::Map) =&gt; {
+<a href=#519 id=519 data-nosnippet>519</a>                                <span class="comment">// only if we have known lengths can we compare the enumerators
+<a href=#520 id=520 data-nosnippet>520</a>                                // ahead of time.  This function has a fallback for when a
+<a href=#521 id=521 data-nosnippet>521</a>                                // map has an unknown length.  That's generally a bad idea, but
+<a href=#522 id=522 data-nosnippet>522</a>                                // it makes sense supporting regardless as silent failures are
+<a href=#523 id=523 data-nosnippet>523</a>                                // not a lot of fun.
+<a href=#524 id=524 data-nosnippet>524</a>                                </span><span class="kw">let </span><span class="kw-2">mut </span>need_length_fallback = <span class="bool-val">true</span>;
+<a href=#525 id=525 data-nosnippet>525</a>                                <span class="kw">if let </span>(<span class="prelude-val">Some</span>(a_len), <span class="prelude-val">Some</span>(b_len)) =
+<a href=#526 id=526 data-nosnippet>526</a>                                    (a.enumerator_len(), b.enumerator_len())
+<a href=#527 id=527 data-nosnippet>527</a>                                {
+<a href=#528 id=528 data-nosnippet>528</a>                                    <span class="kw">if </span>a_len != b_len {
+<a href=#529 id=529 data-nosnippet>529</a>                                        <span class="kw">return </span><span class="bool-val">false</span>;
+<a href=#530 id=530 data-nosnippet>530</a>                                    }
+<a href=#531 id=531 data-nosnippet>531</a>                                    need_length_fallback = <span class="bool-val">false</span>;
+<a href=#532 id=532 data-nosnippet>532</a>                                }
+<a href=#533 id=533 data-nosnippet>533</a>                                <span class="kw">let </span><span class="kw-2">mut </span>a_count = <span class="number">0</span>;
+<a href=#534 id=534 data-nosnippet>534</a>                                <span class="kw">if </span>!a.try_iter_pairs().is_some_and(|<span class="kw-2">mut </span>ak| {
+<a href=#535 id=535 data-nosnippet>535</a>                                    ak.all(|(k, v1)| {
+<a href=#536 id=536 data-nosnippet>536</a>                                        a_count += <span class="number">1</span>;
+<a href=#537 id=537 data-nosnippet>537</a>                                        b.get_value(<span class="kw-2">&amp;</span>k) == <span class="prelude-val">Some</span>(v1)
+<a href=#538 id=538 data-nosnippet>538</a>                                    })
+<a href=#539 id=539 data-nosnippet>539</a>                                }) {
+<a href=#540 id=540 data-nosnippet>540</a>                                    <span class="kw">return </span><span class="bool-val">false</span>;
+<a href=#541 id=541 data-nosnippet>541</a>                                }
+<a href=#542 id=542 data-nosnippet>542</a>                                <span class="kw">if </span>!need_length_fallback {
+<a href=#543 id=543 data-nosnippet>543</a>                                    <span class="bool-val">true
+<a href=#544 id=544 data-nosnippet>544</a>                                </span>} <span class="kw">else </span>{
+<a href=#545 id=545 data-nosnippet>545</a>                                    a_count == b.try_iter().map_or(<span class="number">0</span>, |x| x.count())
+<a href=#546 id=546 data-nosnippet>546</a>                                }
+<a href=#547 id=547 data-nosnippet>547</a>                            }
+<a href=#548 id=548 data-nosnippet>548</a>                            (
+<a href=#549 id=549 data-nosnippet>549</a>                                ObjectRepr::Seq | ObjectRepr::Iterable,
+<a href=#550 id=550 data-nosnippet>550</a>                                ObjectRepr::Seq | ObjectRepr::Iterable,
+<a href=#551 id=551 data-nosnippet>551</a>                            ) =&gt; {
+<a href=#552 id=552 data-nosnippet>552</a>                                <span class="kw">if let </span>(<span class="prelude-val">Some</span>(ak), <span class="prelude-val">Some</span>(bk)) = (a.try_iter(), b.try_iter()) {
+<a href=#553 id=553 data-nosnippet>553</a>                                    ak.eq(bk)
+<a href=#554 id=554 data-nosnippet>554</a>                                } <span class="kw">else </span>{
+<a href=#555 id=555 data-nosnippet>555</a>                                    <span class="bool-val">false
+<a href=#556 id=556 data-nosnippet>556</a>                                </span>}
+<a href=#557 id=557 data-nosnippet>557</a>                            }
+<a href=#558 id=558 data-nosnippet>558</a>                            <span class="comment">// terrible fallback for plain objects
+<a href=#559 id=559 data-nosnippet>559</a>                            </span>(ObjectRepr::Plain, ObjectRepr::Plain) =&gt; {
+<a href=#560 id=560 data-nosnippet>560</a>                                a.to_string() == b.to_string()
+<a href=#561 id=561 data-nosnippet>561</a>                            }
+<a href=#562 id=562 data-nosnippet>562</a>                            <span class="comment">// should not happen
+<a href=#563 id=563 data-nosnippet>563</a>                            </span>(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
+<a href=#564 id=564 data-nosnippet>564</a>                        }
+<a href=#565 id=565 data-nosnippet>565</a>                    } <span class="kw">else </span>{
+<a href=#566 id=566 data-nosnippet>566</a>                        <span class="bool-val">false
+<a href=#567 id=567 data-nosnippet>567</a>                    </span>}
+<a href=#568 id=568 data-nosnippet>568</a>                }
+<a href=#569 id=569 data-nosnippet>569</a>            },
+<a href=#570 id=570 data-nosnippet>570</a>        }
+<a href=#571 id=571 data-nosnippet>571</a>    }
+<a href=#572 id=572 data-nosnippet>572</a>}
+<a href=#573 id=573 data-nosnippet>573</a>
+<a href=#574 id=574 data-nosnippet>574</a><span class="kw">impl </span>Eq <span class="kw">for </span>Value {}
+<a href=#575 id=575 data-nosnippet>575</a>
+<a href=#576 id=576 data-nosnippet>576</a><span class="kw">impl </span>PartialOrd <span class="kw">for </span>Value {
+<a href=#577 id=577 data-nosnippet>577</a>    <span class="kw">fn </span>partial_cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Ordering&gt; {
+<a href=#578 id=578 data-nosnippet>578</a>        <span class="prelude-val">Some</span>(<span class="self">self</span>.cmp(other))
+<a href=#579 id=579 data-nosnippet>579</a>    }
+<a href=#580 id=580 data-nosnippet>580</a>}
+<a href=#581 id=581 data-nosnippet>581</a>
+<a href=#582 id=582 data-nosnippet>582</a><span class="kw">fn </span>f64_total_cmp(left: f64, right: f64) -&gt; Ordering {
+<a href=#583 id=583 data-nosnippet>583</a>    <span class="comment">// this is taken from f64::total_cmp on newer rust versions
+<a href=#584 id=584 data-nosnippet>584</a>    </span><span class="kw">let </span><span class="kw-2">mut </span>left = left.to_bits() <span class="kw">as </span>i64;
+<a href=#585 id=585 data-nosnippet>585</a>    <span class="kw">let </span><span class="kw-2">mut </span>right = right.to_bits() <span class="kw">as </span>i64;
+<a href=#586 id=586 data-nosnippet>586</a>    left ^= (((left &gt;&gt; <span class="number">63</span>) <span class="kw">as </span>u64) &gt;&gt; <span class="number">1</span>) <span class="kw">as </span>i64;
+<a href=#587 id=587 data-nosnippet>587</a>    right ^= (((right &gt;&gt; <span class="number">63</span>) <span class="kw">as </span>u64) &gt;&gt; <span class="number">1</span>) <span class="kw">as </span>i64;
+<a href=#588 id=588 data-nosnippet>588</a>    left.cmp(<span class="kw-2">&amp;</span>right)
+<a href=#589 id=589 data-nosnippet>589</a>}
+<a href=#590 id=590 data-nosnippet>590</a>
+<a href=#591 id=591 data-nosnippet>591</a><span class="kw">impl </span>Ord <span class="kw">for </span>Value {
+<a href=#592 id=592 data-nosnippet>592</a>    <span class="kw">fn </span>cmp(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Ordering {
+<a href=#593 id=593 data-nosnippet>593</a>        <span class="kw">let </span>kind_ordering = <span class="self">self</span>.kind().cmp(<span class="kw-2">&amp;</span>other.kind());
+<a href=#594 id=594 data-nosnippet>594</a>        <span class="kw">if </span><span class="macro">matches!</span>(kind_ordering, Ordering::Less | Ordering::Greater) {
+<a href=#595 id=595 data-nosnippet>595</a>            <span class="kw">return </span>kind_ordering;
+<a href=#596 id=596 data-nosnippet>596</a>        }
+<a href=#597 id=597 data-nosnippet>597</a>        <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span>other.<span class="number">0</span>) {
+<a href=#598 id=598 data-nosnippet>598</a>            (<span class="kw-2">&amp;</span>ValueRepr::None, <span class="kw-2">&amp;</span>ValueRepr::None) =&gt; Ordering::Equal,
+<a href=#599 id=599 data-nosnippet>599</a>            (<span class="kw-2">&amp;</span>ValueRepr::Undefined(<span class="kw">_</span>), <span class="kw-2">&amp;</span>ValueRepr::Undefined(<span class="kw">_</span>)) =&gt; Ordering::Equal,
+<a href=#600 id=600 data-nosnippet>600</a>            (<span class="kw-2">&amp;</span>ValueRepr::String(<span class="kw-2">ref </span>a, <span class="kw">_</span>), <span class="kw-2">&amp;</span>ValueRepr::String(<span class="kw-2">ref </span>b, <span class="kw">_</span>)) =&gt; a.cmp(b),
+<a href=#601 id=601 data-nosnippet>601</a>            (<span class="kw-2">&amp;</span>ValueRepr::SmallStr(<span class="kw-2">ref </span>a), <span class="kw-2">&amp;</span>ValueRepr::SmallStr(<span class="kw-2">ref </span>b)) =&gt; {
+<a href=#602 id=602 data-nosnippet>602</a>                a.as_str().cmp(b.as_str())
+<a href=#603 id=603 data-nosnippet>603</a>            }
+<a href=#604 id=604 data-nosnippet>604</a>            (<span class="kw-2">&amp;</span>ValueRepr::Bytes(<span class="kw-2">ref </span>a), <span class="kw-2">&amp;</span>ValueRepr::Bytes(<span class="kw-2">ref </span>b)) =&gt; a.cmp(b),
+<a href=#605 id=605 data-nosnippet>605</a>            <span class="kw">_ </span>=&gt; <span class="kw">match </span>ops::coerce(<span class="self">self</span>, other, <span class="bool-val">false</span>) {
+<a href=#606 id=606 data-nosnippet>606</a>                <span class="prelude-val">Some</span>(ops::CoerceResult::F64(a, b)) =&gt; f64_total_cmp(a, b),
+<a href=#607 id=607 data-nosnippet>607</a>                <span class="prelude-val">Some</span>(ops::CoerceResult::I128(a, b)) =&gt; a.cmp(<span class="kw-2">&amp;</span>b),
+<a href=#608 id=608 data-nosnippet>608</a>                <span class="prelude-val">Some</span>(ops::CoerceResult::Str(a, b)) =&gt; a.cmp(b),
+<a href=#609 id=609 data-nosnippet>609</a>                <span class="prelude-val">None </span>=&gt; {
+<a href=#610 id=610 data-nosnippet>610</a>                    <span class="kw">let </span>a = <span class="self">self</span>.as_object().unwrap();
+<a href=#611 id=611 data-nosnippet>611</a>                    <span class="kw">let </span>b = other.as_object().unwrap();
+<a href=#612 id=612 data-nosnippet>612</a>
+<a href=#613 id=613 data-nosnippet>613</a>                    <span class="kw">if </span>a.is_same_object(b) {
+<a href=#614 id=614 data-nosnippet>614</a>                        Ordering::Equal
+<a href=#615 id=615 data-nosnippet>615</a>                    } <span class="kw">else </span>{
+<a href=#616 id=616 data-nosnippet>616</a>                        <span class="comment">// if there is a custom comparison, run it.
+<a href=#617 id=617 data-nosnippet>617</a>                        </span><span class="kw">if </span>a.is_same_object_type(b) {
+<a href=#618 id=618 data-nosnippet>618</a>                            <span class="kw">if let </span><span class="prelude-val">Some</span>(rv) = a.custom_cmp(b) {
+<a href=#619 id=619 data-nosnippet>619</a>                                <span class="kw">return </span>rv;
+<a href=#620 id=620 data-nosnippet>620</a>                            }
+<a href=#621 id=621 data-nosnippet>621</a>                        }
+<a href=#622 id=622 data-nosnippet>622</a>                        <span class="kw">match </span>(a.repr(), b.repr()) {
+<a href=#623 id=623 data-nosnippet>623</a>                            (ObjectRepr::Map, ObjectRepr::Map) =&gt; {
+<a href=#624 id=624 data-nosnippet>624</a>                                <span class="comment">// This is not really correct.  Because the keys can be in arbitrary
+<a href=#625 id=625 data-nosnippet>625</a>                                // order this could just sort really weirdly as a result.  However
+<a href=#626 id=626 data-nosnippet>626</a>                                // we don't want to pay the cost of actually sorting the keys for
+<a href=#627 id=627 data-nosnippet>627</a>                                // ordering so we just accept this for now.
+<a href=#628 id=628 data-nosnippet>628</a>                                </span><span class="kw">match </span>(a.try_iter_pairs(), b.try_iter_pairs()) {
+<a href=#629 id=629 data-nosnippet>629</a>                                    (<span class="prelude-val">Some</span>(a), <span class="prelude-val">Some</span>(b)) =&gt; a.cmp(b),
+<a href=#630 id=630 data-nosnippet>630</a>                                    <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
+<a href=#631 id=631 data-nosnippet>631</a>                                }
+<a href=#632 id=632 data-nosnippet>632</a>                            }
+<a href=#633 id=633 data-nosnippet>633</a>                            (
+<a href=#634 id=634 data-nosnippet>634</a>                                ObjectRepr::Seq | ObjectRepr::Iterable,
+<a href=#635 id=635 data-nosnippet>635</a>                                ObjectRepr::Seq | ObjectRepr::Iterable,
+<a href=#636 id=636 data-nosnippet>636</a>                            ) =&gt; <span class="kw">match </span>(a.try_iter(), b.try_iter()) {
+<a href=#637 id=637 data-nosnippet>637</a>                                (<span class="prelude-val">Some</span>(a), <span class="prelude-val">Some</span>(b)) =&gt; a.cmp(b),
+<a href=#638 id=638 data-nosnippet>638</a>                                <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
+<a href=#639 id=639 data-nosnippet>639</a>                            },
+<a href=#640 id=640 data-nosnippet>640</a>                            <span class="comment">// terrible fallback for plain objects
+<a href=#641 id=641 data-nosnippet>641</a>                            </span>(ObjectRepr::Plain, ObjectRepr::Plain) =&gt; {
+<a href=#642 id=642 data-nosnippet>642</a>                                a.to_string().cmp(<span class="kw-2">&amp;</span>b.to_string())
+<a href=#643 id=643 data-nosnippet>643</a>                            }
+<a href=#644 id=644 data-nosnippet>644</a>                            <span class="comment">// should not happen
+<a href=#645 id=645 data-nosnippet>645</a>                            </span>(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="macro">unreachable!</span>(),
+<a href=#646 id=646 data-nosnippet>646</a>                        }
+<a href=#647 id=647 data-nosnippet>647</a>                    }
+<a href=#648 id=648 data-nosnippet>648</a>                }
+<a href=#649 id=649 data-nosnippet>649</a>            },
+<a href=#650 id=650 data-nosnippet>650</a>        }
+<a href=#651 id=651 data-nosnippet>651</a>    }
+<a href=#652 id=652 data-nosnippet>652</a>}
+<a href=#653 id=653 data-nosnippet>653</a>
+<a href=#654 id=654 data-nosnippet>654</a><span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Value {
+<a href=#655 id=655 data-nosnippet>655</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
+<a href=#656 id=656 data-nosnippet>656</a>        fmt::Debug::fmt(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>, f)
+<a href=#657 id=657 data-nosnippet>657</a>    }
+<a href=#658 id=658 data-nosnippet>658</a>}
+<a href=#659 id=659 data-nosnippet>659</a>
+<a href=#660 id=660 data-nosnippet>660</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>Value {
+<a href=#661 id=661 data-nosnippet>661</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#662 id=662 data-nosnippet>662</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#663 id=663 data-nosnippet>663</a>            ValueRepr::Undefined(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+<a href=#664 id=664 data-nosnippet>664</a>            ValueRepr::Bool(val) =&gt; val.fmt(f),
+<a href=#665 id=665 data-nosnippet>665</a>            ValueRepr::U64(val) =&gt; val.fmt(f),
+<a href=#666 id=666 data-nosnippet>666</a>            ValueRepr::I64(val) =&gt; val.fmt(f),
+<a href=#667 id=667 data-nosnippet>667</a>            ValueRepr::F64(val) =&gt; {
+<a href=#668 id=668 data-nosnippet>668</a>                <span class="kw">if </span>val.is_nan() {
+<a href=#669 id=669 data-nosnippet>669</a>                    f.write_str(<span class="string">"NaN"</span>)
+<a href=#670 id=670 data-nosnippet>670</a>                } <span class="kw">else if </span>val.is_infinite() {
+<a href=#671 id=671 data-nosnippet>671</a>                    <span class="macro">write!</span>(f, <span class="string">"{}inf"</span>, <span class="kw">if </span>val.is_sign_negative() { <span class="string">"-" </span>} <span class="kw">else </span>{ <span class="string">"" </span>})
+<a href=#672 id=672 data-nosnippet>672</a>                } <span class="kw">else </span>{
+<a href=#673 id=673 data-nosnippet>673</a>                    <span class="kw">let </span><span class="kw-2">mut </span>num = val.to_string();
+<a href=#674 id=674 data-nosnippet>674</a>                    <span class="kw">if </span>!num.contains(<span class="string">'.'</span>) {
+<a href=#675 id=675 data-nosnippet>675</a>                        num.push_str(<span class="string">".0"</span>);
+<a href=#676 id=676 data-nosnippet>676</a>                    }
+<a href=#677 id=677 data-nosnippet>677</a>                    <span class="macro">write!</span>(f, <span class="string">"{num}"</span>)
+<a href=#678 id=678 data-nosnippet>678</a>                }
+<a href=#679 id=679 data-nosnippet>679</a>            }
+<a href=#680 id=680 data-nosnippet>680</a>            ValueRepr::None =&gt; f.write_str(<span class="string">"none"</span>),
+<a href=#681 id=681 data-nosnippet>681</a>            ValueRepr::Invalid(<span class="kw-2">ref </span>val) =&gt; <span class="macro">write!</span>(f, <span class="string">"&lt;invalid value: {}&gt;"</span>, val),
+<a href=#682 id=682 data-nosnippet>682</a>            ValueRepr::I128(val) =&gt; <span class="macro">write!</span>(f, <span class="string">"{}"</span>, { val.<span class="number">0 </span>}),
+<a href=#683 id=683 data-nosnippet>683</a>            ValueRepr::String(<span class="kw-2">ref </span>val, <span class="kw">_</span>) =&gt; <span class="macro">write!</span>(f, <span class="string">"{val}"</span>),
+<a href=#684 id=684 data-nosnippet>684</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>val) =&gt; <span class="macro">write!</span>(f, <span class="string">"{}"</span>, val.as_str()),
+<a href=#685 id=685 data-nosnippet>685</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>val) =&gt; <span class="macro">write!</span>(f, <span class="string">"{}"</span>, String::from_utf8_lossy(val)),
+<a href=#686 id=686 data-nosnippet>686</a>            ValueRepr::U128(val) =&gt; <span class="macro">write!</span>(f, <span class="string">"{}"</span>, { val.<span class="number">0 </span>}),
+<a href=#687 id=687 data-nosnippet>687</a>            ValueRepr::Object(<span class="kw-2">ref </span>x) =&gt; <span class="macro">write!</span>(f, <span class="string">"{x}"</span>),
+<a href=#688 id=688 data-nosnippet>688</a>        }
+<a href=#689 id=689 data-nosnippet>689</a>    }
+<a href=#690 id=690 data-nosnippet>690</a>}
+<a href=#691 id=691 data-nosnippet>691</a>
+<a href=#692 id=692 data-nosnippet>692</a><span class="kw">impl </span>Default <span class="kw">for </span>Value {
+<a href=#693 id=693 data-nosnippet>693</a>    <span class="kw">fn </span>default() -&gt; Value {
+<a href=#694 id=694 data-nosnippet>694</a>        ValueRepr::Undefined(UndefinedType::Default).into()
+<a href=#695 id=695 data-nosnippet>695</a>    }
+<a href=#696 id=696 data-nosnippet>696</a>}
+<a href=#697 id=697 data-nosnippet>697</a>
+<a href=#698 id=698 data-nosnippet>698</a><span class="attr">#[doc(hidden)]
+<a href=#699 id=699 data-nosnippet>699</a>#[deprecated = <span class="string">"This function no longer has an effect.  Use Arc::from directly."</span>]
+<a href=#700 id=700 data-nosnippet>700</a></span><span class="kw">pub fn </span>intern(s: <span class="kw-2">&amp;</span>str) -&gt; Arc&lt;str&gt; {
+<a href=#701 id=701 data-nosnippet>701</a>    Arc::from(s.to_string())
+<a href=#702 id=702 data-nosnippet>702</a>}
+<a href=#703 id=703 data-nosnippet>703</a>
+<a href=#704 id=704 data-nosnippet>704</a><span class="attr">#[allow(clippy::len_without_is_empty)]
+<a href=#705 id=705 data-nosnippet>705</a></span><span class="kw">impl </span>Value {
+<a href=#706 id=706 data-nosnippet>706</a>    <span class="doccomment">/// The undefined value.
+<a href=#707 id=707 data-nosnippet>707</a>    ///
+<a href=#708 id=708 data-nosnippet>708</a>    /// This constant exists because the undefined type does not exist in Rust
+<a href=#709 id=709 data-nosnippet>709</a>    /// and this is the only way to construct it.
+<a href=#710 id=710 data-nosnippet>710</a>    </span><span class="kw">pub const </span>UNDEFINED: Value = Value(ValueRepr::Undefined(UndefinedType::Default));
+<a href=#711 id=711 data-nosnippet>711</a>
+<a href=#712 id=712 data-nosnippet>712</a>    <span class="doccomment">/// Creates a value from something that can be serialized.
+<a href=#713 id=713 data-nosnippet>713</a>    ///
+<a href=#714 id=714 data-nosnippet>714</a>    /// This is the method that MiniJinja will generally use whenever a serializable
+<a href=#715 id=715 data-nosnippet>715</a>    /// object is passed to one of the APIs that internally want to create a value.
+<a href=#716 id=716 data-nosnippet>716</a>    /// For instance this is what [`context!`](crate::context) and
+<a href=#717 id=717 data-nosnippet>717</a>    /// [`render`](crate::Template::render) will use.
+<a href=#718 id=718 data-nosnippet>718</a>    ///
+<a href=#719 id=719 data-nosnippet>719</a>    /// During serialization of the value, [`serializing_for_value`] will return
+<a href=#720 id=720 data-nosnippet>720</a>    /// `true` which makes it possible to customize serialization for MiniJinja.
+<a href=#721 id=721 data-nosnippet>721</a>    /// For more information see [`serializing_for_value`].
+<a href=#722 id=722 data-nosnippet>722</a>    ///
+<a href=#723 id=723 data-nosnippet>723</a>    /// ```
+<a href=#724 id=724 data-nosnippet>724</a>    /// # use minijinja::value::Value;
+<a href=#725 id=725 data-nosnippet>725</a>    /// let val = Value::from_serialize(&amp;vec![1, 2, 3]);
+<a href=#726 id=726 data-nosnippet>726</a>    /// ```
+<a href=#727 id=727 data-nosnippet>727</a>    ///
+<a href=#728 id=728 data-nosnippet>728</a>    /// This method does not fail but it might return a value that is not valid.  Such
+<a href=#729 id=729 data-nosnippet>729</a>    /// values will when operated on fail in the template engine in most situations.
+<a href=#730 id=730 data-nosnippet>730</a>    /// This for instance can happen if the underlying implementation of [`Serialize`]
+<a href=#731 id=731 data-nosnippet>731</a>    /// fails.  There are also cases where invalid objects are silently hidden in the
+<a href=#732 id=732 data-nosnippet>732</a>    /// engine today.  This is for instance the case for when keys are used in hash maps
+<a href=#733 id=733 data-nosnippet>733</a>    /// that the engine cannot deal with.  Invalid values are considered an implementation
+<a href=#734 id=734 data-nosnippet>734</a>    /// detail.  There is currently no API to validate a value.
+<a href=#735 id=735 data-nosnippet>735</a>    ///
+<a href=#736 id=736 data-nosnippet>736</a>    /// If the `deserialization` feature is enabled then the inverse of this method
+<a href=#737 id=737 data-nosnippet>737</a>    /// is to use the [`Value`] type as serializer.  You can pass a value into the
+<a href=#738 id=738 data-nosnippet>738</a>    /// [`deserialize`](serde::Deserialize::deserialize) method of a type that supports
+<a href=#739 id=739 data-nosnippet>739</a>    /// serde deserialization.
+<a href=#740 id=740 data-nosnippet>740</a>    </span><span class="kw">pub fn </span>from_serialize&lt;T: Serialize&gt;(value: T) -&gt; Value {
+<a href=#741 id=741 data-nosnippet>741</a>        <span class="kw">let </span>_serialization_guard = mark_internal_serialization();
+<a href=#742 id=742 data-nosnippet>742</a>        transform(value)
+<a href=#743 id=743 data-nosnippet>743</a>    }
+<a href=#744 id=744 data-nosnippet>744</a>
+<a href=#745 id=745 data-nosnippet>745</a>    <span class="doccomment">/// Extracts a contained error.
+<a href=#746 id=746 data-nosnippet>746</a>    ///
+<a href=#747 id=747 data-nosnippet>747</a>    /// An invalid value carres an error internally and will reveal that error
+<a href=#748 id=748 data-nosnippet>748</a>    /// at a later point when iteracted with.  This is used to carry
+<a href=#749 id=749 data-nosnippet>749</a>    /// serialization errors or failures that happen when the engine otherwise
+<a href=#750 id=750 data-nosnippet>750</a>    /// assumes an infallible operation such as iteration.
+<a href=#751 id=751 data-nosnippet>751</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>validate(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#752 id=752 data-nosnippet>752</a>        <span class="kw">if let </span>ValueRepr::Invalid(err) = <span class="self">self</span>.<span class="number">0 </span>{
+<a href=#753 id=753 data-nosnippet>753</a>            <span class="comment">// Today the API implies tghat errors are `Clone`, but we don't want to expose
+<a href=#754 id=754 data-nosnippet>754</a>            // this as a functionality (yet?).
+<a href=#755 id=755 data-nosnippet>755</a>            </span><span class="prelude-val">Err</span>(Arc::try_unwrap(err).unwrap_or_else(|arc| (<span class="kw-2">*</span>arc).internal_clone()))
+<a href=#756 id=756 data-nosnippet>756</a>        } <span class="kw">else </span>{
+<a href=#757 id=757 data-nosnippet>757</a>            <span class="prelude-val">Ok</span>(<span class="self">self</span>)
+<a href=#758 id=758 data-nosnippet>758</a>        }
+<a href=#759 id=759 data-nosnippet>759</a>    }
+<a href=#760 id=760 data-nosnippet>760</a>
+<a href=#761 id=761 data-nosnippet>761</a>    <span class="doccomment">/// Creates a value from a safe string.
+<a href=#762 id=762 data-nosnippet>762</a>    ///
+<a href=#763 id=763 data-nosnippet>763</a>    /// A safe string is one that will bypass auto escaping.  For instance if you
+<a href=#764 id=764 data-nosnippet>764</a>    /// want to have the template engine render some HTML without the user having to
+<a href=#765 id=765 data-nosnippet>765</a>    /// supply the `|safe` filter, you can use a value of this type instead.
+<a href=#766 id=766 data-nosnippet>766</a>    ///
+<a href=#767 id=767 data-nosnippet>767</a>    /// ```
+<a href=#768 id=768 data-nosnippet>768</a>    /// # use minijinja::value::Value;
+<a href=#769 id=769 data-nosnippet>769</a>    /// let val = Value::from_safe_string("&lt;em&gt;note&lt;/em&gt;".into());
+<a href=#770 id=770 data-nosnippet>770</a>    /// ```
+<a href=#771 id=771 data-nosnippet>771</a>    </span><span class="kw">pub fn </span>from_safe_string(value: String) -&gt; Value {
+<a href=#772 id=772 data-nosnippet>772</a>        ValueRepr::String(Arc::from(value), StringType::Safe).into()
+<a href=#773 id=773 data-nosnippet>773</a>    }
+<a href=#774 id=774 data-nosnippet>774</a>
+<a href=#775 id=775 data-nosnippet>775</a>    <span class="doccomment">/// Creates a value from a byte vector.
+<a href=#776 id=776 data-nosnippet>776</a>    ///
+<a href=#777 id=777 data-nosnippet>777</a>    /// MiniJinja can hold on to bytes and has some limited built-in support for
+<a href=#778 id=778 data-nosnippet>778</a>    /// working with them.  They are non iterable and not particularly useful
+<a href=#779 id=779 data-nosnippet>779</a>    /// in the context of templates.  When they are stringified, they are assumed
+<a href=#780 id=780 data-nosnippet>780</a>    /// to contain UTF-8 and will be treated as such.  They become more useful
+<a href=#781 id=781 data-nosnippet>781</a>    /// when a filter can do something with them (eg: base64 encode them etc.).
+<a href=#782 id=782 data-nosnippet>782</a>    ///
+<a href=#783 id=783 data-nosnippet>783</a>    /// This method exists so that a value can be constructed as creating a
+<a href=#784 id=784 data-nosnippet>784</a>    /// value from a `Vec&lt;u8&gt;` would normally just create a sequence.
+<a href=#785 id=785 data-nosnippet>785</a>    </span><span class="kw">pub fn </span>from_bytes(value: Vec&lt;u8&gt;) -&gt; Value {
+<a href=#786 id=786 data-nosnippet>786</a>        ValueRepr::Bytes(value.into()).into()
+<a href=#787 id=787 data-nosnippet>787</a>    }
+<a href=#788 id=788 data-nosnippet>788</a>
+<a href=#789 id=789 data-nosnippet>789</a>    <span class="doccomment">/// Creates a value from a dynamic object.
+<a href=#790 id=790 data-nosnippet>790</a>    ///
+<a href=#791 id=791 data-nosnippet>791</a>    /// For more information see [`Object`].
+<a href=#792 id=792 data-nosnippet>792</a>    ///
+<a href=#793 id=793 data-nosnippet>793</a>    /// ```rust
+<a href=#794 id=794 data-nosnippet>794</a>    /// # use minijinja::value::{Value, Object};
+<a href=#795 id=795 data-nosnippet>795</a>    /// use std::fmt;
+<a href=#796 id=796 data-nosnippet>796</a>    ///
+<a href=#797 id=797 data-nosnippet>797</a>    /// #[derive(Debug)]
+<a href=#798 id=798 data-nosnippet>798</a>    /// struct Thing {
+<a href=#799 id=799 data-nosnippet>799</a>    ///     id: usize,
+<a href=#800 id=800 data-nosnippet>800</a>    /// }
+<a href=#801 id=801 data-nosnippet>801</a>    ///
+<a href=#802 id=802 data-nosnippet>802</a>    /// impl Object for Thing {}
+<a href=#803 id=803 data-nosnippet>803</a>    ///
+<a href=#804 id=804 data-nosnippet>804</a>    /// let val = Value::from_object(Thing { id: 42 });
+<a href=#805 id=805 data-nosnippet>805</a>    /// ```
+<a href=#806 id=806 data-nosnippet>806</a>    </span><span class="kw">pub fn </span>from_object&lt;T: Object + Send + Sync + <span class="lifetime">'static</span>&gt;(value: T) -&gt; Value {
+<a href=#807 id=807 data-nosnippet>807</a>        Value::from(ValueRepr::Object(DynObject::new(Arc::new(value))))
+<a href=#808 id=808 data-nosnippet>808</a>    }
+<a href=#809 id=809 data-nosnippet>809</a>
+<a href=#810 id=810 data-nosnippet>810</a>    <span class="doccomment">/// Like [`from_object`](Self::from_object) but for type erased dynamic objects.
+<a href=#811 id=811 data-nosnippet>811</a>    ///
+<a href=#812 id=812 data-nosnippet>812</a>    /// This especially useful if you have an object that has an `Arc&lt;T&gt;` to another
+<a href=#813 id=813 data-nosnippet>813</a>    /// child object that you want to return as a `Arc&lt;T&gt;` turns into a [`DynObject`]
+<a href=#814 id=814 data-nosnippet>814</a>    /// automatically.
+<a href=#815 id=815 data-nosnippet>815</a>    ///
+<a href=#816 id=816 data-nosnippet>816</a>    /// ```rust
+<a href=#817 id=817 data-nosnippet>817</a>    /// # use std::sync::Arc;
+<a href=#818 id=818 data-nosnippet>818</a>    /// # use minijinja::value::{Value, Object, Enumerator};
+<a href=#819 id=819 data-nosnippet>819</a>    /// #[derive(Debug)]
+<a href=#820 id=820 data-nosnippet>820</a>    /// pub struct HttpConfig {
+<a href=#821 id=821 data-nosnippet>821</a>    ///     port: usize,
+<a href=#822 id=822 data-nosnippet>822</a>    /// }
+<a href=#823 id=823 data-nosnippet>823</a>    ///
+<a href=#824 id=824 data-nosnippet>824</a>    /// #[derive(Debug)]
+<a href=#825 id=825 data-nosnippet>825</a>    /// struct Config {
+<a href=#826 id=826 data-nosnippet>826</a>    ///     http: Arc&lt;HttpConfig&gt;,
+<a href=#827 id=827 data-nosnippet>827</a>    /// }
+<a href=#828 id=828 data-nosnippet>828</a>    ///
+<a href=#829 id=829 data-nosnippet>829</a>    /// impl Object for HttpConfig {
+<a href=#830 id=830 data-nosnippet>830</a>    ///     fn enumerate(self: &amp;Arc&lt;Self&gt;) -&gt; Enumerator {
+<a href=#831 id=831 data-nosnippet>831</a>    ///         Enumerator::Str(&amp;["port"])
+<a href=#832 id=832 data-nosnippet>832</a>    ///     }
+<a href=#833 id=833 data-nosnippet>833</a>    ///
+<a href=#834 id=834 data-nosnippet>834</a>    ///     fn get_value(self: &amp;Arc&lt;Self&gt;, key: &amp;Value) -&gt; Option&lt;Value&gt; {
+<a href=#835 id=835 data-nosnippet>835</a>    ///         match key.as_str()? {
+<a href=#836 id=836 data-nosnippet>836</a>    ///             "port" =&gt; Some(Value::from(self.port)),
+<a href=#837 id=837 data-nosnippet>837</a>    ///             _ =&gt; None,
+<a href=#838 id=838 data-nosnippet>838</a>    ///         }
+<a href=#839 id=839 data-nosnippet>839</a>    ///     }
+<a href=#840 id=840 data-nosnippet>840</a>    /// }
+<a href=#841 id=841 data-nosnippet>841</a>    ///
+<a href=#842 id=842 data-nosnippet>842</a>    /// impl Object for Config {
+<a href=#843 id=843 data-nosnippet>843</a>    ///     fn enumerate(self: &amp;Arc&lt;Self&gt;) -&gt; Enumerator {
+<a href=#844 id=844 data-nosnippet>844</a>    ///         Enumerator::Str(&amp;["http"])
+<a href=#845 id=845 data-nosnippet>845</a>    ///     }
+<a href=#846 id=846 data-nosnippet>846</a>    ///
+<a href=#847 id=847 data-nosnippet>847</a>    ///     fn get_value(self: &amp;Arc&lt;Self&gt;, key: &amp;Value) -&gt; Option&lt;Value&gt; {
+<a href=#848 id=848 data-nosnippet>848</a>    ///         match key.as_str()? {
+<a href=#849 id=849 data-nosnippet>849</a>    ///             "http" =&gt; Some(Value::from_dyn_object(self.http.clone())),
+<a href=#850 id=850 data-nosnippet>850</a>    ///             _ =&gt; None
+<a href=#851 id=851 data-nosnippet>851</a>    ///         }
+<a href=#852 id=852 data-nosnippet>852</a>    ///     }
+<a href=#853 id=853 data-nosnippet>853</a>    /// }
+<a href=#854 id=854 data-nosnippet>854</a>    /// ```
+<a href=#855 id=855 data-nosnippet>855</a>    </span><span class="kw">pub fn </span>from_dyn_object&lt;T: Into&lt;DynObject&gt;&gt;(value: T) -&gt; Value {
+<a href=#856 id=856 data-nosnippet>856</a>        Value::from(ValueRepr::Object(value.into()))
+<a href=#857 id=857 data-nosnippet>857</a>    }
+<a href=#858 id=858 data-nosnippet>858</a>
+<a href=#859 id=859 data-nosnippet>859</a>    <span class="doccomment">/// Creates a value that is an iterable.
+<a href=#860 id=860 data-nosnippet>860</a>    ///
+<a href=#861 id=861 data-nosnippet>861</a>    /// The function is invoked to create a new iterator every time the value is
+<a href=#862 id=862 data-nosnippet>862</a>    /// iterated over.
+<a href=#863 id=863 data-nosnippet>863</a>    ///
+<a href=#864 id=864 data-nosnippet>864</a>    /// ```
+<a href=#865 id=865 data-nosnippet>865</a>    /// # use minijinja::value::Value;
+<a href=#866 id=866 data-nosnippet>866</a>    /// let val = Value::make_iterable(|| 0..10);
+<a href=#867 id=867 data-nosnippet>867</a>    /// ```
+<a href=#868 id=868 data-nosnippet>868</a>    ///
+<a href=#869 id=869 data-nosnippet>869</a>    /// Iterators that implement [`ExactSizeIterator`] or have a matching lower and upper
+<a href=#870 id=870 data-nosnippet>870</a>    /// bound on the [`Iterator::size_hint`] report a known `loop.length`.  Iterators that
+<a href=#871 id=871 data-nosnippet>871</a>    /// do not fulfill these requirements will not.  The same is true for `revindex` and
+<a href=#872 id=872 data-nosnippet>872</a>    /// similar properties.
+<a href=#873 id=873 data-nosnippet>873</a>    </span><span class="kw">pub fn </span>make_iterable&lt;I, T, F&gt;(maker: F) -&gt; Value
+<a href=#874 id=874 data-nosnippet>874</a>    <span class="kw">where
+<a href=#875 id=875 data-nosnippet>875</a>        </span>I: Iterator&lt;Item = T&gt; + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#876 id=876 data-nosnippet>876</a>        T: Into&lt;Value&gt; + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#877 id=877 data-nosnippet>877</a>        F: Fn() -&gt; I + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#878 id=878 data-nosnippet>878</a>    {
+<a href=#879 id=879 data-nosnippet>879</a>        Value::make_object_iterable((), <span class="kw">move </span>|<span class="kw">_</span>| Box::new(maker().map(Into::into)))
+<a href=#880 id=880 data-nosnippet>880</a>    }
+<a href=#881 id=881 data-nosnippet>881</a>
+<a href=#882 id=882 data-nosnippet>882</a>    <span class="doccomment">/// Creates an iterable that iterates over the given value.
+<a href=#883 id=883 data-nosnippet>883</a>    ///
+<a href=#884 id=884 data-nosnippet>884</a>    /// This is similar to [`make_iterable`](Self::make_iterable) but it takes an extra
+<a href=#885 id=885 data-nosnippet>885</a>    /// reference to a value it can borrow out from.  It's a bit less generic in that it
+<a href=#886 id=886 data-nosnippet>886</a>    /// needs to return a boxed iterator of values directly.
+<a href=#887 id=887 data-nosnippet>887</a>    ///
+<a href=#888 id=888 data-nosnippet>888</a>    /// ```rust
+<a href=#889 id=889 data-nosnippet>889</a>    /// # use minijinja::value::Value;
+<a href=#890 id=890 data-nosnippet>890</a>    /// let val = Value::make_object_iterable(vec![1, 2, 3], |vec| {
+<a href=#891 id=891 data-nosnippet>891</a>    ///     Box::new(vec.iter().copied().map(Value::from))
+<a href=#892 id=892 data-nosnippet>892</a>    /// });
+<a href=#893 id=893 data-nosnippet>893</a>    /// assert_eq!(val.to_string(), "[1, 2, 3]");
+<a href=#894 id=894 data-nosnippet>894</a>    /// ````
+<a href=#895 id=895 data-nosnippet>895</a>    </span><span class="kw">pub fn </span>make_object_iterable&lt;T, F&gt;(object: T, maker: F) -&gt; Value
+<a href=#896 id=896 data-nosnippet>896</a>    <span class="kw">where
+<a href=#897 id=897 data-nosnippet>897</a>        </span>T: Send + Sync + <span class="lifetime">'static</span>,
+<a href=#898 id=898 data-nosnippet>898</a>        F: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; Fn(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync + <span class="lifetime">'a</span>&gt;
+<a href=#899 id=899 data-nosnippet>899</a>            + Send
+<a href=#900 id=900 data-nosnippet>900</a>            + Sync
+<a href=#901 id=901 data-nosnippet>901</a>            + <span class="lifetime">'static</span>,
+<a href=#902 id=902 data-nosnippet>902</a>    {
+<a href=#903 id=903 data-nosnippet>903</a>        <span class="kw">struct </span>Iterable&lt;T, F&gt; {
+<a href=#904 id=904 data-nosnippet>904</a>            maker: F,
+<a href=#905 id=905 data-nosnippet>905</a>            object: T,
+<a href=#906 id=906 data-nosnippet>906</a>        }
+<a href=#907 id=907 data-nosnippet>907</a>
+<a href=#908 id=908 data-nosnippet>908</a>        <span class="kw">impl</span>&lt;T, F&gt; fmt::Debug <span class="kw">for </span>Iterable&lt;T, F&gt; {
+<a href=#909 id=909 data-nosnippet>909</a>            <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#910 id=910 data-nosnippet>910</a>                f.debug_struct(<span class="string">"&lt;iterator&gt;"</span>).finish()
+<a href=#911 id=911 data-nosnippet>911</a>            }
+<a href=#912 id=912 data-nosnippet>912</a>        }
+<a href=#913 id=913 data-nosnippet>913</a>
+<a href=#914 id=914 data-nosnippet>914</a>        <span class="kw">impl</span>&lt;T, F&gt; Object <span class="kw">for </span>Iterable&lt;T, F&gt;
+<a href=#915 id=915 data-nosnippet>915</a>        <span class="kw">where
+<a href=#916 id=916 data-nosnippet>916</a>            </span>T: Send + Sync + <span class="lifetime">'static</span>,
+<a href=#917 id=917 data-nosnippet>917</a>            F: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; Fn(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync + <span class="lifetime">'a</span>&gt;
+<a href=#918 id=918 data-nosnippet>918</a>                + Send
+<a href=#919 id=919 data-nosnippet>919</a>                + Sync
+<a href=#920 id=920 data-nosnippet>920</a>                + <span class="lifetime">'static</span>,
+<a href=#921 id=921 data-nosnippet>921</a>        {
+<a href=#922 id=922 data-nosnippet>922</a>            <span class="kw">fn </span>repr(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;) -&gt; ObjectRepr {
+<a href=#923 id=923 data-nosnippet>923</a>                ObjectRepr::Iterable
+<a href=#924 id=924 data-nosnippet>924</a>            }
+<a href=#925 id=925 data-nosnippet>925</a>
+<a href=#926 id=926 data-nosnippet>926</a>            <span class="kw">fn </span>enumerate(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;) -&gt; Enumerator {
+<a href=#927 id=927 data-nosnippet>927</a>                mapped_enumerator(<span class="self">self</span>, |this| (this.maker)(<span class="kw-2">&amp;</span>this.object))
+<a href=#928 id=928 data-nosnippet>928</a>            }
+<a href=#929 id=929 data-nosnippet>929</a>        }
+<a href=#930 id=930 data-nosnippet>930</a>
+<a href=#931 id=931 data-nosnippet>931</a>        Value::from_object(Iterable { maker, object })
+<a href=#932 id=932 data-nosnippet>932</a>    }
+<a href=#933 id=933 data-nosnippet>933</a>
+<a href=#934 id=934 data-nosnippet>934</a>    <span class="doccomment">/// Creates an object projection onto a map.
+<a href=#935 id=935 data-nosnippet>935</a>    ///
+<a href=#936 id=936 data-nosnippet>936</a>    /// This is similar to [`make_object_iterable`](Self::make_object_iterable) but
+<a href=#937 id=937 data-nosnippet>937</a>    /// it creates a map rather than an iterable.  To accomplish this, it also
+<a href=#938 id=938 data-nosnippet>938</a>    /// requires two callbacks.  One for enumeration, and one for looking up
+<a href=#939 id=939 data-nosnippet>939</a>    /// attributes.
+<a href=#940 id=940 data-nosnippet>940</a>    ///
+<a href=#941 id=941 data-nosnippet>941</a>    /// # Example
+<a href=#942 id=942 data-nosnippet>942</a>    ///
+<a href=#943 id=943 data-nosnippet>943</a>    /// ```
+<a href=#944 id=944 data-nosnippet>944</a>    /// use std::collections::HashMap;
+<a href=#945 id=945 data-nosnippet>945</a>    /// use std::sync::Arc;
+<a href=#946 id=946 data-nosnippet>946</a>    /// use minijinja::value::{Value, Object, ObjectExt, Enumerator};
+<a href=#947 id=947 data-nosnippet>947</a>    ///
+<a href=#948 id=948 data-nosnippet>948</a>    /// #[derive(Debug)]
+<a href=#949 id=949 data-nosnippet>949</a>    /// struct Element {
+<a href=#950 id=950 data-nosnippet>950</a>    ///     tag: String,
+<a href=#951 id=951 data-nosnippet>951</a>    ///     attrs: HashMap&lt;String, String&gt;,
+<a href=#952 id=952 data-nosnippet>952</a>    /// }
+<a href=#953 id=953 data-nosnippet>953</a>    ///
+<a href=#954 id=954 data-nosnippet>954</a>    /// impl Object for Element {
+<a href=#955 id=955 data-nosnippet>955</a>    ///     fn get_value(self: &amp;Arc&lt;Self&gt;, key: &amp;Value) -&gt; Option&lt;Value&gt; {
+<a href=#956 id=956 data-nosnippet>956</a>    ///         match key.as_str()? {
+<a href=#957 id=957 data-nosnippet>957</a>    ///             "tag" =&gt; Some(Value::from(&amp;self.tag)),
+<a href=#958 id=958 data-nosnippet>958</a>    ///             "attrs" =&gt; Some(Value::make_object_map(
+<a href=#959 id=959 data-nosnippet>959</a>    ///                 self.clone(),
+<a href=#960 id=960 data-nosnippet>960</a>    ///                 |this| Box::new(this.attrs.keys().map(Value::from)),
+<a href=#961 id=961 data-nosnippet>961</a>    ///                 |this, key| this.attrs.get(key.as_str()?).map(Value::from),
+<a href=#962 id=962 data-nosnippet>962</a>    ///             )),
+<a href=#963 id=963 data-nosnippet>963</a>    ///             _ =&gt; None
+<a href=#964 id=964 data-nosnippet>964</a>    ///         }
+<a href=#965 id=965 data-nosnippet>965</a>    ///     }
+<a href=#966 id=966 data-nosnippet>966</a>    ///
+<a href=#967 id=967 data-nosnippet>967</a>    ///     fn enumerate(self: &amp;Arc&lt;Self&gt;) -&gt; Enumerator {
+<a href=#968 id=968 data-nosnippet>968</a>    ///         Enumerator::Str(&amp;["tag", "attrs"])
+<a href=#969 id=969 data-nosnippet>969</a>    ///     }
+<a href=#970 id=970 data-nosnippet>970</a>    /// }
+<a href=#971 id=971 data-nosnippet>971</a>    /// ```
+<a href=#972 id=972 data-nosnippet>972</a>    </span><span class="kw">pub fn </span>make_object_map&lt;T, E, A&gt;(object: T, enumerate_fn: E, attr_fn: A) -&gt; Value
+<a href=#973 id=973 data-nosnippet>973</a>    <span class="kw">where
+<a href=#974 id=974 data-nosnippet>974</a>        </span>T: Send + Sync + <span class="lifetime">'static</span>,
+<a href=#975 id=975 data-nosnippet>975</a>        E: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; Fn(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync + <span class="lifetime">'a</span>&gt;
+<a href=#976 id=976 data-nosnippet>976</a>            + Send
+<a href=#977 id=977 data-nosnippet>977</a>            + Sync
+<a href=#978 id=978 data-nosnippet>978</a>            + <span class="lifetime">'static</span>,
+<a href=#979 id=979 data-nosnippet>979</a>        A: Fn(<span class="kw-2">&amp;</span>T, <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#980 id=980 data-nosnippet>980</a>    {
+<a href=#981 id=981 data-nosnippet>981</a>        <span class="kw">struct </span>ProxyMapObject&lt;T, E, A&gt; {
+<a href=#982 id=982 data-nosnippet>982</a>            enumerate_fn: E,
+<a href=#983 id=983 data-nosnippet>983</a>            attr_fn: A,
+<a href=#984 id=984 data-nosnippet>984</a>            object: T,
+<a href=#985 id=985 data-nosnippet>985</a>        }
+<a href=#986 id=986 data-nosnippet>986</a>
+<a href=#987 id=987 data-nosnippet>987</a>        <span class="kw">impl</span>&lt;T, E, A&gt; fmt::Debug <span class="kw">for </span>ProxyMapObject&lt;T, E, A&gt; {
+<a href=#988 id=988 data-nosnippet>988</a>            <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#989 id=989 data-nosnippet>989</a>                f.debug_struct(<span class="string">"&lt;map-object&gt;"</span>).finish()
+<a href=#990 id=990 data-nosnippet>990</a>            }
+<a href=#991 id=991 data-nosnippet>991</a>        }
+<a href=#992 id=992 data-nosnippet>992</a>
+<a href=#993 id=993 data-nosnippet>993</a>        <span class="kw">impl</span>&lt;T, E, A&gt; Object <span class="kw">for </span>ProxyMapObject&lt;T, E, A&gt;
+<a href=#994 id=994 data-nosnippet>994</a>        <span class="kw">where
+<a href=#995 id=995 data-nosnippet>995</a>            </span>T: Send + Sync + <span class="lifetime">'static</span>,
+<a href=#996 id=996 data-nosnippet>996</a>            E: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; Fn(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync + <span class="lifetime">'a</span>&gt;
+<a href=#997 id=997 data-nosnippet>997</a>                + Send
+<a href=#998 id=998 data-nosnippet>998</a>                + Sync
+<a href=#999 id=999 data-nosnippet>999</a>                + <span class="lifetime">'static</span>,
+<a href=#1000 id=1000 data-nosnippet>1000</a>            A: Fn(<span class="kw-2">&amp;</span>T, <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#1001 id=1001 data-nosnippet>1001</a>        {
+<a href=#1002 id=1002 data-nosnippet>1002</a>            <span class="attr">#[inline]
+<a href=#1003 id=1003 data-nosnippet>1003</a>            </span><span class="kw">fn </span>get_value(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, key: <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; {
+<a href=#1004 id=1004 data-nosnippet>1004</a>                (<span class="self">self</span>.attr_fn)(<span class="kw-2">&amp;</span><span class="self">self</span>.object, key)
+<a href=#1005 id=1005 data-nosnippet>1005</a>            }
+<a href=#1006 id=1006 data-nosnippet>1006</a>
+<a href=#1007 id=1007 data-nosnippet>1007</a>            <span class="attr">#[inline]
+<a href=#1008 id=1008 data-nosnippet>1008</a>            </span><span class="kw">fn </span>enumerate(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;) -&gt; Enumerator {
+<a href=#1009 id=1009 data-nosnippet>1009</a>                mapped_enumerator(<span class="self">self</span>, |this| (this.enumerate_fn)(<span class="kw-2">&amp;</span>this.object))
+<a href=#1010 id=1010 data-nosnippet>1010</a>            }
+<a href=#1011 id=1011 data-nosnippet>1011</a>        }
+<a href=#1012 id=1012 data-nosnippet>1012</a>
+<a href=#1013 id=1013 data-nosnippet>1013</a>        Value::from_object(ProxyMapObject {
+<a href=#1014 id=1014 data-nosnippet>1014</a>            enumerate_fn,
+<a href=#1015 id=1015 data-nosnippet>1015</a>            attr_fn,
+<a href=#1016 id=1016 data-nosnippet>1016</a>            object,
+<a href=#1017 id=1017 data-nosnippet>1017</a>        })
+<a href=#1018 id=1018 data-nosnippet>1018</a>    }
+<a href=#1019 id=1019 data-nosnippet>1019</a>
+<a href=#1020 id=1020 data-nosnippet>1020</a>    <span class="doccomment">/// Creates a value from a one-shot iterator.
+<a href=#1021 id=1021 data-nosnippet>1021</a>    ///
+<a href=#1022 id=1022 data-nosnippet>1022</a>    /// This takes an iterator (yielding values that can be turned into a [`Value`])
+<a href=#1023 id=1023 data-nosnippet>1023</a>    /// and wraps it in a way that it turns into an iterable value.  From the view of
+<a href=#1024 id=1024 data-nosnippet>1024</a>    /// the template this can be iterated over exactly once for the most part once
+<a href=#1025 id=1025 data-nosnippet>1025</a>    /// exhausted.
+<a href=#1026 id=1026 data-nosnippet>1026</a>    ///
+<a href=#1027 id=1027 data-nosnippet>1027</a>    /// Such iterators are strongly recommended against in the general sense due to
+<a href=#1028 id=1028 data-nosnippet>1028</a>    /// their surprising behavior, but they can be useful for more advanced use
+<a href=#1029 id=1029 data-nosnippet>1029</a>    /// cases where data should be streamed into the template as it becomes available.
+<a href=#1030 id=1030 data-nosnippet>1030</a>    ///
+<a href=#1031 id=1031 data-nosnippet>1031</a>    /// Such iterators never have any size hints.
+<a href=#1032 id=1032 data-nosnippet>1032</a>    ///
+<a href=#1033 id=1033 data-nosnippet>1033</a>    /// ```
+<a href=#1034 id=1034 data-nosnippet>1034</a>    /// # use minijinja::value::Value;
+<a href=#1035 id=1035 data-nosnippet>1035</a>    /// let val = Value::make_one_shot_iterator(0..10);
+<a href=#1036 id=1036 data-nosnippet>1036</a>    /// ```
+<a href=#1037 id=1037 data-nosnippet>1037</a>    ///
+<a href=#1038 id=1038 data-nosnippet>1038</a>    /// Attempting to iterate over it a second time will not yield any more items.
+<a href=#1039 id=1039 data-nosnippet>1039</a>    </span><span class="kw">pub fn </span>make_one_shot_iterator&lt;I, T&gt;(iter: I) -&gt; Value
+<a href=#1040 id=1040 data-nosnippet>1040</a>    <span class="kw">where
+<a href=#1041 id=1041 data-nosnippet>1041</a>        </span>I: Iterator&lt;Item = T&gt; + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#1042 id=1042 data-nosnippet>1042</a>        T: Into&lt;Value&gt; + Send + Sync + <span class="lifetime">'static</span>,
+<a href=#1043 id=1043 data-nosnippet>1043</a>    {
+<a href=#1044 id=1044 data-nosnippet>1044</a>        <span class="kw">let </span>iter = Arc::new(Mutex::new(iter.fuse()));
+<a href=#1045 id=1045 data-nosnippet>1045</a>        Value::make_iterable(<span class="kw">move </span>|| {
+<a href=#1046 id=1046 data-nosnippet>1046</a>            <span class="kw">let </span>iter = iter.clone();
+<a href=#1047 id=1047 data-nosnippet>1047</a>            std::iter::from_fn(<span class="kw">move </span>|| iter.lock().unwrap().next())
+<a href=#1048 id=1048 data-nosnippet>1048</a>        })
+<a href=#1049 id=1049 data-nosnippet>1049</a>    }
+<a href=#1050 id=1050 data-nosnippet>1050</a>
+<a href=#1051 id=1051 data-nosnippet>1051</a>    <span class="doccomment">/// Creates a callable value from a function.
+<a href=#1052 id=1052 data-nosnippet>1052</a>    ///
+<a href=#1053 id=1053 data-nosnippet>1053</a>    /// ```
+<a href=#1054 id=1054 data-nosnippet>1054</a>    /// # use minijinja::value::Value;
+<a href=#1055 id=1055 data-nosnippet>1055</a>    /// let pow = Value::from_function(|a: u32| a * a);
+<a href=#1056 id=1056 data-nosnippet>1056</a>    /// ```
+<a href=#1057 id=1057 data-nosnippet>1057</a>    </span><span class="kw">pub fn </span>from_function&lt;F, Rv, Args&gt;(f: F) -&gt; Value
+<a href=#1058 id=1058 data-nosnippet>1058</a>    <span class="kw">where
+<a href=#1059 id=1059 data-nosnippet>1059</a>        </span>F: functions::Function&lt;Rv, Args&gt;,
+<a href=#1060 id=1060 data-nosnippet>1060</a>        Rv: FunctionResult,
+<a href=#1061 id=1061 data-nosnippet>1061</a>        Args: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; FunctionArgs&lt;<span class="lifetime">'a</span>&gt;,
+<a href=#1062 id=1062 data-nosnippet>1062</a>    {
+<a href=#1063 id=1063 data-nosnippet>1063</a>        functions::BoxedFunction::new(f).to_value()
+<a href=#1064 id=1064 data-nosnippet>1064</a>    }
+<a href=#1065 id=1065 data-nosnippet>1065</a>
+<a href=#1066 id=1066 data-nosnippet>1066</a>    <span class="doccomment">/// Returns the kind of the value.
+<a href=#1067 id=1067 data-nosnippet>1067</a>    ///
+<a href=#1068 id=1068 data-nosnippet>1068</a>    /// This can be used to determine what's in the value before trying to
+<a href=#1069 id=1069 data-nosnippet>1069</a>    /// perform operations on it.
+<a href=#1070 id=1070 data-nosnippet>1070</a>    </span><span class="kw">pub fn </span>kind(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ValueKind {
+<a href=#1071 id=1071 data-nosnippet>1071</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1072 id=1072 data-nosnippet>1072</a>            ValueRepr::Undefined(<span class="kw">_</span>) =&gt; ValueKind::Undefined,
+<a href=#1073 id=1073 data-nosnippet>1073</a>            ValueRepr::Bool(<span class="kw">_</span>) =&gt; ValueKind::Bool,
+<a href=#1074 id=1074 data-nosnippet>1074</a>            ValueRepr::U64(<span class="kw">_</span>) | ValueRepr::I64(<span class="kw">_</span>) | ValueRepr::F64(<span class="kw">_</span>) =&gt; ValueKind::Number,
+<a href=#1075 id=1075 data-nosnippet>1075</a>            ValueRepr::None =&gt; ValueKind::None,
+<a href=#1076 id=1076 data-nosnippet>1076</a>            ValueRepr::I128(<span class="kw">_</span>) =&gt; ValueKind::Number,
+<a href=#1077 id=1077 data-nosnippet>1077</a>            ValueRepr::String(..) | ValueRepr::SmallStr(<span class="kw">_</span>) =&gt; ValueKind::String,
+<a href=#1078 id=1078 data-nosnippet>1078</a>            ValueRepr::Bytes(<span class="kw">_</span>) =&gt; ValueKind::Bytes,
+<a href=#1079 id=1079 data-nosnippet>1079</a>            ValueRepr::U128(<span class="kw">_</span>) =&gt; ValueKind::Number,
+<a href=#1080 id=1080 data-nosnippet>1080</a>            ValueRepr::Invalid(<span class="kw">_</span>) =&gt; ValueKind::Invalid,
+<a href=#1081 id=1081 data-nosnippet>1081</a>            ValueRepr::Object(<span class="kw-2">ref </span>obj) =&gt; <span class="kw">match </span>obj.repr() {
+<a href=#1082 id=1082 data-nosnippet>1082</a>                ObjectRepr::Map =&gt; ValueKind::Map,
+<a href=#1083 id=1083 data-nosnippet>1083</a>                ObjectRepr::Seq =&gt; ValueKind::Seq,
+<a href=#1084 id=1084 data-nosnippet>1084</a>                ObjectRepr::Iterable =&gt; ValueKind::Iterable,
+<a href=#1085 id=1085 data-nosnippet>1085</a>                ObjectRepr::Plain =&gt; ValueKind::Plain,
+<a href=#1086 id=1086 data-nosnippet>1086</a>            },
+<a href=#1087 id=1087 data-nosnippet>1087</a>        }
+<a href=#1088 id=1088 data-nosnippet>1088</a>    }
+<a href=#1089 id=1089 data-nosnippet>1089</a>
+<a href=#1090 id=1090 data-nosnippet>1090</a>    <span class="doccomment">/// Returns `true` if the value is a number.
+<a href=#1091 id=1091 data-nosnippet>1091</a>    ///
+<a href=#1092 id=1092 data-nosnippet>1092</a>    /// To convert a value into a primitive number, use [`TryFrom`] or [`TryInto`].
+<a href=#1093 id=1093 data-nosnippet>1093</a>    </span><span class="kw">pub fn </span>is_number(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1094 id=1094 data-nosnippet>1094</a>        <span class="macro">matches!</span>(
+<a href=#1095 id=1095 data-nosnippet>1095</a>            <span class="self">self</span>.<span class="number">0</span>,
+<a href=#1096 id=1096 data-nosnippet>1096</a>            ValueRepr::U64(<span class="kw">_</span>)
+<a href=#1097 id=1097 data-nosnippet>1097</a>                | ValueRepr::I64(<span class="kw">_</span>)
+<a href=#1098 id=1098 data-nosnippet>1098</a>                | ValueRepr::F64(<span class="kw">_</span>)
+<a href=#1099 id=1099 data-nosnippet>1099</a>                | ValueRepr::I128(<span class="kw">_</span>)
+<a href=#1100 id=1100 data-nosnippet>1100</a>                | ValueRepr::U128(<span class="kw">_</span>)
+<a href=#1101 id=1101 data-nosnippet>1101</a>        )
+<a href=#1102 id=1102 data-nosnippet>1102</a>    }
+<a href=#1103 id=1103 data-nosnippet>1103</a>
+<a href=#1104 id=1104 data-nosnippet>1104</a>    <span class="doccomment">/// Returns true if the number is a real integer.
+<a href=#1105 id=1105 data-nosnippet>1105</a>    ///
+<a href=#1106 id=1106 data-nosnippet>1106</a>    /// This can be used to distinguish `42` from `42.0`.  For the most part
+<a href=#1107 id=1107 data-nosnippet>1107</a>    /// the engine keeps these the same.
+<a href=#1108 id=1108 data-nosnippet>1108</a>    </span><span class="kw">pub fn </span>is_integer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1109 id=1109 data-nosnippet>1109</a>        <span class="macro">matches!</span>(
+<a href=#1110 id=1110 data-nosnippet>1110</a>            <span class="self">self</span>.<span class="number">0</span>,
+<a href=#1111 id=1111 data-nosnippet>1111</a>            ValueRepr::U64(<span class="kw">_</span>) | ValueRepr::I64(<span class="kw">_</span>) | ValueRepr::I128(<span class="kw">_</span>) | ValueRepr::U128(<span class="kw">_</span>)
+<a href=#1112 id=1112 data-nosnippet>1112</a>        )
+<a href=#1113 id=1113 data-nosnippet>1113</a>    }
+<a href=#1114 id=1114 data-nosnippet>1114</a>
+<a href=#1115 id=1115 data-nosnippet>1115</a>    <span class="doccomment">/// Returns `true` if the map represents keyword arguments.
+<a href=#1116 id=1116 data-nosnippet>1116</a>    </span><span class="kw">pub fn </span>is_kwargs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1117 id=1117 data-nosnippet>1117</a>        Kwargs::extract(<span class="self">self</span>).is_some()
+<a href=#1118 id=1118 data-nosnippet>1118</a>    }
+<a href=#1119 id=1119 data-nosnippet>1119</a>
+<a href=#1120 id=1120 data-nosnippet>1120</a>    <span class="doccomment">/// Is this value considered true?
+<a href=#1121 id=1121 data-nosnippet>1121</a>    ///
+<a href=#1122 id=1122 data-nosnippet>1122</a>    /// The engine inherits the same behavior as Jinja2 when it comes to
+<a href=#1123 id=1123 data-nosnippet>1123</a>    /// considering objects true.  Empty objects are generally not considered
+<a href=#1124 id=1124 data-nosnippet>1124</a>    /// true.  For custom objects this is customized by [`Object::is_true`].
+<a href=#1125 id=1125 data-nosnippet>1125</a>    </span><span class="kw">pub fn </span>is_true(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1126 id=1126 data-nosnippet>1126</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1127 id=1127 data-nosnippet>1127</a>            ValueRepr::Bool(val) =&gt; val,
+<a href=#1128 id=1128 data-nosnippet>1128</a>            ValueRepr::U64(x) =&gt; x != <span class="number">0</span>,
+<a href=#1129 id=1129 data-nosnippet>1129</a>            ValueRepr::U128(x) =&gt; x.<span class="number">0 </span>!= <span class="number">0</span>,
+<a href=#1130 id=1130 data-nosnippet>1130</a>            ValueRepr::I64(x) =&gt; x != <span class="number">0</span>,
+<a href=#1131 id=1131 data-nosnippet>1131</a>            ValueRepr::I128(x) =&gt; x.<span class="number">0 </span>!= <span class="number">0</span>,
+<a href=#1132 id=1132 data-nosnippet>1132</a>            ValueRepr::F64(x) =&gt; x != <span class="number">0.0</span>,
+<a href=#1133 id=1133 data-nosnippet>1133</a>            ValueRepr::String(<span class="kw-2">ref </span>x, <span class="kw">_</span>) =&gt; !x.is_empty(),
+<a href=#1134 id=1134 data-nosnippet>1134</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>x) =&gt; !x.is_empty(),
+<a href=#1135 id=1135 data-nosnippet>1135</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>x) =&gt; !x.is_empty(),
+<a href=#1136 id=1136 data-nosnippet>1136</a>            ValueRepr::None | ValueRepr::Undefined(<span class="kw">_</span>) | ValueRepr::Invalid(<span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
+<a href=#1137 id=1137 data-nosnippet>1137</a>            ValueRepr::Object(<span class="kw-2">ref </span>x) =&gt; x.is_true(),
+<a href=#1138 id=1138 data-nosnippet>1138</a>        }
+<a href=#1139 id=1139 data-nosnippet>1139</a>    }
+<a href=#1140 id=1140 data-nosnippet>1140</a>
+<a href=#1141 id=1141 data-nosnippet>1141</a>    <span class="doccomment">/// Returns `true` if this value is safe.
+<a href=#1142 id=1142 data-nosnippet>1142</a>    </span><span class="kw">pub fn </span>is_safe(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1143 id=1143 data-nosnippet>1143</a>        <span class="macro">matches!</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>, ValueRepr::String(<span class="kw">_</span>, StringType::Safe))
+<a href=#1144 id=1144 data-nosnippet>1144</a>    }
+<a href=#1145 id=1145 data-nosnippet>1145</a>
+<a href=#1146 id=1146 data-nosnippet>1146</a>    <span class="doccomment">/// Returns `true` if this value is undefined.
+<a href=#1147 id=1147 data-nosnippet>1147</a>    </span><span class="kw">pub fn </span>is_undefined(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1148 id=1148 data-nosnippet>1148</a>        <span class="macro">matches!</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>, ValueRepr::Undefined(<span class="kw">_</span>))
+<a href=#1149 id=1149 data-nosnippet>1149</a>    }
+<a href=#1150 id=1150 data-nosnippet>1150</a>
+<a href=#1151 id=1151 data-nosnippet>1151</a>    <span class="doccomment">/// Returns `true` if this value is none.
+<a href=#1152 id=1152 data-nosnippet>1152</a>    </span><span class="kw">pub fn </span>is_none(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#1153 id=1153 data-nosnippet>1153</a>        <span class="macro">matches!</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>, ValueRepr::None)
+<a href=#1154 id=1154 data-nosnippet>1154</a>    }
+<a href=#1155 id=1155 data-nosnippet>1155</a>
+<a href=#1156 id=1156 data-nosnippet>1156</a>    <span class="doccomment">/// If the value is a string, return it.
+<a href=#1157 id=1157 data-nosnippet>1157</a>    ///
+<a href=#1158 id=1158 data-nosnippet>1158</a>    /// This will also perform a lossy string conversion of bytes from utf-8.
+<a href=#1159 id=1159 data-nosnippet>1159</a>    </span><span class="kw">pub fn </span>to_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;str&gt;&gt; {
+<a href=#1160 id=1160 data-nosnippet>1160</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1161 id=1161 data-nosnippet>1161</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(s.clone()),
+<a href=#1162 id=1162 data-nosnippet>1162</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; <span class="prelude-val">Some</span>(Arc::from(s.as_str())),
+<a href=#1163 id=1163 data-nosnippet>1163</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; <span class="prelude-val">Some</span>(Arc::from(String::from_utf8_lossy(b))),
+<a href=#1164 id=1164 data-nosnippet>1164</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1165 id=1165 data-nosnippet>1165</a>        }
+<a href=#1166 id=1166 data-nosnippet>1166</a>    }
+<a href=#1167 id=1167 data-nosnippet>1167</a>
+<a href=#1168 id=1168 data-nosnippet>1168</a>    <span class="doccomment">/// If the value is a string, return it.
+<a href=#1169 id=1169 data-nosnippet>1169</a>    ///
+<a href=#1170 id=1170 data-nosnippet>1170</a>    /// This will also return well formed utf-8 bytes as string.
+<a href=#1171 id=1171 data-nosnippet>1171</a>    </span><span class="kw">pub fn </span>as_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
+<a href=#1172 id=1172 data-nosnippet>1172</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1173 id=1173 data-nosnippet>1173</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(s <span class="kw">as </span><span class="kw-2">&amp;</span>str),
+<a href=#1174 id=1174 data-nosnippet>1174</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; <span class="prelude-val">Some</span>(s.as_str()),
+<a href=#1175 id=1175 data-nosnippet>1175</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; str::from_utf8(b).ok(),
+<a href=#1176 id=1176 data-nosnippet>1176</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1177 id=1177 data-nosnippet>1177</a>        }
+<a href=#1178 id=1178 data-nosnippet>1178</a>    }
+<a href=#1179 id=1179 data-nosnippet>1179</a>
+<a href=#1180 id=1180 data-nosnippet>1180</a>    <span class="doccomment">/// If this is an usize return it
+<a href=#1181 id=1181 data-nosnippet>1181</a>    </span><span class="attr">#[inline]
+<a href=#1182 id=1182 data-nosnippet>1182</a>    </span><span class="kw">pub fn </span>as_usize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<a href=#1183 id=1183 data-nosnippet>1183</a>        <span class="comment">// This is manually implemented as the engine calls as_usize a few times
+<a href=#1184 id=1184 data-nosnippet>1184</a>        // during execution on hotter paths.  This way we can avoid an unnecessary clone.
+<a href=#1185 id=1185 data-nosnippet>1185</a>        </span><span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1186 id=1186 data-nosnippet>1186</a>            ValueRepr::I64(val) =&gt; TryFrom::try_from(val).ok(),
+<a href=#1187 id=1187 data-nosnippet>1187</a>            ValueRepr::U64(val) =&gt; TryFrom::try_from(val).ok(),
+<a href=#1188 id=1188 data-nosnippet>1188</a>            <span class="kw">_ </span>=&gt; <span class="self">self</span>.clone().try_into().ok(),
+<a href=#1189 id=1189 data-nosnippet>1189</a>        }
+<a href=#1190 id=1190 data-nosnippet>1190</a>    }
+<a href=#1191 id=1191 data-nosnippet>1191</a>
+<a href=#1192 id=1192 data-nosnippet>1192</a>    <span class="doccomment">/// If this is an i64 return it
+<a href=#1193 id=1193 data-nosnippet>1193</a>    </span><span class="kw">pub fn </span>as_i64(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;i64&gt; {
+<a href=#1194 id=1194 data-nosnippet>1194</a>        i64::try_from(<span class="self">self</span>.clone()).ok()
+<a href=#1195 id=1195 data-nosnippet>1195</a>    }
+<a href=#1196 id=1196 data-nosnippet>1196</a>
+<a href=#1197 id=1197 data-nosnippet>1197</a>    <span class="doccomment">/// Returns the bytes of this value if they exist.
+<a href=#1198 id=1198 data-nosnippet>1198</a>    </span><span class="kw">pub fn </span>as_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[u8]&gt; {
+<a href=#1199 id=1199 data-nosnippet>1199</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1200 id=1200 data-nosnippet>1200</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(s.as_bytes()),
+<a href=#1201 id=1201 data-nosnippet>1201</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; <span class="prelude-val">Some</span>(s.as_str().as_bytes()),
+<a href=#1202 id=1202 data-nosnippet>1202</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>b[..]),
+<a href=#1203 id=1203 data-nosnippet>1203</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1204 id=1204 data-nosnippet>1204</a>        }
+<a href=#1205 id=1205 data-nosnippet>1205</a>    }
+<a href=#1206 id=1206 data-nosnippet>1206</a>
+<a href=#1207 id=1207 data-nosnippet>1207</a>    <span class="doccomment">/// If the value is an object a reference to it is returned.
+<a href=#1208 id=1208 data-nosnippet>1208</a>    ///
+<a href=#1209 id=1209 data-nosnippet>1209</a>    /// The returned value is a reference to a type erased [`DynObject`].
+<a href=#1210 id=1210 data-nosnippet>1210</a>    /// For a specific type use [`downcast_object`](Self::downcast_object)
+<a href=#1211 id=1211 data-nosnippet>1211</a>    /// instead.
+<a href=#1212 id=1212 data-nosnippet>1212</a>    </span><span class="kw">pub fn </span>as_object(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>DynObject&gt; {
+<a href=#1213 id=1213 data-nosnippet>1213</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1214 id=1214 data-nosnippet>1214</a>            ValueRepr::Object(<span class="kw-2">ref </span>dy) =&gt; <span class="prelude-val">Some</span>(dy),
+<a href=#1215 id=1215 data-nosnippet>1215</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1216 id=1216 data-nosnippet>1216</a>        }
+<a href=#1217 id=1217 data-nosnippet>1217</a>    }
+<a href=#1218 id=1218 data-nosnippet>1218</a>
+<a href=#1219 id=1219 data-nosnippet>1219</a>    <span class="doccomment">/// Returns the length of the contained value.
+<a href=#1220 id=1220 data-nosnippet>1220</a>    ///
+<a href=#1221 id=1221 data-nosnippet>1221</a>    /// Values without a length will return `None`.
+<a href=#1222 id=1222 data-nosnippet>1222</a>    ///
+<a href=#1223 id=1223 data-nosnippet>1223</a>    /// ```
+<a href=#1224 id=1224 data-nosnippet>1224</a>    /// # use minijinja::value::Value;
+<a href=#1225 id=1225 data-nosnippet>1225</a>    /// let seq = Value::from(vec![1, 2, 3, 4]);
+<a href=#1226 id=1226 data-nosnippet>1226</a>    /// assert_eq!(seq.len(), Some(4));
+<a href=#1227 id=1227 data-nosnippet>1227</a>    /// ```
+<a href=#1228 id=1228 data-nosnippet>1228</a>    </span><span class="kw">pub fn </span>len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<a href=#1229 id=1229 data-nosnippet>1229</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1230 id=1230 data-nosnippet>1230</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(s.chars().count()),
+<a href=#1231 id=1231 data-nosnippet>1231</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; <span class="prelude-val">Some</span>(s.as_str().chars().count()),
+<a href=#1232 id=1232 data-nosnippet>1232</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; <span class="prelude-val">Some</span>(b.len()),
+<a href=#1233 id=1233 data-nosnippet>1233</a>            ValueRepr::Object(<span class="kw-2">ref </span>dy) =&gt; dy.enumerator_len(),
+<a href=#1234 id=1234 data-nosnippet>1234</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1235 id=1235 data-nosnippet>1235</a>        }
+<a href=#1236 id=1236 data-nosnippet>1236</a>    }
+<a href=#1237 id=1237 data-nosnippet>1237</a>
+<a href=#1238 id=1238 data-nosnippet>1238</a>    <span class="doccomment">/// Looks up an attribute by attribute name.
+<a href=#1239 id=1239 data-nosnippet>1239</a>    ///
+<a href=#1240 id=1240 data-nosnippet>1240</a>    /// This this returns [`UNDEFINED`](Self::UNDEFINED) when an invalid key is
+<a href=#1241 id=1241 data-nosnippet>1241</a>    /// resolved.  An error is returned if the value does not contain an object
+<a href=#1242 id=1242 data-nosnippet>1242</a>    /// that has attributes.
+<a href=#1243 id=1243 data-nosnippet>1243</a>    ///
+<a href=#1244 id=1244 data-nosnippet>1244</a>    /// ```
+<a href=#1245 id=1245 data-nosnippet>1245</a>    /// # use minijinja::value::Value;
+<a href=#1246 id=1246 data-nosnippet>1246</a>    /// # fn test() -&gt; Result&lt;(), minijinja::Error&gt; {
+<a href=#1247 id=1247 data-nosnippet>1247</a>    /// let ctx = minijinja::context! {
+<a href=#1248 id=1248 data-nosnippet>1248</a>    ///     foo =&gt; "Foo"
+<a href=#1249 id=1249 data-nosnippet>1249</a>    /// };
+<a href=#1250 id=1250 data-nosnippet>1250</a>    /// let value = ctx.get_attr("foo")?;
+<a href=#1251 id=1251 data-nosnippet>1251</a>    /// assert_eq!(value.to_string(), "Foo");
+<a href=#1252 id=1252 data-nosnippet>1252</a>    /// # Ok(()) }
+<a href=#1253 id=1253 data-nosnippet>1253</a>    /// ```
+<a href=#1254 id=1254 data-nosnippet>1254</a>    </span><span class="kw">pub fn </span>get_attr(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1255 id=1255 data-nosnippet>1255</a>        <span class="kw">let </span>value = <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1256 id=1256 data-nosnippet>1256</a>            ValueRepr::Undefined(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(Error::from(ErrorKind::UndefinedError)),
+<a href=#1257 id=1257 data-nosnippet>1257</a>            ValueRepr::Object(<span class="kw-2">ref </span>dy) =&gt; dy.get_value(<span class="kw-2">&amp;</span>Value::from(key)),
+<a href=#1258 id=1258 data-nosnippet>1258</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1259 id=1259 data-nosnippet>1259</a>        };
+<a href=#1260 id=1260 data-nosnippet>1260</a>
+<a href=#1261 id=1261 data-nosnippet>1261</a>        <span class="prelude-val">Ok</span>(value.unwrap_or(Value::UNDEFINED))
+<a href=#1262 id=1262 data-nosnippet>1262</a>    }
+<a href=#1263 id=1263 data-nosnippet>1263</a>
+<a href=#1264 id=1264 data-nosnippet>1264</a>    <span class="doccomment">/// Alternative lookup strategy without error handling exclusively for context
+<a href=#1265 id=1265 data-nosnippet>1265</a>    /// resolution.
+<a href=#1266 id=1266 data-nosnippet>1266</a>    ///
+<a href=#1267 id=1267 data-nosnippet>1267</a>    /// The main difference is that the return value will be `None` if the value is
+<a href=#1268 id=1268 data-nosnippet>1268</a>    /// unable to look up the key rather than returning `Undefined` and errors will
+<a href=#1269 id=1269 data-nosnippet>1269</a>    /// also not be created.
+<a href=#1270 id=1270 data-nosnippet>1270</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_attr_fast(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; {
+<a href=#1271 id=1271 data-nosnippet>1271</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1272 id=1272 data-nosnippet>1272</a>            ValueRepr::Object(<span class="kw-2">ref </span>dy) =&gt; dy.get_value(<span class="kw-2">&amp;</span>Value::from(key)),
+<a href=#1273 id=1273 data-nosnippet>1273</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1274 id=1274 data-nosnippet>1274</a>        }
+<a href=#1275 id=1275 data-nosnippet>1275</a>    }
+<a href=#1276 id=1276 data-nosnippet>1276</a>
+<a href=#1277 id=1277 data-nosnippet>1277</a>    <span class="doccomment">/// Looks up an index of the value.
+<a href=#1278 id=1278 data-nosnippet>1278</a>    ///
+<a href=#1279 id=1279 data-nosnippet>1279</a>    /// This is a shortcut for [`get_item`](Self::get_item).
+<a href=#1280 id=1280 data-nosnippet>1280</a>    ///
+<a href=#1281 id=1281 data-nosnippet>1281</a>    /// ```
+<a href=#1282 id=1282 data-nosnippet>1282</a>    /// # use minijinja::value::Value;
+<a href=#1283 id=1283 data-nosnippet>1283</a>    /// let seq = Value::from(vec![0u32, 1, 2]);
+<a href=#1284 id=1284 data-nosnippet>1284</a>    /// let value = seq.get_item_by_index(1).unwrap();
+<a href=#1285 id=1285 data-nosnippet>1285</a>    /// assert_eq!(value.try_into().ok(), Some(1));
+<a href=#1286 id=1286 data-nosnippet>1286</a>    /// ```
+<a href=#1287 id=1287 data-nosnippet>1287</a>    </span><span class="kw">pub fn </span>get_item_by_index(<span class="kw-2">&amp;</span><span class="self">self</span>, idx: usize) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1288 id=1288 data-nosnippet>1288</a>        <span class="self">self</span>.get_item(<span class="kw-2">&amp;</span>Value(ValueRepr::U64(idx <span class="kw">as _</span>)))
+<a href=#1289 id=1289 data-nosnippet>1289</a>    }
+<a href=#1290 id=1290 data-nosnippet>1290</a>
+<a href=#1291 id=1291 data-nosnippet>1291</a>    <span class="doccomment">/// Looks up an item (or attribute) by key.
+<a href=#1292 id=1292 data-nosnippet>1292</a>    ///
+<a href=#1293 id=1293 data-nosnippet>1293</a>    /// This is similar to [`get_attr`](Self::get_attr) but instead of using
+<a href=#1294 id=1294 data-nosnippet>1294</a>    /// a string key this can be any key.  For instance this can be used to
+<a href=#1295 id=1295 data-nosnippet>1295</a>    /// index into sequences.  Like [`get_attr`](Self::get_attr) this returns
+<a href=#1296 id=1296 data-nosnippet>1296</a>    /// [`UNDEFINED`](Self::UNDEFINED) when an invalid key is looked up.
+<a href=#1297 id=1297 data-nosnippet>1297</a>    ///
+<a href=#1298 id=1298 data-nosnippet>1298</a>    /// ```
+<a href=#1299 id=1299 data-nosnippet>1299</a>    /// # use minijinja::value::Value;
+<a href=#1300 id=1300 data-nosnippet>1300</a>    /// let ctx = minijinja::context! {
+<a href=#1301 id=1301 data-nosnippet>1301</a>    ///     foo =&gt; "Foo",
+<a href=#1302 id=1302 data-nosnippet>1302</a>    /// };
+<a href=#1303 id=1303 data-nosnippet>1303</a>    /// let value = ctx.get_item(&amp;Value::from("foo")).unwrap();
+<a href=#1304 id=1304 data-nosnippet>1304</a>    /// assert_eq!(value.to_string(), "Foo");
+<a href=#1305 id=1305 data-nosnippet>1305</a>    /// ```
+<a href=#1306 id=1306 data-nosnippet>1306</a>    </span><span class="kw">pub fn </span>get_item(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1307 id=1307 data-nosnippet>1307</a>        <span class="kw">if let </span>ValueRepr::Undefined(<span class="kw">_</span>) = <span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1308 id=1308 data-nosnippet>1308</a>            <span class="prelude-val">Err</span>(Error::from(ErrorKind::UndefinedError))
+<a href=#1309 id=1309 data-nosnippet>1309</a>        } <span class="kw">else </span>{
+<a href=#1310 id=1310 data-nosnippet>1310</a>            <span class="prelude-val">Ok</span>(<span class="self">self</span>.get_item_opt(key).unwrap_or(Value::UNDEFINED))
+<a href=#1311 id=1311 data-nosnippet>1311</a>        }
+<a href=#1312 id=1312 data-nosnippet>1312</a>    }
+<a href=#1313 id=1313 data-nosnippet>1313</a>
+<a href=#1314 id=1314 data-nosnippet>1314</a>    <span class="doccomment">/// Iterates over the value.
+<a href=#1315 id=1315 data-nosnippet>1315</a>    ///
+<a href=#1316 id=1316 data-nosnippet>1316</a>    /// Depending on the [`kind`](Self::kind) of the value the iterator
+<a href=#1317 id=1317 data-nosnippet>1317</a>    /// has a different behavior.
+<a href=#1318 id=1318 data-nosnippet>1318</a>    ///
+<a href=#1319 id=1319 data-nosnippet>1319</a>    /// * [`ValueKind::Map`]: the iterator yields the keys of the map.
+<a href=#1320 id=1320 data-nosnippet>1320</a>    /// * [`ValueKind::Seq`] / [`ValueKind::Iterable`]: the iterator yields the items in the sequence.
+<a href=#1321 id=1321 data-nosnippet>1321</a>    /// * [`ValueKind::String`]: the iterator yields characters in a string.
+<a href=#1322 id=1322 data-nosnippet>1322</a>    /// * [`ValueKind::None`] / [`ValueKind::Undefined`]: the iterator is empty.
+<a href=#1323 id=1323 data-nosnippet>1323</a>    ///
+<a href=#1324 id=1324 data-nosnippet>1324</a>    /// ```
+<a href=#1325 id=1325 data-nosnippet>1325</a>    /// # use minijinja::value::Value;
+<a href=#1326 id=1326 data-nosnippet>1326</a>    /// # fn test() -&gt; Result&lt;(), minijinja::Error&gt; {
+<a href=#1327 id=1327 data-nosnippet>1327</a>    /// let value = Value::from({
+<a href=#1328 id=1328 data-nosnippet>1328</a>    ///     let mut m = std::collections::BTreeMap::new();
+<a href=#1329 id=1329 data-nosnippet>1329</a>    ///     m.insert("foo", 42);
+<a href=#1330 id=1330 data-nosnippet>1330</a>    ///     m.insert("bar", 23);
+<a href=#1331 id=1331 data-nosnippet>1331</a>    ///     m
+<a href=#1332 id=1332 data-nosnippet>1332</a>    /// });
+<a href=#1333 id=1333 data-nosnippet>1333</a>    /// for key in value.try_iter()? {
+<a href=#1334 id=1334 data-nosnippet>1334</a>    ///     let value = value.get_item(&amp;key)?;
+<a href=#1335 id=1335 data-nosnippet>1335</a>    ///     println!("{} = {}", key, value);
+<a href=#1336 id=1336 data-nosnippet>1336</a>    /// }
+<a href=#1337 id=1337 data-nosnippet>1337</a>    /// # Ok(()) }
+<a href=#1338 id=1338 data-nosnippet>1338</a>    /// ```
+<a href=#1339 id=1339 data-nosnippet>1339</a>    </span><span class="kw">pub fn </span>try_iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ValueIter, Error&gt; {
+<a href=#1340 id=1340 data-nosnippet>1340</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1341 id=1341 data-nosnippet>1341</a>            ValueRepr::None | ValueRepr::Undefined(<span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(ValueIterImpl::Empty),
+<a href=#1342 id=1342 data-nosnippet>1342</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; {
+<a href=#1343 id=1343 data-nosnippet>1343</a>                <span class="prelude-val">Some</span>(ValueIterImpl::Chars(<span class="number">0</span>, s.chars().count(), Arc::clone(s)))
+<a href=#1344 id=1344 data-nosnippet>1344</a>            }
+<a href=#1345 id=1345 data-nosnippet>1345</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; <span class="prelude-val">Some</span>(ValueIterImpl::Chars(
+<a href=#1346 id=1346 data-nosnippet>1346</a>                <span class="number">0</span>,
+<a href=#1347 id=1347 data-nosnippet>1347</a>                s.as_str().chars().count(),
+<a href=#1348 id=1348 data-nosnippet>1348</a>                Arc::from(s.as_str()),
+<a href=#1349 id=1349 data-nosnippet>1349</a>            )),
+<a href=#1350 id=1350 data-nosnippet>1350</a>            ValueRepr::Object(<span class="kw-2">ref </span>obj) =&gt; obj.try_iter().map(ValueIterImpl::Dyn),
+<a href=#1351 id=1351 data-nosnippet>1351</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1352 id=1352 data-nosnippet>1352</a>        }
+<a href=#1353 id=1353 data-nosnippet>1353</a>        .map(|imp| ValueIter { imp })
+<a href=#1354 id=1354 data-nosnippet>1354</a>        .ok_or_else(|| {
+<a href=#1355 id=1355 data-nosnippet>1355</a>            Error::new(
+<a href=#1356 id=1356 data-nosnippet>1356</a>                ErrorKind::InvalidOperation,
+<a href=#1357 id=1357 data-nosnippet>1357</a>                <span class="macro">format!</span>(<span class="string">"{} is not iterable"</span>, <span class="self">self</span>.kind()),
+<a href=#1358 id=1358 data-nosnippet>1358</a>            )
+<a href=#1359 id=1359 data-nosnippet>1359</a>        })
+<a href=#1360 id=1360 data-nosnippet>1360</a>    }
+<a href=#1361 id=1361 data-nosnippet>1361</a>
+<a href=#1362 id=1362 data-nosnippet>1362</a>    <span class="doccomment">/// Returns a reversed view of this value.
+<a href=#1363 id=1363 data-nosnippet>1363</a>    ///
+<a href=#1364 id=1364 data-nosnippet>1364</a>    /// This is implemented for the following types with the following behaviors:
+<a href=#1365 id=1365 data-nosnippet>1365</a>    ///
+<a href=#1366 id=1366 data-nosnippet>1366</a>    /// * undefined or none: value returned unchanged.
+<a href=#1367 id=1367 data-nosnippet>1367</a>    /// * string and bytes: returns a reversed version of that value
+<a href=#1368 id=1368 data-nosnippet>1368</a>    /// * iterables: returns a reversed version of the iterable.  If the iterable is not
+<a href=#1369 id=1369 data-nosnippet>1369</a>    ///   reversible itself, it consumes it and then reverses it.
+<a href=#1370 id=1370 data-nosnippet>1370</a>    </span><span class="kw">pub fn </span>reverse(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1371 id=1371 data-nosnippet>1371</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1372 id=1372 data-nosnippet>1372</a>            ValueRepr::Undefined(<span class="kw">_</span>) | ValueRepr::None =&gt; <span class="prelude-val">Some</span>(<span class="self">self</span>.clone()),
+<a href=#1373 id=1373 data-nosnippet>1373</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(Value::from(s.chars().rev().collect::&lt;String&gt;())),
+<a href=#1374 id=1374 data-nosnippet>1374</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; {
+<a href=#1375 id=1375 data-nosnippet>1375</a>                <span class="comment">// TODO: add small str optimization here
+<a href=#1376 id=1376 data-nosnippet>1376</a>                </span><span class="prelude-val">Some</span>(Value::from(s.as_str().chars().rev().collect::&lt;String&gt;()))
+<a href=#1377 id=1377 data-nosnippet>1377</a>            }
+<a href=#1378 id=1378 data-nosnippet>1378</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; <span class="prelude-val">Some</span>(Value::from_bytes(
+<a href=#1379 id=1379 data-nosnippet>1379</a>                b.iter().rev().copied().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
+<a href=#1380 id=1380 data-nosnippet>1380</a>            )),
+<a href=#1381 id=1381 data-nosnippet>1381</a>            ValueRepr::Object(<span class="kw-2">ref </span>o) =&gt; <span class="kw">match </span>o.enumerate() {
+<a href=#1382 id=1382 data-nosnippet>1382</a>                Enumerator::NonEnumerable =&gt; <span class="prelude-val">None</span>,
+<a href=#1383 id=1383 data-nosnippet>1383</a>                Enumerator::Empty =&gt; <span class="prelude-val">Some</span>(Value::make_iterable(|| <span class="prelude-val">None</span>::&lt;Value&gt;.into_iter())),
+<a href=#1384 id=1384 data-nosnippet>1384</a>                Enumerator::Seq(l) =&gt; {
+<a href=#1385 id=1385 data-nosnippet>1385</a>                    <span class="kw">let </span>self_clone = o.clone();
+<a href=#1386 id=1386 data-nosnippet>1386</a>                    <span class="prelude-val">Some</span>(Value::make_iterable(<span class="kw">move </span>|| {
+<a href=#1387 id=1387 data-nosnippet>1387</a>                        <span class="kw">let </span>self_clone = self_clone.clone();
+<a href=#1388 id=1388 data-nosnippet>1388</a>                        (<span class="number">0</span>..l).rev().map(<span class="kw">move </span>|idx| {
+<a href=#1389 id=1389 data-nosnippet>1389</a>                            self_clone.get_value(<span class="kw-2">&amp;</span>Value::from(idx)).unwrap_or_default()
+<a href=#1390 id=1390 data-nosnippet>1390</a>                        })
+<a href=#1391 id=1391 data-nosnippet>1391</a>                    }))
+<a href=#1392 id=1392 data-nosnippet>1392</a>                }
+<a href=#1393 id=1393 data-nosnippet>1393</a>                Enumerator::Iter(iter) =&gt; {
+<a href=#1394 id=1394 data-nosnippet>1394</a>                    <span class="kw">let </span><span class="kw-2">mut </span>v = iter.collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+<a href=#1395 id=1395 data-nosnippet>1395</a>                    v.reverse();
+<a href=#1396 id=1396 data-nosnippet>1396</a>                    <span class="prelude-val">Some</span>(Value::make_object_iterable(v, <span class="kw">move </span>|v| {
+<a href=#1397 id=1397 data-nosnippet>1397</a>                        Box::new(v.iter().cloned())
+<a href=#1398 id=1398 data-nosnippet>1398</a>                    }))
+<a href=#1399 id=1399 data-nosnippet>1399</a>                }
+<a href=#1400 id=1400 data-nosnippet>1400</a>                Enumerator::RevIter(rev_iter) =&gt; {
+<a href=#1401 id=1401 data-nosnippet>1401</a>                    <span class="kw">let </span>for_restart = <span class="self">self</span>.clone();
+<a href=#1402 id=1402 data-nosnippet>1402</a>                    <span class="kw">let </span>iter = Mutex::new(<span class="prelude-val">Some</span>(rev_iter));
+<a href=#1403 id=1403 data-nosnippet>1403</a>                    <span class="prelude-val">Some</span>(Value::make_iterable(<span class="kw">move </span>|| {
+<a href=#1404 id=1404 data-nosnippet>1404</a>                        <span class="kw">if let </span><span class="prelude-val">Some</span>(iter) = iter.lock().unwrap().take() {
+<a href=#1405 id=1405 data-nosnippet>1405</a>                            Box::new(iter) <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync&gt;
+<a href=#1406 id=1406 data-nosnippet>1406</a>                        } <span class="kw">else </span>{
+<a href=#1407 id=1407 data-nosnippet>1407</a>                            <span class="kw">match </span>for_restart.reverse().and_then(|x| x.try_iter()) {
+<a href=#1408 id=1408 data-nosnippet>1408</a>                                <span class="prelude-val">Ok</span>(iterable) =&gt; Box::new(iterable)
+<a href=#1409 id=1409 data-nosnippet>1409</a>                                    <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync&gt;,
+<a href=#1410 id=1410 data-nosnippet>1410</a>                                <span class="prelude-val">Err</span>(err) =&gt; Box::new(<span class="prelude-val">Some</span>(Value::from(err)).into_iter())
+<a href=#1411 id=1411 data-nosnippet>1411</a>                                    <span class="kw">as </span>Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync&gt;,
+<a href=#1412 id=1412 data-nosnippet>1412</a>                            }
+<a href=#1413 id=1413 data-nosnippet>1413</a>                        }
+<a href=#1414 id=1414 data-nosnippet>1414</a>                    }))
+<a href=#1415 id=1415 data-nosnippet>1415</a>                }
+<a href=#1416 id=1416 data-nosnippet>1416</a>                Enumerator::Str(s) =&gt; <span class="prelude-val">Some</span>(Value::make_iterable(<span class="kw">move </span>|| s.iter().rev().copied())),
+<a href=#1417 id=1417 data-nosnippet>1417</a>                Enumerator::Values(<span class="kw-2">mut </span>v) =&gt; {
+<a href=#1418 id=1418 data-nosnippet>1418</a>                    v.reverse();
+<a href=#1419 id=1419 data-nosnippet>1419</a>                    <span class="prelude-val">Some</span>(Value::make_object_iterable(v, <span class="kw">move </span>|v| {
+<a href=#1420 id=1420 data-nosnippet>1420</a>                        Box::new(v.iter().cloned())
+<a href=#1421 id=1421 data-nosnippet>1421</a>                    }))
+<a href=#1422 id=1422 data-nosnippet>1422</a>                }
+<a href=#1423 id=1423 data-nosnippet>1423</a>            },
+<a href=#1424 id=1424 data-nosnippet>1424</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1425 id=1425 data-nosnippet>1425</a>        }
+<a href=#1426 id=1426 data-nosnippet>1426</a>        .ok_or_else(|| {
+<a href=#1427 id=1427 data-nosnippet>1427</a>            Error::new(
+<a href=#1428 id=1428 data-nosnippet>1428</a>                ErrorKind::InvalidOperation,
+<a href=#1429 id=1429 data-nosnippet>1429</a>                <span class="macro">format!</span>(<span class="string">"cannot reverse values of type {}"</span>, <span class="self">self</span>.kind()),
+<a href=#1430 id=1430 data-nosnippet>1430</a>            )
+<a href=#1431 id=1431 data-nosnippet>1431</a>        })
+<a href=#1432 id=1432 data-nosnippet>1432</a>    }
+<a href=#1433 id=1433 data-nosnippet>1433</a>
+<a href=#1434 id=1434 data-nosnippet>1434</a>    <span class="doccomment">/// Returns some reference to the boxed object if it is of type `T`, or None if it isn’t.
+<a href=#1435 id=1435 data-nosnippet>1435</a>    ///
+<a href=#1436 id=1436 data-nosnippet>1436</a>    /// This is basically the "reverse" of [`from_object`](Self::from_object)
+<a href=#1437 id=1437 data-nosnippet>1437</a>    /// and [`from_dyn_object`](Self::from_dyn_object). It's also a shortcut for
+<a href=#1438 id=1438 data-nosnippet>1438</a>    /// [`downcast_ref`](DynObject::downcast_ref) on the return value of
+<a href=#1439 id=1439 data-nosnippet>1439</a>    /// [`as_object`](Self::as_object).
+<a href=#1440 id=1440 data-nosnippet>1440</a>    ///
+<a href=#1441 id=1441 data-nosnippet>1441</a>    /// # Example
+<a href=#1442 id=1442 data-nosnippet>1442</a>    ///
+<a href=#1443 id=1443 data-nosnippet>1443</a>    /// ```rust
+<a href=#1444 id=1444 data-nosnippet>1444</a>    /// # use minijinja::value::{Value, Object};
+<a href=#1445 id=1445 data-nosnippet>1445</a>    /// use std::fmt;
+<a href=#1446 id=1446 data-nosnippet>1446</a>    ///
+<a href=#1447 id=1447 data-nosnippet>1447</a>    /// #[derive(Debug)]
+<a href=#1448 id=1448 data-nosnippet>1448</a>    /// struct Thing {
+<a href=#1449 id=1449 data-nosnippet>1449</a>    ///     id: usize,
+<a href=#1450 id=1450 data-nosnippet>1450</a>    /// }
+<a href=#1451 id=1451 data-nosnippet>1451</a>    ///
+<a href=#1452 id=1452 data-nosnippet>1452</a>    /// impl Object for Thing {}
+<a href=#1453 id=1453 data-nosnippet>1453</a>    ///
+<a href=#1454 id=1454 data-nosnippet>1454</a>    /// let x_value = Value::from_object(Thing { id: 42 });
+<a href=#1455 id=1455 data-nosnippet>1455</a>    /// let thing = x_value.downcast_object_ref::&lt;Thing&gt;().unwrap();
+<a href=#1456 id=1456 data-nosnippet>1456</a>    /// assert_eq!(thing.id, 42);
+<a href=#1457 id=1457 data-nosnippet>1457</a>    /// ```
+<a href=#1458 id=1458 data-nosnippet>1458</a>    </span><span class="kw">pub fn </span>downcast_object_ref&lt;T: <span class="lifetime">'static</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>T&gt; {
+<a href=#1459 id=1459 data-nosnippet>1459</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1460 id=1460 data-nosnippet>1460</a>            ValueRepr::Object(<span class="kw-2">ref </span>o) =&gt; o.downcast_ref(),
+<a href=#1461 id=1461 data-nosnippet>1461</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1462 id=1462 data-nosnippet>1462</a>        }
+<a href=#1463 id=1463 data-nosnippet>1463</a>    }
+<a href=#1464 id=1464 data-nosnippet>1464</a>
+<a href=#1465 id=1465 data-nosnippet>1465</a>    <span class="doccomment">/// Like [`downcast_object_ref`](Self::downcast_object_ref) but returns
+<a href=#1466 id=1466 data-nosnippet>1466</a>    /// the actual object.
+<a href=#1467 id=1467 data-nosnippet>1467</a>    </span><span class="kw">pub fn </span>downcast_object&lt;T: <span class="lifetime">'static</span>&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;T&gt;&gt; {
+<a href=#1468 id=1468 data-nosnippet>1468</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1469 id=1469 data-nosnippet>1469</a>            ValueRepr::Object(<span class="kw-2">ref </span>o) =&gt; o.downcast(),
+<a href=#1470 id=1470 data-nosnippet>1470</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1471 id=1471 data-nosnippet>1471</a>        }
+<a href=#1472 id=1472 data-nosnippet>1472</a>    }
+<a href=#1473 id=1473 data-nosnippet>1473</a>
+<a href=#1474 id=1474 data-nosnippet>1474</a>    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_item_opt(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; {
+<a href=#1475 id=1475 data-nosnippet>1475</a>        <span class="kw">fn </span>index(value: <span class="kw-2">&amp;</span>Value, len: <span class="kw">impl </span>Fn() -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<a href=#1476 id=1476 data-nosnippet>1476</a>            <span class="kw">match </span>value.as_i64().and_then(|v| isize::try_from(v).ok()) {
+<a href=#1477 id=1477 data-nosnippet>1477</a>                <span class="prelude-val">Some</span>(i) <span class="kw">if </span>i &lt; <span class="number">0 </span>=&gt; <span class="macro">some!</span>(len()).checked_sub(i.unsigned_abs()),
+<a href=#1478 id=1478 data-nosnippet>1478</a>                <span class="prelude-val">Some</span>(i) =&gt; <span class="prelude-val">Some</span>(i <span class="kw">as </span>usize),
+<a href=#1479 id=1479 data-nosnippet>1479</a>                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1480 id=1480 data-nosnippet>1480</a>            }
+<a href=#1481 id=1481 data-nosnippet>1481</a>        }
+<a href=#1482 id=1482 data-nosnippet>1482</a>
+<a href=#1483 id=1483 data-nosnippet>1483</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1484 id=1484 data-nosnippet>1484</a>            ValueRepr::Object(<span class="kw-2">ref </span>dy) =&gt; <span class="kw">match </span>dy.repr() {
+<a href=#1485 id=1485 data-nosnippet>1485</a>                ObjectRepr::Map | ObjectRepr::Plain =&gt; dy.get_value(key),
+<a href=#1486 id=1486 data-nosnippet>1486</a>                ObjectRepr::Iterable =&gt; {
+<a href=#1487 id=1487 data-nosnippet>1487</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(rv) = dy.get_value(key) {
+<a href=#1488 id=1488 data-nosnippet>1488</a>                        <span class="kw">return </span><span class="prelude-val">Some</span>(rv);
+<a href=#1489 id=1489 data-nosnippet>1489</a>                    }
+<a href=#1490 id=1490 data-nosnippet>1490</a>                    <span class="comment">// The default behavior is to try to index into the iterable
+<a href=#1491 id=1491 data-nosnippet>1491</a>                    // as if nth() was called.  This lets one slice an array and
+<a href=#1492 id=1492 data-nosnippet>1492</a>                    // then index into it.
+<a href=#1493 id=1493 data-nosnippet>1493</a>                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(idx) = index(key, || dy.enumerator_len()) {
+<a href=#1494 id=1494 data-nosnippet>1494</a>                        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>iter) = dy.try_iter() {
+<a href=#1495 id=1495 data-nosnippet>1495</a>                            <span class="kw">if let </span><span class="prelude-val">Some</span>(rv) = iter.nth(idx) {
+<a href=#1496 id=1496 data-nosnippet>1496</a>                                <span class="kw">return </span><span class="prelude-val">Some</span>(rv);
+<a href=#1497 id=1497 data-nosnippet>1497</a>                            }
+<a href=#1498 id=1498 data-nosnippet>1498</a>                        }
+<a href=#1499 id=1499 data-nosnippet>1499</a>                    }
+<a href=#1500 id=1500 data-nosnippet>1500</a>                    <span class="prelude-val">None
+<a href=#1501 id=1501 data-nosnippet>1501</a>                </span>}
+<a href=#1502 id=1502 data-nosnippet>1502</a>                ObjectRepr::Seq =&gt; {
+<a href=#1503 id=1503 data-nosnippet>1503</a>                    <span class="kw">let </span>idx = index(key, || dy.enumerator_len()).map(Value::from);
+<a href=#1504 id=1504 data-nosnippet>1504</a>                    dy.get_value(idx.as_ref().unwrap_or(key))
+<a href=#1505 id=1505 data-nosnippet>1505</a>                }
+<a href=#1506 id=1506 data-nosnippet>1506</a>            },
+<a href=#1507 id=1507 data-nosnippet>1507</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; {
+<a href=#1508 id=1508 data-nosnippet>1508</a>                <span class="kw">let </span>idx = <span class="macro">some!</span>(index(key, || <span class="prelude-val">Some</span>(s.chars().count())));
+<a href=#1509 id=1509 data-nosnippet>1509</a>                s.chars().nth(idx).map(Value::from)
+<a href=#1510 id=1510 data-nosnippet>1510</a>            }
+<a href=#1511 id=1511 data-nosnippet>1511</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; {
+<a href=#1512 id=1512 data-nosnippet>1512</a>                <span class="kw">let </span>idx = <span class="macro">some!</span>(index(key, || <span class="prelude-val">Some</span>(s.as_str().chars().count())));
+<a href=#1513 id=1513 data-nosnippet>1513</a>                s.as_str().chars().nth(idx).map(Value::from)
+<a href=#1514 id=1514 data-nosnippet>1514</a>            }
+<a href=#1515 id=1515 data-nosnippet>1515</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; {
+<a href=#1516 id=1516 data-nosnippet>1516</a>                <span class="kw">let </span>idx = <span class="macro">some!</span>(index(key, || <span class="prelude-val">Some</span>(b.len())));
+<a href=#1517 id=1517 data-nosnippet>1517</a>                b.get(idx).copied().map(Value::from)
+<a href=#1518 id=1518 data-nosnippet>1518</a>            }
+<a href=#1519 id=1519 data-nosnippet>1519</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1520 id=1520 data-nosnippet>1520</a>        }
+<a href=#1521 id=1521 data-nosnippet>1521</a>    }
+<a href=#1522 id=1522 data-nosnippet>1522</a>
+<a href=#1523 id=1523 data-nosnippet>1523</a>    <span class="doccomment">/// Calls the value directly.
+<a href=#1524 id=1524 data-nosnippet>1524</a>    ///
+<a href=#1525 id=1525 data-nosnippet>1525</a>    /// If the value holds a function or macro, this invokes it.  Note that in
+<a href=#1526 id=1526 data-nosnippet>1526</a>    /// MiniJinja there is a separate namespace for methods on objects and callable
+<a href=#1527 id=1527 data-nosnippet>1527</a>    /// items.  To call methods (which should be a rather rare occurrence) you
+<a href=#1528 id=1528 data-nosnippet>1528</a>    /// have to use [`call_method`](Self::call_method).
+<a href=#1529 id=1529 data-nosnippet>1529</a>    ///
+<a href=#1530 id=1530 data-nosnippet>1530</a>    /// The `args` slice is for the arguments of the function call.  To pass
+<a href=#1531 id=1531 data-nosnippet>1531</a>    /// keyword arguments use the [`Kwargs`] type.
+<a href=#1532 id=1532 data-nosnippet>1532</a>    ///
+<a href=#1533 id=1533 data-nosnippet>1533</a>    /// Usually the state is already available when it's useful to call this method,
+<a href=#1534 id=1534 data-nosnippet>1534</a>    /// but when it's not available you can get a fresh template state straight
+<a href=#1535 id=1535 data-nosnippet>1535</a>    /// from the [`Template`](crate::Template) via [`new_state`](crate::Template::new_state).
+<a href=#1536 id=1536 data-nosnippet>1536</a>    ///
+<a href=#1537 id=1537 data-nosnippet>1537</a>    /// ```
+<a href=#1538 id=1538 data-nosnippet>1538</a>    /// # use minijinja::{Environment, value::{Value, Kwargs}};
+<a href=#1539 id=1539 data-nosnippet>1539</a>    /// # let mut env = Environment::new();
+<a href=#1540 id=1540 data-nosnippet>1540</a>    /// # env.add_template("foo", "").unwrap();
+<a href=#1541 id=1541 data-nosnippet>1541</a>    /// # let tmpl = env.get_template("foo").unwrap();
+<a href=#1542 id=1542 data-nosnippet>1542</a>    /// # let state = tmpl.new_state(); let state = &amp;state;
+<a href=#1543 id=1543 data-nosnippet>1543</a>    /// let func = Value::from_function(|v: i64, kwargs: Kwargs| {
+<a href=#1544 id=1544 data-nosnippet>1544</a>    ///     v * kwargs.get::&lt;i64&gt;("mult").unwrap_or(1)
+<a href=#1545 id=1545 data-nosnippet>1545</a>    /// });
+<a href=#1546 id=1546 data-nosnippet>1546</a>    /// let rv = func.call(
+<a href=#1547 id=1547 data-nosnippet>1547</a>    ///     state,
+<a href=#1548 id=1548 data-nosnippet>1548</a>    ///     &amp;[
+<a href=#1549 id=1549 data-nosnippet>1549</a>    ///         Value::from(42),
+<a href=#1550 id=1550 data-nosnippet>1550</a>    ///         Value::from(Kwargs::from_iter([("mult", Value::from(2))])),
+<a href=#1551 id=1551 data-nosnippet>1551</a>    ///     ],
+<a href=#1552 id=1552 data-nosnippet>1552</a>    /// ).unwrap();
+<a href=#1553 id=1553 data-nosnippet>1553</a>    /// assert_eq!(rv, Value::from(84));
+<a href=#1554 id=1554 data-nosnippet>1554</a>    /// ```
+<a href=#1555 id=1555 data-nosnippet>1555</a>    ///
+<a href=#1556 id=1556 data-nosnippet>1556</a>    /// With the [`args!`](crate::args) macro creating an argument slice is
+<a href=#1557 id=1557 data-nosnippet>1557</a>    /// simplified:
+<a href=#1558 id=1558 data-nosnippet>1558</a>    ///
+<a href=#1559 id=1559 data-nosnippet>1559</a>    /// ```
+<a href=#1560 id=1560 data-nosnippet>1560</a>    /// # use minijinja::{Environment, args, value::{Value, Kwargs}};
+<a href=#1561 id=1561 data-nosnippet>1561</a>    /// # let mut env = Environment::new();
+<a href=#1562 id=1562 data-nosnippet>1562</a>    /// # env.add_template("foo", "").unwrap();
+<a href=#1563 id=1563 data-nosnippet>1563</a>    /// # let tmpl = env.get_template("foo").unwrap();
+<a href=#1564 id=1564 data-nosnippet>1564</a>    /// # let state = tmpl.new_state(); let state = &amp;state;
+<a href=#1565 id=1565 data-nosnippet>1565</a>    /// let func = Value::from_function(|v: i64, kwargs: Kwargs| {
+<a href=#1566 id=1566 data-nosnippet>1566</a>    ///     v * kwargs.get::&lt;i64&gt;("mult").unwrap_or(1)
+<a href=#1567 id=1567 data-nosnippet>1567</a>    /// });
+<a href=#1568 id=1568 data-nosnippet>1568</a>    /// let rv = func.call(state, args!(42, mult =&gt; 2)).unwrap();
+<a href=#1569 id=1569 data-nosnippet>1569</a>    /// assert_eq!(rv, Value::from(84));
+<a href=#1570 id=1570 data-nosnippet>1570</a>    /// ```
+<a href=#1571 id=1571 data-nosnippet>1571</a>    </span><span class="kw">pub fn </span>call(<span class="kw-2">&amp;</span><span class="self">self</span>, state: <span class="kw-2">&amp;</span>State, args: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1572 id=1572 data-nosnippet>1572</a>        <span class="kw">if let </span>ValueRepr::Object(<span class="kw-2">ref </span>dy) = <span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1573 id=1573 data-nosnippet>1573</a>            dy.call(state, args)
+<a href=#1574 id=1574 data-nosnippet>1574</a>        } <span class="kw">else </span>{
+<a href=#1575 id=1575 data-nosnippet>1575</a>            <span class="prelude-val">Err</span>(Error::new(
+<a href=#1576 id=1576 data-nosnippet>1576</a>                ErrorKind::InvalidOperation,
+<a href=#1577 id=1577 data-nosnippet>1577</a>                <span class="macro">format!</span>(<span class="string">"value of type {} is not callable"</span>, <span class="self">self</span>.kind()),
+<a href=#1578 id=1578 data-nosnippet>1578</a>            ))
+<a href=#1579 id=1579 data-nosnippet>1579</a>        }
+<a href=#1580 id=1580 data-nosnippet>1580</a>    }
+<a href=#1581 id=1581 data-nosnippet>1581</a>
+<a href=#1582 id=1582 data-nosnippet>1582</a>    <span class="doccomment">/// Calls a method on the value.
+<a href=#1583 id=1583 data-nosnippet>1583</a>    ///
+<a href=#1584 id=1584 data-nosnippet>1584</a>    /// The name of the method is `name`, the arguments passed are in the `args`
+<a href=#1585 id=1585 data-nosnippet>1585</a>    /// slice.
+<a href=#1586 id=1586 data-nosnippet>1586</a>    </span><span class="kw">pub fn </span>call_method(<span class="kw-2">&amp;</span><span class="self">self</span>, state: <span class="kw-2">&amp;</span>State, name: <span class="kw-2">&amp;</span>str, args: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1587 id=1587 data-nosnippet>1587</a>        <span class="kw">match </span><span class="self">self</span>._call_method(state, name, args) {
+<a href=#1588 id=1588 data-nosnippet>1588</a>            <span class="prelude-val">Ok</span>(rv) =&gt; <span class="prelude-val">Ok</span>(rv),
+<a href=#1589 id=1589 data-nosnippet>1589</a>            <span class="prelude-val">Err</span>(<span class="kw-2">mut </span>err) =&gt; {
+<a href=#1590 id=1590 data-nosnippet>1590</a>                <span class="kw">if </span>err.kind() == ErrorKind::UnknownMethod {
+<a href=#1591 id=1591 data-nosnippet>1591</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>callback) = state.env().unknown_method_callback {
+<a href=#1592 id=1592 data-nosnippet>1592</a>                        <span class="kw">match </span>callback(state, <span class="self">self</span>, name, args) {
+<a href=#1593 id=1593 data-nosnippet>1593</a>                            <span class="prelude-val">Ok</span>(result) =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(result),
+<a href=#1594 id=1594 data-nosnippet>1594</a>                            <span class="prelude-val">Err</span>(callback_err) =&gt; {
+<a href=#1595 id=1595 data-nosnippet>1595</a>                                <span class="comment">// if the callback fails with the same error, we
+<a href=#1596 id=1596 data-nosnippet>1596</a>                                // want to also attach the default detail if
+<a href=#1597 id=1597 data-nosnippet>1597</a>                                // it's missing
+<a href=#1598 id=1598 data-nosnippet>1598</a>                                </span><span class="kw">if </span>callback_err.kind() == ErrorKind::UnknownMethod {
+<a href=#1599 id=1599 data-nosnippet>1599</a>                                    err = callback_err;
+<a href=#1600 id=1600 data-nosnippet>1600</a>                                } <span class="kw">else </span>{
+<a href=#1601 id=1601 data-nosnippet>1601</a>                                    <span class="kw">return </span><span class="prelude-val">Err</span>(err);
+<a href=#1602 id=1602 data-nosnippet>1602</a>                                }
+<a href=#1603 id=1603 data-nosnippet>1603</a>                            }
+<a href=#1604 id=1604 data-nosnippet>1604</a>                        }
+<a href=#1605 id=1605 data-nosnippet>1605</a>                    }
+<a href=#1606 id=1606 data-nosnippet>1606</a>                    <span class="kw">if </span>err.detail().is_none() {
+<a href=#1607 id=1607 data-nosnippet>1607</a>                        err.set_detail(<span class="macro">format!</span>(<span class="string">"{} has no method named {}"</span>, <span class="self">self</span>.kind(), name));
+<a href=#1608 id=1608 data-nosnippet>1608</a>                    }
+<a href=#1609 id=1609 data-nosnippet>1609</a>                }
+<a href=#1610 id=1610 data-nosnippet>1610</a>                <span class="prelude-val">Err</span>(err)
+<a href=#1611 id=1611 data-nosnippet>1611</a>            }
+<a href=#1612 id=1612 data-nosnippet>1612</a>        }
+<a href=#1613 id=1613 data-nosnippet>1613</a>    }
+<a href=#1614 id=1614 data-nosnippet>1614</a>
+<a href=#1615 id=1615 data-nosnippet>1615</a>    <span class="kw">fn </span>_call_method(<span class="kw-2">&amp;</span><span class="self">self</span>, state: <span class="kw-2">&amp;</span>State, name: <span class="kw-2">&amp;</span>str, args: <span class="kw-2">&amp;</span>[Value]) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1616 id=1616 data-nosnippet>1616</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(object) = <span class="self">self</span>.as_object() {
+<a href=#1617 id=1617 data-nosnippet>1617</a>            object.call_method(state, name, args)
+<a href=#1618 id=1618 data-nosnippet>1618</a>        } <span class="kw">else </span>{
+<a href=#1619 id=1619 data-nosnippet>1619</a>            <span class="prelude-val">Err</span>(Error::from(ErrorKind::UnknownMethod))
+<a href=#1620 id=1620 data-nosnippet>1620</a>        }
+<a href=#1621 id=1621 data-nosnippet>1621</a>    }
+<a href=#1622 id=1622 data-nosnippet>1622</a>
+<a href=#1623 id=1623 data-nosnippet>1623</a>    <span class="attr">#[cfg(feature = <span class="string">"builtins"</span>)]
+<a href=#1624 id=1624 data-nosnippet>1624</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_path(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Value, Error&gt; {
+<a href=#1625 id=1625 data-nosnippet>1625</a>        <span class="kw">let </span><span class="kw-2">mut </span>rv = <span class="self">self</span>.clone();
+<a href=#1626 id=1626 data-nosnippet>1626</a>        <span class="kw">for </span>part <span class="kw">in </span>path.split(<span class="string">'.'</span>) {
+<a href=#1627 id=1627 data-nosnippet>1627</a>            <span class="kw">if let </span><span class="prelude-val">Ok</span>(num) = part.parse::&lt;usize&gt;() {
+<a href=#1628 id=1628 data-nosnippet>1628</a>                rv = <span class="macro">ok!</span>(rv.get_item_by_index(num));
+<a href=#1629 id=1629 data-nosnippet>1629</a>            } <span class="kw">else </span>{
+<a href=#1630 id=1630 data-nosnippet>1630</a>                rv = <span class="macro">ok!</span>(rv.get_attr(part));
+<a href=#1631 id=1631 data-nosnippet>1631</a>            }
+<a href=#1632 id=1632 data-nosnippet>1632</a>        }
+<a href=#1633 id=1633 data-nosnippet>1633</a>        <span class="prelude-val">Ok</span>(rv)
+<a href=#1634 id=1634 data-nosnippet>1634</a>    }
+<a href=#1635 id=1635 data-nosnippet>1635</a>
+<a href=#1636 id=1636 data-nosnippet>1636</a>    <span class="attr">#[cfg(feature = <span class="string">"builtins"</span>)]
+<a href=#1637 id=1637 data-nosnippet>1637</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_path_or_default(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str, default: <span class="kw-2">&amp;</span>Value) -&gt; Value {
+<a href=#1638 id=1638 data-nosnippet>1638</a>        <span class="kw">match </span><span class="self">self</span>.get_path(path) {
+<a href=#1639 id=1639 data-nosnippet>1639</a>            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; default.clone(),
+<a href=#1640 id=1640 data-nosnippet>1640</a>            <span class="prelude-val">Ok</span>(val) <span class="kw">if </span>val.is_undefined() =&gt; default.clone(),
+<a href=#1641 id=1641 data-nosnippet>1641</a>            <span class="prelude-val">Ok</span>(val) =&gt; val,
+<a href=#1642 id=1642 data-nosnippet>1642</a>        }
+<a href=#1643 id=1643 data-nosnippet>1643</a>    }
+<a href=#1644 id=1644 data-nosnippet>1644</a>}
+<a href=#1645 id=1645 data-nosnippet>1645</a>
+<a href=#1646 id=1646 data-nosnippet>1646</a><span class="kw">impl </span>Serialize <span class="kw">for </span>Value {
+<a href=#1647 id=1647 data-nosnippet>1647</a>    <span class="kw">fn </span>serialize&lt;S&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, serializer: S) -&gt; <span class="prelude-ty">Result</span>&lt;S::Ok, S::Error&gt;
+<a href=#1648 id=1648 data-nosnippet>1648</a>    <span class="kw">where
+<a href=#1649 id=1649 data-nosnippet>1649</a>        </span>S: Serializer,
+<a href=#1650 id=1650 data-nosnippet>1650</a>    {
+<a href=#1651 id=1651 data-nosnippet>1651</a>        <span class="comment">// enable round tripping of values
+<a href=#1652 id=1652 data-nosnippet>1652</a>        </span><span class="kw">if </span>serializing_for_value() {
+<a href=#1653 id=1653 data-nosnippet>1653</a>            <span class="kw">let </span>handle = LAST_VALUE_HANDLE.with(|x| {
+<a href=#1654 id=1654 data-nosnippet>1654</a>                <span class="comment">// we are okay with overflowing the handle here because these values only
+<a href=#1655 id=1655 data-nosnippet>1655</a>                // live for a very short period of time and it's not likely that you run out
+<a href=#1656 id=1656 data-nosnippet>1656</a>                // of an entire u32 worth of handles in a single serialization operation.
+<a href=#1657 id=1657 data-nosnippet>1657</a>                </span><span class="kw">let </span>rv = x.get().wrapping_add(<span class="number">1</span>);
+<a href=#1658 id=1658 data-nosnippet>1658</a>                x.set(rv);
+<a href=#1659 id=1659 data-nosnippet>1659</a>                rv
+<a href=#1660 id=1660 data-nosnippet>1660</a>            });
+<a href=#1661 id=1661 data-nosnippet>1661</a>            VALUE_HANDLES.with(|handles| handles.borrow_mut().insert(handle, <span class="self">self</span>.clone()));
+<a href=#1662 id=1662 data-nosnippet>1662</a>
+<a href=#1663 id=1663 data-nosnippet>1663</a>            <span class="comment">// we serialize this into a tuple struct as a form of in-band signalling
+<a href=#1664 id=1664 data-nosnippet>1664</a>            // we can detect.  This also will fail with a somewhat acceptable error
+<a href=#1665 id=1665 data-nosnippet>1665</a>            // for flattening operations.  See https://github.com/mitsuhiko/minijinja/issues/222
+<a href=#1666 id=1666 data-nosnippet>1666</a>            </span><span class="kw">let </span><span class="kw-2">mut </span>s = <span class="macro">ok!</span>(serializer.serialize_tuple_struct(VALUE_HANDLE_MARKER, <span class="number">1</span>));
+<a href=#1667 id=1667 data-nosnippet>1667</a>            <span class="macro">ok!</span>(s.serialize_field(<span class="kw-2">&amp;</span>handle));
+<a href=#1668 id=1668 data-nosnippet>1668</a>            <span class="kw">return </span>s.end();
+<a href=#1669 id=1669 data-nosnippet>1669</a>        }
+<a href=#1670 id=1670 data-nosnippet>1670</a>
+<a href=#1671 id=1671 data-nosnippet>1671</a>        <span class="kw">match </span><span class="self">self</span>.<span class="number">0 </span>{
+<a href=#1672 id=1672 data-nosnippet>1672</a>            ValueRepr::Bool(b) =&gt; serializer.serialize_bool(b),
+<a href=#1673 id=1673 data-nosnippet>1673</a>            ValueRepr::U64(u) =&gt; serializer.serialize_u64(u),
+<a href=#1674 id=1674 data-nosnippet>1674</a>            ValueRepr::I64(i) =&gt; serializer.serialize_i64(i),
+<a href=#1675 id=1675 data-nosnippet>1675</a>            ValueRepr::F64(f) =&gt; serializer.serialize_f64(f),
+<a href=#1676 id=1676 data-nosnippet>1676</a>            ValueRepr::None | ValueRepr::Undefined(<span class="kw">_</span>) | ValueRepr::Invalid(<span class="kw">_</span>) =&gt; {
+<a href=#1677 id=1677 data-nosnippet>1677</a>                serializer.serialize_unit()
+<a href=#1678 id=1678 data-nosnippet>1678</a>            }
+<a href=#1679 id=1679 data-nosnippet>1679</a>            ValueRepr::U128(u) =&gt; serializer.serialize_u128(u.<span class="number">0</span>),
+<a href=#1680 id=1680 data-nosnippet>1680</a>            ValueRepr::I128(i) =&gt; serializer.serialize_i128(i.<span class="number">0</span>),
+<a href=#1681 id=1681 data-nosnippet>1681</a>            ValueRepr::String(<span class="kw-2">ref </span>s, <span class="kw">_</span>) =&gt; serializer.serialize_str(s),
+<a href=#1682 id=1682 data-nosnippet>1682</a>            ValueRepr::SmallStr(<span class="kw-2">ref </span>s) =&gt; serializer.serialize_str(s.as_str()),
+<a href=#1683 id=1683 data-nosnippet>1683</a>            ValueRepr::Bytes(<span class="kw-2">ref </span>b) =&gt; serializer.serialize_bytes(b),
+<a href=#1684 id=1684 data-nosnippet>1684</a>            ValueRepr::Object(<span class="kw-2">ref </span>o) =&gt; <span class="kw">match </span>o.repr() {
+<a href=#1685 id=1685 data-nosnippet>1685</a>                ObjectRepr::Plain =&gt; serializer.serialize_str(<span class="kw-2">&amp;</span>o.to_string()),
+<a href=#1686 id=1686 data-nosnippet>1686</a>                ObjectRepr::Seq | ObjectRepr::Iterable =&gt; {
+<a href=#1687 id=1687 data-nosnippet>1687</a>                    <span class="kw">use </span>serde::ser::SerializeSeq;
+<a href=#1688 id=1688 data-nosnippet>1688</a>                    <span class="kw">let </span><span class="kw-2">mut </span>seq = <span class="macro">ok!</span>(serializer.serialize_seq(o.enumerator_len()));
+<a href=#1689 id=1689 data-nosnippet>1689</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(iter) = o.try_iter() {
+<a href=#1690 id=1690 data-nosnippet>1690</a>                        <span class="kw">for </span>item <span class="kw">in </span>iter {
+<a href=#1691 id=1691 data-nosnippet>1691</a>                            <span class="macro">ok!</span>(seq.serialize_element(<span class="kw-2">&amp;</span>item));
+<a href=#1692 id=1692 data-nosnippet>1692</a>                        }
+<a href=#1693 id=1693 data-nosnippet>1693</a>                    }
+<a href=#1694 id=1694 data-nosnippet>1694</a>
+<a href=#1695 id=1695 data-nosnippet>1695</a>                    seq.end()
+<a href=#1696 id=1696 data-nosnippet>1696</a>                }
+<a href=#1697 id=1697 data-nosnippet>1697</a>                ObjectRepr::Map =&gt; {
+<a href=#1698 id=1698 data-nosnippet>1698</a>                    <span class="kw">use </span>serde::ser::SerializeMap;
+<a href=#1699 id=1699 data-nosnippet>1699</a>                    <span class="kw">let </span><span class="kw-2">mut </span>map = <span class="macro">ok!</span>(serializer.serialize_map(<span class="prelude-val">None</span>));
+<a href=#1700 id=1700 data-nosnippet>1700</a>                    <span class="kw">if let </span><span class="prelude-val">Some</span>(iter) = o.try_iter_pairs() {
+<a href=#1701 id=1701 data-nosnippet>1701</a>                        <span class="kw">for </span>(key, value) <span class="kw">in </span>iter {
+<a href=#1702 id=1702 data-nosnippet>1702</a>                            <span class="macro">ok!</span>(map.serialize_entry(<span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>value));
+<a href=#1703 id=1703 data-nosnippet>1703</a>                        }
+<a href=#1704 id=1704 data-nosnippet>1704</a>                    }
+<a href=#1705 id=1705 data-nosnippet>1705</a>
+<a href=#1706 id=1706 data-nosnippet>1706</a>                    map.end()
+<a href=#1707 id=1707 data-nosnippet>1707</a>                }
+<a href=#1708 id=1708 data-nosnippet>1708</a>            },
+<a href=#1709 id=1709 data-nosnippet>1709</a>        }
+<a href=#1710 id=1710 data-nosnippet>1710</a>    }
+<a href=#1711 id=1711 data-nosnippet>1711</a>}
+<a href=#1712 id=1712 data-nosnippet>1712</a>
+<a href=#1713 id=1713 data-nosnippet>1713</a><span class="doccomment">/// Helper to create an iterator proxy that borrows from an object.
+<a href=#1714 id=1714 data-nosnippet>1714</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>mapped_enumerator&lt;F, T&gt;(obj: <span class="kw-2">&amp;</span>Arc&lt;T&gt;, maker: F) -&gt; Enumerator
+<a href=#1715 id=1715 data-nosnippet>1715</a><span class="kw">where
+<a href=#1716 id=1716 data-nosnippet>1716</a>    </span>T: Object + <span class="lifetime">'static</span>,
+<a href=#1717 id=1717 data-nosnippet>1717</a>    F: <span class="kw">for</span>&lt;<span class="lifetime">'a</span>&gt; FnOnce(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T) -&gt; Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync + <span class="lifetime">'a</span>&gt;,
+<a href=#1718 id=1718 data-nosnippet>1718</a>{
+<a href=#1719 id=1719 data-nosnippet>1719</a>    <span class="kw">struct </span>Iter {
+<a href=#1720 id=1720 data-nosnippet>1720</a>        iter: Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync + <span class="lifetime">'static</span>&gt;,
+<a href=#1721 id=1721 data-nosnippet>1721</a>        _object: DynObject,
+<a href=#1722 id=1722 data-nosnippet>1722</a>    }
+<a href=#1723 id=1723 data-nosnippet>1723</a>
+<a href=#1724 id=1724 data-nosnippet>1724</a>    <span class="kw">impl </span>Iterator <span class="kw">for </span>Iter {
+<a href=#1725 id=1725 data-nosnippet>1725</a>        <span class="kw">type </span>Item = Value;
+<a href=#1726 id=1726 data-nosnippet>1726</a>
+<a href=#1727 id=1727 data-nosnippet>1727</a>        <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
+<a href=#1728 id=1728 data-nosnippet>1728</a>            <span class="self">self</span>.iter.next()
+<a href=#1729 id=1729 data-nosnippet>1729</a>        }
+<a href=#1730 id=1730 data-nosnippet>1730</a>
+<a href=#1731 id=1731 data-nosnippet>1731</a>        <span class="kw">fn </span>size_hint(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; (usize, <span class="prelude-ty">Option</span>&lt;usize&gt;) {
+<a href=#1732 id=1732 data-nosnippet>1732</a>            <span class="self">self</span>.iter.size_hint()
+<a href=#1733 id=1733 data-nosnippet>1733</a>        }
+<a href=#1734 id=1734 data-nosnippet>1734</a>    }
+<a href=#1735 id=1735 data-nosnippet>1735</a>
+<a href=#1736 id=1736 data-nosnippet>1736</a>    <span class="comment">// SAFETY: this is safe because the object is kept alive by the iter
+<a href=#1737 id=1737 data-nosnippet>1737</a>    </span><span class="kw">let </span>iter = <span class="kw">unsafe </span>{
+<a href=#1738 id=1738 data-nosnippet>1738</a>        std::mem::transmute::&lt;Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = <span class="kw">_</span>&gt;&gt;, Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = <span class="kw">_</span>&gt; + Send + Sync&gt;&gt;(
+<a href=#1739 id=1739 data-nosnippet>1739</a>            maker(obj),
+<a href=#1740 id=1740 data-nosnippet>1740</a>        )
+<a href=#1741 id=1741 data-nosnippet>1741</a>    };
+<a href=#1742 id=1742 data-nosnippet>1742</a>    <span class="kw">let </span>_object = DynObject::new(obj.clone());
+<a href=#1743 id=1743 data-nosnippet>1743</a>    Enumerator::Iter(Box::new(Iter { iter, _object }))
+<a href=#1744 id=1744 data-nosnippet>1744</a>}
+<a href=#1745 id=1745 data-nosnippet>1745</a>
+<a href=#1746 id=1746 data-nosnippet>1746</a><span class="doccomment">/// Utility to iterate over values.
+<a href=#1747 id=1747 data-nosnippet>1747</a></span><span class="kw">pub struct </span>ValueIter {
+<a href=#1748 id=1748 data-nosnippet>1748</a>    imp: ValueIterImpl,
+<a href=#1749 id=1749 data-nosnippet>1749</a>}
+<a href=#1750 id=1750 data-nosnippet>1750</a>
+<a href=#1751 id=1751 data-nosnippet>1751</a><span class="kw">impl </span>Iterator <span class="kw">for </span>ValueIter {
+<a href=#1752 id=1752 data-nosnippet>1752</a>    <span class="kw">type </span>Item = Value;
+<a href=#1753 id=1753 data-nosnippet>1753</a>
+<a href=#1754 id=1754 data-nosnippet>1754</a>    <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
+<a href=#1755 id=1755 data-nosnippet>1755</a>        <span class="kw">match </span><span class="self">self</span>.imp {
+<a href=#1756 id=1756 data-nosnippet>1756</a>            ValueIterImpl::Empty =&gt; <span class="prelude-val">None</span>,
+<a href=#1757 id=1757 data-nosnippet>1757</a>            ValueIterImpl::Chars(<span class="kw-2">ref mut </span>offset, <span class="kw-2">ref mut </span>len, <span class="kw-2">ref </span>s) =&gt; {
+<a href=#1758 id=1758 data-nosnippet>1758</a>                (s <span class="kw">as </span><span class="kw-2">&amp;</span>str)[<span class="kw-2">*</span>offset..].chars().next().map(|c| {
+<a href=#1759 id=1759 data-nosnippet>1759</a>                    <span class="kw-2">*</span>offset += c.len_utf8();
+<a href=#1760 id=1760 data-nosnippet>1760</a>                    <span class="kw-2">*</span>len -= <span class="number">1</span>;
+<a href=#1761 id=1761 data-nosnippet>1761</a>                    Value::from(c)
+<a href=#1762 id=1762 data-nosnippet>1762</a>                })
+<a href=#1763 id=1763 data-nosnippet>1763</a>            }
+<a href=#1764 id=1764 data-nosnippet>1764</a>            ValueIterImpl::Dyn(<span class="kw-2">ref mut </span>iter) =&gt; iter.next(),
+<a href=#1765 id=1765 data-nosnippet>1765</a>        }
+<a href=#1766 id=1766 data-nosnippet>1766</a>    }
+<a href=#1767 id=1767 data-nosnippet>1767</a>
+<a href=#1768 id=1768 data-nosnippet>1768</a>    <span class="kw">fn </span>size_hint(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; (usize, <span class="prelude-ty">Option</span>&lt;usize&gt;) {
+<a href=#1769 id=1769 data-nosnippet>1769</a>        <span class="kw">match </span><span class="self">self</span>.imp {
+<a href=#1770 id=1770 data-nosnippet>1770</a>            ValueIterImpl::Empty =&gt; (<span class="number">0</span>, <span class="prelude-val">Some</span>(<span class="number">0</span>)),
+<a href=#1771 id=1771 data-nosnippet>1771</a>            ValueIterImpl::Chars(<span class="kw">_</span>, len, <span class="kw">_</span>) =&gt; (<span class="number">0</span>, <span class="prelude-val">Some</span>(len)),
+<a href=#1772 id=1772 data-nosnippet>1772</a>            ValueIterImpl::Dyn(<span class="kw-2">ref </span>iter) =&gt; iter.size_hint(),
+<a href=#1773 id=1773 data-nosnippet>1773</a>        }
+<a href=#1774 id=1774 data-nosnippet>1774</a>    }
+<a href=#1775 id=1775 data-nosnippet>1775</a>}
+<a href=#1776 id=1776 data-nosnippet>1776</a>
+<a href=#1777 id=1777 data-nosnippet>1777</a><span class="kw">impl </span>fmt::Debug <span class="kw">for </span>ValueIter {
+<a href=#1778 id=1778 data-nosnippet>1778</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#1779 id=1779 data-nosnippet>1779</a>        f.debug_struct(<span class="string">"ValueIterator"</span>).finish()
+<a href=#1780 id=1780 data-nosnippet>1780</a>    }
+<a href=#1781 id=1781 data-nosnippet>1781</a>}
+<a href=#1782 id=1782 data-nosnippet>1782</a>
+<a href=#1783 id=1783 data-nosnippet>1783</a><span class="kw">enum </span>ValueIterImpl {
+<a href=#1784 id=1784 data-nosnippet>1784</a>    Empty,
+<a href=#1785 id=1785 data-nosnippet>1785</a>    Chars(usize, usize, Arc&lt;str&gt;),
+<a href=#1786 id=1786 data-nosnippet>1786</a>    Dyn(Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = Value&gt; + Send + Sync&gt;),
+<a href=#1787 id=1787 data-nosnippet>1787</a>}
+<a href=#1788 id=1788 data-nosnippet>1788</a>
+<a href=#1789 id=1789 data-nosnippet>1789</a><span class="kw">impl </span>From&lt;Error&gt; <span class="kw">for </span>Value {
+<a href=#1790 id=1790 data-nosnippet>1790</a>    <span class="kw">fn </span>from(value: Error) -&gt; <span class="self">Self </span>{
+<a href=#1791 id=1791 data-nosnippet>1791</a>        Value(ValueRepr::Invalid(Arc::new(value)))
+<a href=#1792 id=1792 data-nosnippet>1792</a>    }
+<a href=#1793 id=1793 data-nosnippet>1793</a>}
+<a href=#1794 id=1794 data-nosnippet>1794</a>
+<a href=#1795 id=1795 data-nosnippet>1795</a><span class="attr">#[cfg(test)]
+<a href=#1796 id=1796 data-nosnippet>1796</a></span><span class="kw">mod </span>tests {
+<a href=#1797 id=1797 data-nosnippet>1797</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#1798 id=1798 data-nosnippet>1798</a>
+<a href=#1799 id=1799 data-nosnippet>1799</a>    <span class="kw">use </span>similar_asserts::assert_eq;
+<a href=#1800 id=1800 data-nosnippet>1800</a>
+<a href=#1801 id=1801 data-nosnippet>1801</a>    <span class="attr">#[test]
+<a href=#1802 id=1802 data-nosnippet>1802</a>    </span><span class="kw">fn </span>test_dynamic_object_roundtrip() {
+<a href=#1803 id=1803 data-nosnippet>1803</a>        <span class="kw">use </span>std::sync::atomic::{<span class="self">self</span>, AtomicUsize};
+<a href=#1804 id=1804 data-nosnippet>1804</a>
+<a href=#1805 id=1805 data-nosnippet>1805</a>        <span class="attr">#[derive(Debug, Clone)]
+<a href=#1806 id=1806 data-nosnippet>1806</a>        </span><span class="kw">struct </span>X(Arc&lt;AtomicUsize&gt;);
+<a href=#1807 id=1807 data-nosnippet>1807</a>
+<a href=#1808 id=1808 data-nosnippet>1808</a>        <span class="kw">impl </span>Object <span class="kw">for </span>X {
+<a href=#1809 id=1809 data-nosnippet>1809</a>            <span class="kw">fn </span>get_value(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, key: <span class="kw-2">&amp;</span>Value) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; {
+<a href=#1810 id=1810 data-nosnippet>1810</a>                <span class="kw">match </span>key.as_str()<span class="question-mark">? </span>{
+<a href=#1811 id=1811 data-nosnippet>1811</a>                    <span class="string">"value" </span>=&gt; <span class="prelude-val">Some</span>(Value::from(<span class="self">self</span>.<span class="number">0</span>.load(atomic::Ordering::Relaxed))),
+<a href=#1812 id=1812 data-nosnippet>1812</a>                    <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1813 id=1813 data-nosnippet>1813</a>                }
+<a href=#1814 id=1814 data-nosnippet>1814</a>            }
+<a href=#1815 id=1815 data-nosnippet>1815</a>
+<a href=#1816 id=1816 data-nosnippet>1816</a>            <span class="kw">fn </span>enumerate(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;) -&gt; Enumerator {
+<a href=#1817 id=1817 data-nosnippet>1817</a>                Enumerator::Str(<span class="kw-2">&amp;</span>[<span class="string">"value"</span>])
+<a href=#1818 id=1818 data-nosnippet>1818</a>            }
+<a href=#1819 id=1819 data-nosnippet>1819</a>
+<a href=#1820 id=1820 data-nosnippet>1820</a>            <span class="kw">fn </span>render(<span class="self">self</span>: <span class="kw-2">&amp;</span>Arc&lt;<span class="self">Self</span>&gt;, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#1821 id=1821 data-nosnippet>1821</a>                <span class="macro">write!</span>(f, <span class="string">"{}"</span>, <span class="self">self</span>.<span class="number">0</span>.load(atomic::Ordering::Relaxed))
+<a href=#1822 id=1822 data-nosnippet>1822</a>            }
+<a href=#1823 id=1823 data-nosnippet>1823</a>        }
+<a href=#1824 id=1824 data-nosnippet>1824</a>
+<a href=#1825 id=1825 data-nosnippet>1825</a>        <span class="kw">let </span>x = Arc::new(X(Default::default()));
+<a href=#1826 id=1826 data-nosnippet>1826</a>        <span class="kw">let </span>x_value = Value::from_dyn_object(x.clone());
+<a href=#1827 id=1827 data-nosnippet>1827</a>        x.<span class="number">0</span>.fetch_add(<span class="number">42</span>, atomic::Ordering::Relaxed);
+<a href=#1828 id=1828 data-nosnippet>1828</a>        <span class="kw">let </span>x_clone = Value::from_serialize(<span class="kw-2">&amp;</span>x_value);
+<a href=#1829 id=1829 data-nosnippet>1829</a>        x.<span class="number">0</span>.fetch_add(<span class="number">23</span>, atomic::Ordering::Relaxed);
+<a href=#1830 id=1830 data-nosnippet>1830</a>
+<a href=#1831 id=1831 data-nosnippet>1831</a>        <span class="macro">assert_eq!</span>(x_value.to_string(), <span class="string">"65"</span>);
+<a href=#1832 id=1832 data-nosnippet>1832</a>        <span class="macro">assert_eq!</span>(x_clone.to_string(), <span class="string">"65"</span>);
+<a href=#1833 id=1833 data-nosnippet>1833</a>    }
+<a href=#1834 id=1834 data-nosnippet>1834</a>
+<a href=#1835 id=1835 data-nosnippet>1835</a>    <span class="attr">#[test]
+<a href=#1836 id=1836 data-nosnippet>1836</a>    </span><span class="kw">fn </span>test_string_char() {
+<a href=#1837 id=1837 data-nosnippet>1837</a>        <span class="kw">let </span>val = Value::from(<span class="string">'a'</span>);
+<a href=#1838 id=1838 data-nosnippet>1838</a>        <span class="macro">assert_eq!</span>(char::try_from(val).unwrap(), <span class="string">'a'</span>);
+<a href=#1839 id=1839 data-nosnippet>1839</a>        <span class="kw">let </span>val = Value::from(<span class="string">"a"</span>);
+<a href=#1840 id=1840 data-nosnippet>1840</a>        <span class="macro">assert_eq!</span>(char::try_from(val).unwrap(), <span class="string">'a'</span>);
+<a href=#1841 id=1841 data-nosnippet>1841</a>        <span class="kw">let </span>val = Value::from(<span class="string">"wat"</span>);
+<a href=#1842 id=1842 data-nosnippet>1842</a>        <span class="macro">assert!</span>(char::try_from(val).is_err());
+<a href=#1843 id=1843 data-nosnippet>1843</a>    }
+<a href=#1844 id=1844 data-nosnippet>1844</a>
+<a href=#1845 id=1845 data-nosnippet>1845</a>    <span class="attr">#[test]
+<a href=#1846 id=1846 data-nosnippet>1846</a>    #[cfg(target_pointer_width = <span class="string">"64"</span>)]
+<a href=#1847 id=1847 data-nosnippet>1847</a>    </span><span class="kw">fn </span>test_sizes() {
+<a href=#1848 id=1848 data-nosnippet>1848</a>        <span class="macro">assert_eq!</span>(std::mem::size_of::&lt;Value&gt;(), <span class="number">24</span>);
+<a href=#1849 id=1849 data-nosnippet>1849</a>    }
+<a href=#1850 id=1850 data-nosnippet>1850</a>}</code></pre></div></section></main></body></html>

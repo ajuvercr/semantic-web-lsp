@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="nom_locate, a special input type to locate tokens"><title>nom_locate - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-916cea96.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="nom_locate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.87.0 (17067e9ac 2025-05-09)" data-channel="1.87.0" data-search-js="search-e7298875.js" data-settings-js="settings-d72f25bb.js" ><script src="../static.files/storage-82c7156e.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-fb8c74a8.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../nom_locate/index.html">nom_<wbr>locate</a><span class="version">4.2.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#features" title="Features">Features</a></li><li><a href="#how-to-use-it" title="How to use it">How to use it</a></li><li><a href="#extra-information" title="Extra information">Extra information</a></li></ul><h3><a href="#macros">Crate Items</a></h3><ul class="block"><li><a href="#macros" title="Macros">Macros</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>nom_locate</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/nom_locate/lib.rs.html#1-841">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>nom_locate, a special input type to locate tokens</p>
+<p>The source code is available on <a href="https://github.com/fflorent/nom_locate">Github</a></p>
+<h3 id="features"><a class="doc-anchor" href="#features">§</a>Features</h3>
+<p>This crate exposes two cargo feature flags, <code>generic-simd</code> and <code>runtime-dispatch-simd</code>.
+These correspond to the features exposed by <a href="https://github.com/llogiq/bytecount">bytecount</a>.</p>
+<h3 id="how-to-use-it"><a class="doc-anchor" href="#how-to-use-it">§</a>How to use it</h3>
+<p>The explanations are given in the <a href="https://github.com/fflorent/nom_locate/blob/master/README.md">README</a> of the Github repository. You may also consult the <a href="https://github.com/fflorent/nom_locate/blob/master/FAQ.md">FAQ</a>.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>nom::bytes::complete::{tag, take_until};
+<span class="kw">use </span>nom::IResult;
+<span class="kw">use </span>nom_locate::{position, LocatedSpan};
+
+<span class="kw">type </span>Span&lt;<span class="lifetime">'a</span>&gt; = LocatedSpan&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;;
+
+<span class="kw">struct </span>Token&lt;<span class="lifetime">'a</span>&gt; {
+    <span class="kw">pub </span>position: Span&lt;<span class="lifetime">'a</span>&gt;,
+    <span class="kw">pub </span>foo: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+    <span class="kw">pub </span>bar: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+}
+
+<span class="kw">fn </span>parse_foobar(s: Span) -&gt; IResult&lt;Span, Token&gt; {
+    <span class="kw">let </span>(s, <span class="kw">_</span>) = take_until(<span class="string">"foo"</span>)(s)<span class="question-mark">?</span>;
+    <span class="kw">let </span>(s, pos) = position(s)<span class="question-mark">?</span>;
+    <span class="kw">let </span>(s, foo) = tag(<span class="string">"foo"</span>)(s)<span class="question-mark">?</span>;
+    <span class="kw">let </span>(s, bar) = tag(<span class="string">"bar"</span>)(s)<span class="question-mark">?</span>;
+
+    <span class="prelude-val">Ok</span>((
+        s,
+        Token {
+            position: pos,
+            foo: foo.fragment(),
+            bar: bar.fragment(),
+        },
+    ))
+}
+
+<span class="kw">fn </span>main () {
+    <span class="kw">let </span>input = Span::new(<span class="string">"Lorem ipsum \n foobar"</span>);
+    <span class="kw">let </span>output = parse_foobar(input);
+    <span class="kw">let </span>position = output.unwrap().<span class="number">1</span>.position;
+    <span class="macro">assert_eq!</span>(position.location_offset(), <span class="number">14</span>);
+    <span class="macro">assert_eq!</span>(position.location_line(), <span class="number">2</span>);
+    <span class="macro">assert_eq!</span>(position.fragment(), <span class="kw-2">&amp;</span><span class="string">""</span>);
+    <span class="macro">assert_eq!</span>(position.get_column(), <span class="number">2</span>);
+}</code></pre></div>
+<h3 id="extra-information"><a class="doc-anchor" href="#extra-information">§</a>Extra information</h3>
+<p>You can also add arbitrary extra information using the extra property of <code>LocatedSpan</code>.
+This property is not used when comparing two <code>LocatedSpan</code>s.</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span>nom_locate::LocatedSpan;
+<span class="kw">type </span>Span&lt;<span class="lifetime">'a</span>&gt; = LocatedSpan&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str, String&gt;;
+
+<span class="kw">let </span>input = Span::new_extra(<span class="string">"Lorem ipsum \n foobar"</span>, <span class="string">"filename"</span>);
+<span class="kw">let </span>output = parse_foobar(input);
+<span class="kw">let </span>extra = output.unwrap().<span class="number">1</span>.extra;</code></pre></div>
+</div></details><h2 id="macros" class="section-header">Macros<a href="#macros" class="anchor">§</a></h2><dl class="item-table"><dt><a class="macro" href="macro.impl_compare.html" title="macro nom_locate::impl_compare">impl_<wbr>compare</a><wbr><span class="stab deprecated" title="">Deprecated</span></dt><dt><a class="macro" href="macro.impl_extend_into.html" title="macro nom_locate::impl_extend_into">impl_<wbr>extend_<wbr>into</a><wbr><span class="stab deprecated" title="">Deprecated</span></dt><dt><a class="macro" href="macro.impl_hex_display.html" title="macro nom_locate::impl_hex_display">impl_<wbr>hex_<wbr>display</a><wbr><span class="stab deprecated" title="">Deprecated</span></dt><dt><a class="macro" href="macro.impl_input_iter.html" title="macro nom_locate::impl_input_iter">impl_<wbr>input_<wbr>iter</a><wbr><span class="stab deprecated" title="">Deprecated</span></dt><dt><a class="macro" href="macro.impl_slice_range.html" title="macro nom_locate::impl_slice_range">impl_<wbr>slice_<wbr>range</a><wbr><span class="stab deprecated" title="">Deprecated</span></dt><dt><a class="macro" href="macro.impl_slice_ranges.html" title="macro nom_locate::impl_slice_ranges">impl_<wbr>slice_<wbr>ranges</a><wbr><span class="stab deprecated" title="">Deprecated</span></dt><dt><a class="macro" href="macro.position.html" title="macro nom_locate::position">position</a></dt><dd>Capture the position of the current fragment</dd></dl><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.LocatedSpan.html" title="struct nom_locate::LocatedSpan">Located<wbr>Span</a></dt><dd>A LocatedSpan is a set of meta information about the location of a token, including extra
+information.</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.position.html" title="fn nom_locate::position">position</a></dt><dd>Capture the position of the current fragment</dd></dl></section></div></main></body></html>

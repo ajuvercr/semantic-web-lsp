@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["query_config","query_processor","service_config","service_description","service_description_error","service_description_parser","service_description_vocab","srdf_data"]};

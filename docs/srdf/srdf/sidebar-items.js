@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"trait":["Query"],"type":["IncomingArcs","OutgoingArcs","OutgoingArcsFromList"]};

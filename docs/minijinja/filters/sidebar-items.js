@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["abs","attr","batch","bool","capitalize","default","dictsort","escape","first","float","groupby","indent","int","items","join","last","length","lines","list","lower","map","max","min","pprint","reject","rejectattr","replace","reverse","round","safe","select","selectattr","slice","sort","split","string","sum","title","trim","unique","upper"]};
