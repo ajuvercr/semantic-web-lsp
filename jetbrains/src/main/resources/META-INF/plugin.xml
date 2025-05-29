@@ -1,0 +1,47 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>be.ajuvercr.swls</id>
+    <idea-version since-build="233" />
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Semantic Web Language Support</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://github.com/ajuvercr">ajuvercr</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+        Provides support for semantic web languages using a Language Server.<br/>
+        Includes syntax highlighting, semantic tokens, and validation for <strong>Turtle</strong>, <strong>JSON-LD</strong>, and <strong>SPARQL</strong> files.<br/>
+        <em>Powered by your custom Language Server.</em>
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.redhat.devtools.lsp4ij</depends>
+
+
+    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+        <server id="swls"
+                name="Semantic Web Language Server"
+                factoryClass="be.ajuvercr.swls.SwlsFactory">
+            <description><![CDATA[
+                Provides IDE integration for Turtle, JSON-LD, and SPARQL through a Language Server.<br/>
+                Enables semantic token highlighting, validation, and code navigation support.
+            ]]></description>
+        </server>
+        <fileNamePatternMapping patterns="*.ttl"
+                                serverId="swls"
+                                languageId="turtle"/>
+        <fileNamePatternMapping patterns="*.jsonld"
+                                serverId="swls"
+                                languageId="JSON-LD"/>
+        <fileNamePatternMapping patterns="*.sq"
+                                serverId="swls"
+                                languageId="SPARQL"/>
+    </extensions>
+</idea-plugin>
+
