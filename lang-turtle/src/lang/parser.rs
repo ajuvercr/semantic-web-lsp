@@ -64,22 +64,21 @@ impl LiteralHelper {
 fn literal() -> impl Parser<PToken, Literal, Error = Simple<PToken, S>> + Clone {
     let lt = select! { PToken(Token::LangTag(x), _) => LiteralHelper::LangTag(x)};
 
-    let dt = named_node()
-        .then_ignore(just(Token::DataTypeDelim))
+    let dt = just(Token::DataTypeDelim)
+        .ignore_then(named_node())
         .map(|x| LiteralHelper::DataType(x));
 
-    lt.or(dt)
-        .or(empty().to(LiteralHelper::None))
-        .then(select! {
-            PToken(Token::Str(x, style), idx) => (x, style, idx)
-        })
-        .map(|(h, (x, y, idx))| h.to_lit((x, y), idx))
-        .map(|x| Literal::RDF(x))
-        .or(select! {
-            PToken(Token::Number(x), _) => Literal::Numeric(x),
-            PToken(Token::True, _) => Literal::Boolean(true),
-            PToken(Token::False, _) => Literal::Boolean(false),
-        })
+    let literal = select! {
+        PToken(Token::Str(x, style), idx) => (x, style, idx)
+    }
+    .then(lt.or(dt).or(empty().to(LiteralHelper::None)))
+    .map(|((x, y, idx), h)| Literal::RDF(h.to_lit((x, y), idx)));
+
+    literal.or(select! {
+        PToken(Token::Number(x), _) => Literal::Numeric(x),
+        PToken(Token::True, _) => Literal::Boolean(true),
+        PToken(Token::False, _) => Literal::Boolean(false),
+    })
 }
 
 pub fn named_node() -> impl Parser<PToken, NamedNode, Error = Simple<PToken, S>> + Clone {
@@ -160,21 +159,18 @@ fn blank_node() -> impl Parser<PToken, BlankNode, Error = Simple<PToken>> + Clon
         let end = select! {
             PToken(Token::SqClose, idx) => idx
         };
-        end.then(
-            po(bn)
-                .map_with_span(spanned)
-                .separated_by(just(Token::PredicateSplit))
-                .allow_leading()
-                .map(|mut x| {
-                    x.reverse();
-                    x
-                }),
-        )
-        .then(start)
-        .map(|((end, x), start)| BlankNode::Unnamed(x, start, end))
-        .or(select! {
-            PToken(Token::BlankNodeLabel(x), idx) => BlankNode::Named(x, idx),
-        })
+        start
+            .then(
+                po(bn)
+                    .map_with_span(spanned)
+                    .separated_by(just(Token::PredicateSplit))
+                    .allow_trailing(),
+            )
+            .then(end)
+            .map(|((end, x), start)| BlankNode::Unnamed(x, start, end))
+            .or(select! {
+                PToken(Token::BlankNodeLabel(x), idx) => BlankNode::Named(x, idx),
+            })
     })
 }
 
@@ -200,11 +196,7 @@ fn term(
         let collection = term
             .map_with_span(spanned)
             .repeated()
-            .map(|mut x| {
-                x.reverse();
-                x
-            })
-            .delimited_by(just(Token::BracketClose), just(Token::BracketOpen))
+            .delimited_by(just(Token::BracketOpen), just(Token::BracketClose))
             .map(|x| Term::Collection(x));
 
         let nn = named_node().map(|x| Term::NamedNode(x));
@@ -219,58 +211,22 @@ fn po(
     bn: impl Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'static,
 ) -> impl Parser<PToken, PO, Error = Simple<PToken>> + Clone {
     term(bn.clone())
-        .labelled("object")
         .map_with_span(spanned)
-        .separated_by(just(Token::Comma))
-        .at_least(1)
-        .map(|mut x| {
-            x.reverse();
-            x
-        })
-        // .allow_leading() // TODO check in grammar
-        .then_with(move |os| {
-            let os1 = os.clone();
-            let predicate = term(bn.clone())
+        .then(
+            term(bn.clone())
+                .labelled("object")
                 .map_with_span(spanned)
-                .map(move |pred| (os1.clone(), pred))
-                .labelled("basic predicate");
-
-            let os2 = os.clone();
-            // let end = os[0].span().end;
-            //
-
-            let alt_pred = one_of([Token::SqOpen, Token::PredicateSplit])
-                .rewind()
-                .validate(move |_, span: S, emit| {
-                    emit(Simple::custom(
-                        span.end..span.end,
-                        format!("Expected an object."),
-                    ));
-                    ()
-                })
-                .map(move |_| {
-                    let mut os = os2.clone();
-                    let pred = os[0].clone();
-                    os[0] = spanned(Term::NamedNode(NamedNode::Invalid), os[0].span().clone());
-
-                    (os, pred)
-                })
-                .labelled("alt predicate");
-
-            predicate.or(alt_pred)
-        })
-        .map(|(object, predicate)| PO { predicate, object })
+                .separated_by(just(Token::Comma))
+                .at_least(1),
+        )
+        .map(|(predicate, object)| PO { predicate, object })
 }
 
 fn po_list() -> impl Parser<PToken, (Vec<Spanned<PO>>, bool), Error = Simple<PToken>> + Clone {
     po(blank_node())
         .map_with_span(spanned)
-        .separated_by(just(Token::PredicateSplit).repeated().at_least(1))
-        .allow_leading()
-        .map(|mut x| {
-            x.reverse();
-            x
-        })
+        .separated_by(just(Token::PredicateSplit).repeated())
+        .allow_trailing()
         .validate(|po, span: S, emit| {
             if po.is_empty() {
                 emit(Simple::custom(
@@ -292,11 +248,11 @@ fn po_list() -> impl Parser<PToken, (Vec<Spanned<PO>>, bool), Error = Simple<PTo
             }
         })
 }
+
 fn bn_triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
-    expect_token(Token::Stop, |_| true)
-        .ignore_then(expect_token(Token::SqClose, |_| true))
+    just(Token::SqOpen)
         .ignore_then(po_list())
-        .then_ignore(just(Token::SqOpen))
+        .then_ignore(expect_token(Token::Stop, |_| true))
         .map_with_span(|pos, span| Triple {
             subject: spanned(Term::BlankNode(BlankNode::Unnamed(pos.0, 0, 0)), span),
             po: Vec::new(),
@@ -304,41 +260,11 @@ fn bn_triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
 }
 
 pub fn triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
-    expect_token(Token::Stop, |_| true)
-        .ignore_then(po_list())
-        .then_with(move |(po, succesful)| {
-            let po2 = po.clone();
-            let basic_subj = subject()
-                .map_with_span(spanned)
-                .map(move |subj| (po2.clone(), subj));
-
-            let end = po[0].span().end;
-            let start = if succesful {
-                empty().boxed()
-            } else {
-                any().map(|_| ()).boxed()
-            };
-            let alt_subj = start.validate(move |_, _: S, emit| {
-                emit(Simple::custom(end..end, format!("Expected a predicate.")));
-
-                let mut po = po.clone();
-                let first = po[0].value_mut();
-
-                let subj = first.predicate.clone();
-                first.predicate = first.object.pop().unwrap();
-
-                first.object.push(Spanned(
-                    Term::NamedNode(NamedNode::Invalid),
-                    first.predicate.span().clone(),
-                ));
-
-                // Subject::NamedNode(NamedNode::Invalid)
-                (po, subj)
-            });
-
-            basic_subj.or(alt_subj)
-        })
-        .map(|(po, subject)| Triple { subject, po })
+    subject()
+        .map_with_span(spanned)
+        .then(po_list())
+        .then_ignore(expect_token(Token::Stop, |_| true))
+        .map(|(subject, po)| Triple { subject, po: po.0 })
         .validate(|this: Triple, _, emit| {
             for po in &this.po {
                 if !po.predicate.is_predicate() {
@@ -368,37 +294,104 @@ pub fn triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
             this
         })
         .or(bn_triple())
+
+    // expect_token(Token::Stop, |_| true)
+    //     .ignore_then(po_list())
+    //     .then_with(move |(po, succesful)| {
+    //         let po2 = po.clone();
+    //         let basic_subj = subject()
+    //             .map_with_span(spanned)
+    //             .map(move |subj| (po2.clone(), subj));
+    //
+    //         let end = po[0].span().end;
+    //         let start = if succesful {
+    //             empty().boxed()
+    //         } else {
+    //             any().map(|_| ()).boxed()
+    //         };
+    //         let alt_subj = start.validate(move |_, _: S, emit| {
+    //             emit(Simple::custom(end..end, format!("Expected a predicate.")));
+    //
+    //             let mut po = po.clone();
+    //             let first = po[0].value_mut();
+    //
+    //             let subj = first.predicate.clone();
+    //             first.predicate = first.object.pop().unwrap();
+    //
+    //             first.object.push(Spanned(
+    //                 Term::NamedNode(NamedNode::Invalid),
+    //                 first.predicate.span().clone(),
+    //             ));
+    //
+    //             // Subject::NamedNode(NamedNode::Invalid)
+    //             (po, subj)
+    //         });
+    //
+    //         basic_subj.or(alt_subj)
+    //     })
+    //     .map(|(po, subject)| Triple { subject, po })
+    //     .validate(|this: Triple, _, emit| {
+    //         for po in &this.po {
+    //             if !po.predicate.is_predicate() {
+    //                 emit(Simple::custom(
+    //                     po.predicate.span().clone(),
+    //                     "predicate should be a named node",
+    //                 ));
+    //             }
+    //
+    //             for o in &po.object {
+    //                 if !o.is_object() {
+    //                     emit(Simple::custom(
+    //                         o.span().clone(),
+    //                         "object should be an object",
+    //                     ));
+    //                 }
+    //             }
+    //         }
+    //
+    //         if !this.subject.is_subject() {
+    //             emit(Simple::custom(
+    //                 this.subject.span().clone(),
+    //                 "subject should be a subject",
+    //             ));
+    //         }
+    //
+    //         this
+    //     })
+    //     .or(bn_triple())
 }
 
 fn base() -> impl Parser<PToken, Base, Error = Simple<PToken>> + Clone {
-    let turtle_base = expect_token(Token::Stop, |_| true)
-        .ignore_then(named_node().map_with_span(spanned))
-        .then(just(Token::BaseTag).map_with_span(|_, s| s))
-        .map(|(x, s)| Base(s, x));
-    let sparql_base = named_node()
-        .map_with_span(spanned)
-        .then(just(Token::SparqlBase).map_with_span(|_, s| s))
-        .map(|(x, s)| Base(s, x));
+    let turtle_base = just(Token::BaseTag)
+        .map_with_span(|_, s| s)
+        .then(named_node().map_with_span(spanned))
+        .then_ignore(expect_token(Token::Stop, |_| true))
+        .map(|(s, x)| Base(s, x));
+
+    let sparql_base = just(Token::SparqlBase)
+        .map_with_span(|_, s| s)
+        .then(named_node().map_with_span(spanned))
+        .map(|(s, x)| Base(s, x));
 
     turtle_base.or(sparql_base)
 }
 
 fn prefix() -> impl Parser<PToken, TurtlePrefix, Error = Simple<PToken>> {
-    let turtle_prefix = expect_token(Token::Stop, |_| true)
-        .ignore_then(named_node().map_with_span(spanned))
+    let turtle_prefix = just(Token::PrefixTag)
+        .map_with_span(|_, s| s)
         .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
-        .then(just(Token::PrefixTag).map_with_span(|_, s| s))
-        .map(|((value, prefix), span)| TurtlePrefix {
+        .then(named_node().map_with_span(spanned))
+        .then_ignore(expect_token(Token::Stop, |_| true))
+        .map(|((span, prefix), value)| TurtlePrefix {
             span,
             prefix,
             value,
         });
-
-    let sparql_prefix = named_node()
-        .map_with_span(spanned)
+    let sparql_prefix = just(Token::SparqlPrefix)
+        .map_with_span(|_, s| s)
         .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
-        .then(just(Token::SparqlPrefix).map_with_span(|_, s| s))
-        .map(|((value, prefix), span)| TurtlePrefix {
+        .then(named_node().map_with_span(spanned))
+        .map(|((span, prefix), value)| TurtlePrefix {
             span,
             prefix,
             value,
@@ -460,8 +453,8 @@ pub fn parse_turtle(
             .enumerate()
             .filter(|(_, x)| !x.is_comment())
             .map(|(i, t)| t.map(|x| PToken(x, i)))
-            .rev()
-            .map(|Spanned(x, s)| (x, rev_range(s))),
+            // .rev()
+            .map(|Spanned(x, s)| (x, s)),
     );
 
     let parser = turtle(location)
@@ -507,8 +500,7 @@ pub mod turtle_tests {
                 .enumerate()
                 .filter(|(_, x)| !x.is_comment())
                 .map(|(i, t)| t.map(|x| PToken(x, i)))
-                .map(|Spanned(x, y)| (x, y))
-                .rev(),
+                .map(|Spanned(x, y)| (x, y)), // .rev(),
         );
 
         parser.parse_recovery(stream)
@@ -527,8 +519,7 @@ pub mod turtle_tests {
                 .enumerate()
                 .filter(|(_, x)| !x.is_comment())
                 .map(|(i, t)| t.map(|x| PToken(x, i)))
-                .map(|Spanned(x, y)| (x, y))
-                .rev(),
+                .map(|Spanned(x, y)| (x, y)), // .rev(),
         );
 
         parser.parse_recovery(stream)
@@ -610,22 +601,29 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_triple() {
+        println!("Zero");
         let turtle = "<a> <b> <c> .";
         let output = parse_it(turtle, triple()).0.expect("simple");
         assert_eq!(output.to_string(), "<a> <b> <c>.");
+
+        println!("One");
 
         let turtle = "<a> <b> <c> , <d> .";
         let output = parse_it(turtle, triple()).0.expect("object list");
         assert_eq!(output.to_string(), "<a> <b> <c>, <d>.");
 
+        println!("Two");
         let turtle = "[ <d> <e> ] <b> <c> .";
         let output = parse_it(turtle, triple()).0.expect("blank node list");
         assert_eq!(output.to_string(), "[ <d> <e> ; ] <b> <c>.");
 
         let turtle = "[ <d> <e> ; <f> <g> ;  ] <b> <c> .";
+        println!("Three {}", turtle);
         let output = parse_it(turtle, triple()).0.expect("blank node po list");
+        println!("Triple {:?}", output);
         assert_eq!(output.to_string(), "[ <d> <e> ;<f> <g> ; ] <b> <c>.");
 
+        println!("Four");
         let turtle = "<a> <b> [ ] .";
         let output = parse_it(turtle, triple()).0.expect("bnode object");
         assert_eq!(output.to_string(), "<a> <b> [ ].");
