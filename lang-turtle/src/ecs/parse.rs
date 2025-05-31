@@ -70,7 +70,7 @@ pub fn parse_turtle_system(
             }
         }
 
-        let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len());
+        let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx());
 
         let es: Vec<_> = es
             .into_iter()

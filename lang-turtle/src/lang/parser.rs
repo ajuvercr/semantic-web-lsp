@@ -2,6 +2,7 @@ use chumsky::prelude::*;
 use lsp_core::{prelude::*, util::token::PToken};
 use tracing::info;
 
+use super::context::{ContextKind, Ctx};
 use crate::lang::model::{
     Base, BlankNode, Literal, NamedNode, RDFLiteral, Term, Triple, Turtle, TurtlePrefix, Variable,
     PO,
@@ -150,7 +151,9 @@ pub fn expect_token(
         }))
 }
 
-fn blank_node() -> impl Parser<PToken, BlankNode, Error = Simple<PToken>> + Clone {
+fn blank_node<'a>(
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, BlankNode, Error = Simple<PToken>> + Clone + use<'a> + 'a {
     recursive(|bn| {
         let start = select! {
             PToken(Token::SqOpen, idx) => idx
@@ -161,7 +164,7 @@ fn blank_node() -> impl Parser<PToken, BlankNode, Error = Simple<PToken>> + Clon
         };
         start
             .then(
-                po(bn)
+                po(bn, ctx)
                     .map_with_span(spanned)
                     .separated_by(just(Token::PredicateSplit))
                     .allow_trailing(),
@@ -174,8 +177,10 @@ fn blank_node() -> impl Parser<PToken, BlankNode, Error = Simple<PToken>> + Clon
     })
 }
 
-fn subject() -> impl Parser<PToken, Term, Error = Simple<PToken, S>> + Clone {
-    term(blank_node())
+fn subject<'a>(
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, Term, Error = Simple<PToken, S>> + Clone + use<'a> + 'a {
+    term(blank_node(ctx), ctx, [])
     // let nn = named_node().map(|x| Term::NamedNode(x));
     // let bn = blank_node().map(|x| Term::BlankNode(x));
     // let var = variable().map(|x| Term::Variable(x));
@@ -189,10 +194,27 @@ fn variable() -> impl Parser<PToken, Variable, Error = Simple<PToken, S>> + Clon
     }
 }
 
-fn term(
-    bn: impl Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'static,
-) -> impl Parser<PToken, Term, Error = Simple<PToken>> + Clone {
-    recursive(|term| {
+fn term<'a, const C: usize, T: 'a + Clone + Parser<PToken, BlankNode, Error = Simple<PToken>>>(
+    bn: T,
+    ctx: Ctx<'a>,
+    not: [ContextKind; C],
+) -> impl Parser<PToken, Term, Error = Simple<PToken>> + Clone + use<'a, C, T> {
+    let ctx = ctx;
+    select! {
+        PToken(_, idx) => idx
+    }
+    .validate(move |idx, span: S, emit| {
+        for kind in not {
+            if ctx.was(idx, kind) {
+                emit(Simple::custom(
+                    span.clone(),
+                    format!("Didn't expect {} here", kind),
+                ));
+            }
+        }
+    })
+    .rewind()
+    .ignore_then(recursive(|term| {
         let collection = term
             .map_with_span(spanned)
             .repeated()
@@ -204,26 +226,33 @@ fn term(
         let literal = literal().map(|x| Term::Literal(x));
         let variable = variable().map(|x| Term::Variable(x));
         collection.or(literal).or(nn).or(blank).or(variable)
-    })
+    }))
 }
 
-fn po(
-    bn: impl Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'static,
-) -> impl Parser<PToken, PO, Error = Simple<PToken>> + Clone {
-    term(bn.clone())
+fn po<'a, T: Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'a>(
+    bn: T,
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, PO, Error = Simple<PToken>> + Clone + use<'a, T> {
+    term(bn.clone(), ctx, [ContextKind::Subject])
         .map_with_span(spanned)
         .then(
-            term(bn.clone())
-                .labelled("object")
-                .map_with_span(spanned)
-                .separated_by(just(Token::Comma))
-                .at_least(1),
+            term(
+                bn.clone(),
+                ctx,
+                [ContextKind::Subject, ContextKind::Predicate],
+            )
+            .labelled("object")
+            .map_with_span(spanned)
+            .separated_by(just(Token::Comma))
+            .at_least(1),
         )
         .map(|(predicate, object)| PO { predicate, object })
 }
 
-fn po_list() -> impl Parser<PToken, (Vec<Spanned<PO>>, bool), Error = Simple<PToken>> + Clone {
-    po(blank_node())
+fn po_list<'a>(
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, (Vec<Spanned<PO>>, bool), Error = Simple<PToken>> + Clone + use<'a> {
+    po(blank_node(ctx), ctx)
         .map_with_span(spanned)
         .separated_by(just(Token::PredicateSplit).repeated())
         .allow_trailing()
@@ -249,9 +278,11 @@ fn po_list() -> impl Parser<PToken, (Vec<Spanned<PO>>, bool), Error = Simple<PTo
         })
 }
 
-fn bn_triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
+fn bn_triple(
+    ctx: Ctx<'_>,
+) -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone + use<'_> {
     just(Token::SqOpen)
-        .ignore_then(po_list())
+        .ignore_then(po_list(ctx))
         .then_ignore(expect_token(Token::Stop, |_| true))
         .map_with_span(|pos, span| Triple {
             subject: spanned(Term::BlankNode(BlankNode::Unnamed(pos.0, 0, 0)), span),
@@ -259,10 +290,12 @@ fn bn_triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
         })
 }
 
-pub fn triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
-    subject()
+pub fn triple(
+    ctx: Ctx<'_>,
+) -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone + use<'_> {
+    subject(ctx)
         .map_with_span(spanned)
-        .then(po_list())
+        .then(po_list(ctx))
         .then_ignore(expect_token(Token::Stop, |_| true))
         .map(|(subject, po)| Triple { subject, po: po.0 })
         .validate(|this: Triple, _, emit| {
@@ -293,7 +326,7 @@ pub fn triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
 
             this
         })
-        .or(bn_triple())
+        .or(bn_triple(ctx))
 
     // expect_token(Token::Stop, |_| true)
     //     .ignore_then(po_list())
@@ -409,12 +442,13 @@ enum Statement {
 
 pub fn turtle<'a>(
     location: &'a lsp_types::Url,
+    ctx: Ctx<'a>,
 ) -> impl Parser<PToken, Turtle, Error = Simple<PToken>> + 'a {
     let base = base().map_with_span(spanned).map(|b| Statement::Base(b));
     let prefix = prefix()
         .map_with_span(spanned)
         .map(|b| Statement::Prefix(b));
-    let triple = triple()
+    let triple = triple(ctx)
         .map_with_span(spanned)
         .map(|b| Statement::Triple(b));
 
@@ -444,6 +478,7 @@ pub fn parse_turtle(
     location: &lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
     len: usize,
+    ctx: Ctx<'_>,
 ) -> (Spanned<Turtle>, Vec<(usize, Simple<PToken>)>) {
     let stream = chumsky::Stream::from_iter(
         0..len,
@@ -456,7 +491,7 @@ pub fn parse_turtle(
             .map(|Spanned(x, s)| (x, s)),
     );
 
-    let parser = turtle(location)
+    let parser = turtle(location, ctx)
         .map_with_span(spanned)
         .then_ignore(end().recover_with(skip_then_retry_until([])));
 
@@ -480,6 +515,7 @@ pub mod turtle_tests {
 
     use super::literal;
     use crate::lang::{
+        context::Context,
         parser::{blank_node, named_node, prefix, triple, turtle, BlankNode},
         tokenizer::{parse_tokens_str, parse_tokens_str_safe},
     };
@@ -580,7 +616,8 @@ pub mod turtle_tests {
     #[test]
     fn parse_blanknode() {
         let turtle = "[]";
-        let output = parse_it(turtle, blank_node()).0.expect("anon");
+        let ctx = Context::new();
+        let output = parse_it(turtle, blank_node(ctx.ctx())).0.expect("anon");
         let is_unamed = match output {
             BlankNode::Unnamed(_, _, _) => true,
             _ => false,
@@ -588,7 +625,7 @@ pub mod turtle_tests {
         assert!(is_unamed);
 
         let turtle = "_:foobar";
-        let output = parse_it(turtle, blank_node()).0.expect("other bn");
+        let output = parse_it(turtle, blank_node(ctx.ctx())).0.expect("other bn");
         let is_named = match output {
             BlankNode::Named(_, _) => true,
             _ => false,
@@ -598,39 +635,40 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_triple() {
-        println!("Zero");
+        let context = Context::new();
+        let ctx = context.ctx();
+
         let turtle = "<a> <b> <c> .";
-        let output = parse_it(turtle, triple()).0.expect("simple");
+        let output = parse_it(turtle, triple(ctx)).0.expect("simple");
         assert_eq!(output.to_string(), "<a> <b> <c>.");
 
-        println!("One");
-
         let turtle = "<a> <b> <c> , <d> .";
-        let output = parse_it(turtle, triple()).0.expect("object list");
+        let output = parse_it(turtle, triple(ctx)).0.expect("object list");
         assert_eq!(output.to_string(), "<a> <b> <c>, <d>.");
 
-        println!("Two");
         let turtle = "[ <d> <e> ] <b> <c> .";
-        let output = parse_it(turtle, triple()).0.expect("blank node list");
+        let output = parse_it(turtle, triple(ctx)).0.expect("blank node list");
         assert_eq!(output.to_string(), "[ <d> <e> ; ] <b> <c>.");
 
         let turtle = "[ <d> <e> ; <f> <g> ;  ] <b> <c> .";
-        println!("Three {}", turtle);
-        let output = parse_it(turtle, triple()).0.expect("blank node po list");
+        let output = parse_it(turtle, triple(ctx)).0.expect("blank node po list");
         println!("Triple {:?}", output);
         assert_eq!(output.to_string(), "[ <d> <e> ;<f> <g> ; ] <b> <c>.");
 
         println!("Four");
         let turtle = "<a> <b> [ ] .";
-        let output = parse_it(turtle, triple()).0.expect("bnode object");
+        let output = parse_it(turtle, triple(ctx)).0.expect("bnode object");
         assert_eq!(output.to_string(), "<a> <b> [ ].");
     }
 
     #[test]
     fn parse_triple_with_recovery_no_end() {
+        let context = Context::new();
+        let ctx = context.ctx();
+
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<a> <b> <c>";
-        let (output, errors) = parse_it(txt, turtle(&url));
+        let (output, errors) = parse_it(txt, turtle(&url, ctx));
 
         println!("Errors {:?}", errors);
         println!("B {:?}", output);
@@ -641,9 +679,12 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_triple_with_recovery_no_object() {
+        let context = Context::new();
+        let ctx = context.ctx();
+
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<b> <c> .";
-        let (output, errors) = parse_it(txt, turtle(&url));
+        let (output, errors) = parse_it(txt, turtle(&url, ctx));
 
         println!("output {:?}", output);
         println!("errors {:?}", errors);
@@ -654,9 +695,11 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_triple_with_recovery_unfinished_object() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<a> <b> <c>; <d> .";
-        let (output, errors) = parse_it(txt, turtle(&url));
+        let (output, errors) = parse_it(txt, turtle(&url, ctx));
 
         println!("output {:?}", output);
         println!("errors {:?}", errors);
@@ -667,9 +710,11 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_triple_with_invalid_token_predicate() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "<a> foa";
-        let (output, errors) = parse_it_recovery(txt, turtle(&url));
+        let (output, errors) = parse_it_recovery(txt, turtle(&url, ctx));
 
         println!("output {:?}", output);
         println!(
@@ -684,9 +729,11 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_triple_with_invalid_token_subject() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let txt = "foa";
-        let (output, errors) = parse_it_recovery(txt, turtle(&url));
+        let (output, errors) = parse_it_recovery(txt, turtle(&url, ctx));
 
         println!("output {:?}", output);
         println!(
@@ -704,6 +751,8 @@ pub mod turtle_tests {
 
     #[test]
     fn parse_turtle() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let txt = r#"
         @base <>. #This is a very nice comment!
 #This is a very nice comment!
@@ -712,7 +761,7 @@ pub mod turtle_tests {
 #This is a very nice comment!
             "#;
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let output = parse_it(txt, turtle(&url)).0.expect("simple");
+        let output = parse_it(txt, turtle(&url, ctx)).0.expect("simple");
         assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
         assert_eq!(output.triples.len(), 1, "triples are parsed");
         assert!(output.base.is_some(), "base is parsed");
@@ -720,6 +769,8 @@ pub mod turtle_tests {
 
     #[test]
     fn turtle_shouldnt_panic() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let txt = r#"
 [
             "#;
@@ -727,13 +778,21 @@ pub mod turtle_tests {
         let url =
             lsp_types::Url::from_str("file:///home/silvius/Projects/jsonld-lsp/examples/test.ttl")
                 .unwrap();
-        let output = parse_it_recovery(txt, turtle(&url)).0.expect("simple");
+
+        let output = parse_it_recovery(txt, turtle(&url, ctx));
+        println!("output {:?}", output.1);
         // assert_eq!(output.prefixes.len(), 1, "prefixes are parsed");
-        assert_eq!(output.triples.len(), 1, "triples are parsed");
+        assert_eq!(
+            output.0.expect("simple").triples.len(),
+            1,
+            "triples are parsed"
+        );
     }
 
     #[test]
     fn turtle_invalid_predicate_in_object() {
+        let context = Context::new();
+        let ctx = context.ctx();
         // I don't see what this test does :(
         let txt = r#"
 @prefix foaf: <http://xmlns.com/foaf/0.1/>.
@@ -751,7 +810,7 @@ foaf: foaf:name "Arthur".
     foaf:name "Arthur".
             "#;
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
-        let output = parse_it(txt, turtle(&url)).0.expect("simple");
+        let output = parse_it(txt, turtle(&url, ctx)).0.expect("simple");
         let triples = output.get_simple_triples().expect("triples");
         for t in &triples.triples {
             println!("t: {}", t);

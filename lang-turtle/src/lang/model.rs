@@ -814,7 +814,7 @@ mod test {
     use lsp_core::prelude::{spanned, MyQuad, Spanned};
 
     use super::Turtle;
-    use crate::lang::{parser as parser2, tokenizer::parse_tokens_str_safe};
+    use crate::lang::{context::Context, parser as parser2, tokenizer::parse_tokens_str_safe};
 
     #[derive(Debug)]
     pub enum Err {
@@ -825,6 +825,8 @@ mod test {
         inp: &str,
         url: &lsp_types::Url,
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
+        let context = Context::new();
+        let ctx = context.ctx();
         let tokens = parse_tokens_str_safe(inp).map_err(|e| {
             println!("Error {:?}", e);
             Err::Tokenizing
@@ -838,7 +840,7 @@ mod test {
             .collect();
         comments.sort_by_key(|x| x.1.start);
 
-        let (turtle, errs) = parser2::parse_turtle(&url, tokens, inp.len());
+        let (turtle, errs) = parser2::parse_turtle(&url, tokens, inp.len(), ctx);
         for e in errs {
             println!("Error {:?}", e);
         }

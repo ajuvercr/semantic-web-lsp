@@ -468,12 +468,11 @@ mod tests {
 
     use std::str::FromStr;
 
-    use chumsky::Parser;
     use lsp_core::prelude::{spanned, Spanned};
     use ropey::Rope;
 
     use crate::lang::{
-        formatter::format_turtle, model::Turtle, parser as parser2,
+        context::Context, formatter::format_turtle, model::Turtle, parser as parser2,
         tokenizer::parse_tokens_str_safe,
     };
 
@@ -487,6 +486,8 @@ mod tests {
         inp: &str,
         url: &lsp_types::Url,
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
+        let context = Context::new();
+        let ctx = context.ctx();
         let tokens = parse_tokens_str_safe(inp).map_err(|e| {
             println!("Error {:?}", e);
             Err::Tokenizing
@@ -500,7 +501,7 @@ mod tests {
             .collect();
         comments.sort_by_key(|x| x.1.start);
 
-        let (turtle, errs) = parser2::parse_turtle(&url, tokens, inp.len());
+        let (turtle, errs) = parser2::parse_turtle(&url, tokens, inp.len(), ctx);
         for e in errs {
             println!("Error {:?}", e);
         }

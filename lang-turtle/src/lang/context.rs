@@ -12,6 +12,14 @@ pub struct Ctx<'a> {
 }
 
 impl<'a> Ctx<'a> {
+    pub fn was(&self, idx: usize, kind: ContextKind) -> bool {
+        match kind {
+            ContextKind::Subject => self.was_subject(idx),
+            ContextKind::Predicate => self.was_predicate(idx),
+            ContextKind::Object => self.was_object(idx),
+        }
+    }
+
     pub fn was_subject(&self, idx: usize) -> bool {
         self.context
             .current_to_prev
@@ -42,6 +50,15 @@ pub enum ContextKind {
     Subject,
     Predicate,
     Object,
+}
+impl std::fmt::Display for ContextKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ContextKind::Subject => write!(f, "subject"),
+            ContextKind::Predicate => write!(f, "predicate"),
+            ContextKind::Object => write!(f, "object"),
+        }
+    }
 }
 
 #[derive(Debug, Default, Component)]

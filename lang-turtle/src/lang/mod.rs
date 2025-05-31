@@ -1,4 +1,5 @@
 use chumsky::{Parser as _, Stream};
+use context::Context;
 use lsp_core::{prelude::PToken, util::Spanned};
 use lsp_types::Url;
 use model::Turtle;
@@ -13,7 +14,10 @@ pub mod parser2;
 pub mod tokenizer;
 
 pub fn parse_source(url: &Url, string: &str) -> (Option<Turtle>, Vec<String>) {
-    let parser = parser::turtle(url);
+    let context = Context::new();
+    let ctx = context.ctx();
+
+    let parser = parser::turtle(url, ctx);
 
     let tokens = match parse_tokens_str_safe(string) {
         Ok(t) => t,
