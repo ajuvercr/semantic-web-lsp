@@ -202,7 +202,7 @@ pub mod semantic_token {
 }
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlExpr {
         Or @ "||",
         And @ "&&",
@@ -223,7 +223,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq, Hash,Ord, PartialOrd, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlCall {
         Str => "STR",
         Lang => "LANG",
@@ -287,7 +287,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlAggregate {
         Count => "COUNT",
         Sum => "SUM",
@@ -300,7 +300,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+    #[derive(Clone, PartialEq, Eq,Ord, PartialOrd, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
     pub enum SparqlKeyword {
         Regex => "REGEX",
         Substr => "SUBSTR",
@@ -351,7 +351,9 @@ derive_enum!(
     }
 );
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+#[derive(
+    Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters,
+)]
 pub enum Token {
     /// Sparql expression
     SparqlExpr(SparqlExpr),
@@ -429,6 +431,10 @@ pub enum Token {
     Invalid(String),
 }
 
+/// Token struct holding the token and the index in the token array
+#[derive(Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug)]
+pub struct PToken(pub Token, pub usize);
+
 impl TokenTrait for Token {
     fn token(&self) -> Option<lsp_types::SemanticTokenType> {
         match self {
@@ -489,7 +495,9 @@ impl TokenTrait for Token {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters)]
+#[derive(
+    Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug, EnumIntoGetters, EnumIsA, EnumToGetters,
+)]
 pub enum StringStyle {
     /// """..."""
     DoubleLong,
@@ -509,6 +517,11 @@ impl StringStyle {
             StringStyle::SingleLong => "'''",
             StringStyle::Single => "'",
         }
+    }
+}
+impl std::fmt::Display for PToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 

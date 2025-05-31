@@ -77,6 +77,7 @@ where
         Self(T::default(), 0..1)
     }
 }
+
 impl<T> Spanned<T> {
     pub fn map<O>(self, f: impl Fn(T) -> O) -> Spanned<O> {
         let v = f(self.0);

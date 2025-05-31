@@ -1,9 +1,9 @@
 use chumsky::{prelude::*, Error};
 use lang_turtle::lang::{
     model::TurtlePrefix,
-    parser::{named_node, triple},
+    parser::{just, named_node, not, one_of, triple},
 };
-use lsp_core::prelude::{spanned, Spanned, SparqlExpr, SparqlKeyword, Token};
+use lsp_core::prelude::{spanned, PToken, Spanned, SparqlExpr, SparqlKeyword, Token};
 
 use crate::lang::model::{
     Base, Bind, DatasetClause, Expression, GroupGraphPattern, GroupGraphPatternSub, Modifier,
@@ -12,13 +12,13 @@ use crate::lang::model::{
 
 fn sparql_kwd(
     kwd: SparqlKeyword,
-) -> impl Parser<Token, Spanned<SparqlKeyword>, Error = Simple<Token>> + Clone {
+) -> impl Parser<PToken, Spanned<SparqlKeyword>, Error = Simple<PToken>> + Clone {
     just(Token::SparqlKeyword(kwd.clone()))
         .to(kwd)
         .map_with_span(spanned)
 }
 
-fn prologue() -> impl Parser<Token, Prologue, Error = Simple<Token>> + Clone {
+fn prologue() -> impl Parser<PToken, Prologue, Error = Simple<PToken>> + Clone {
     let base = named_node()
         .map_with_span(spanned)
         .then(just(Token::SparqlBase).map_with_span(spanned))
@@ -26,7 +26,7 @@ fn prologue() -> impl Parser<Token, Prologue, Error = Simple<Token>> + Clone {
 
     let prefix = named_node()
         .map_with_span(spanned)
-        .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
+        .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::SparqlPrefix).map_with_span(|_, s| s))
         .map(|((value, prefix), span)| {
             Prologue::Prefix(TurtlePrefix {
@@ -39,7 +39,7 @@ fn prologue() -> impl Parser<Token, Prologue, Error = Simple<Token>> + Clone {
     base.or(prefix)
 }
 
-fn dataset_clause() -> impl Parser<Token, DatasetClause, Error = Simple<Token>> + Clone {
+fn dataset_clause() -> impl Parser<PToken, DatasetClause, Error = Simple<PToken>> + Clone {
     named_node()
         .map_with_span(spanned)
         .then(sparql_kwd(SparqlKeyword::Named).or_not())
@@ -47,11 +47,11 @@ fn dataset_clause() -> impl Parser<Token, DatasetClause, Error = Simple<Token>> 
         .map(|((iri, named), from)| DatasetClause { from, named, iri })
 }
 
-fn expression() -> impl Parser<Token, Expression, Error = Simple<Token>> + Clone {
+fn expression() -> impl Parser<PToken, Expression, Error = Simple<PToken>> + Clone {
     todo()
 }
 
-fn bind() -> impl Parser<Token, Bind, Error = Simple<Token>> + Clone {
+fn bind() -> impl Parser<PToken, Bind, Error = Simple<PToken>> + Clone {
     variable()
         .map_with_span(spanned)
         .then(sparql_kwd(SparqlKeyword::As))
@@ -59,13 +59,13 @@ fn bind() -> impl Parser<Token, Bind, Error = Simple<Token>> + Clone {
         .map(|((var, kwd), expr)| Bind { var, kwd, expr })
 }
 
-fn variable() -> impl Parser<Token, Variable, Error = Simple<Token>> + Clone {
+fn variable() -> impl Parser<PToken, Variable, Error = Simple<PToken>> + Clone {
     select! {
-        Token::Variable(s) => Variable(s),
+        PToken(Token::Variable(s), _) => Variable(s),
     }
 }
 
-fn select_clause() -> impl Parser<Token, SelectClause, Error = Simple<Token>> + Clone {
+fn select_clause() -> impl Parser<PToken, SelectClause, Error = Simple<PToken>> + Clone {
     let star = just(Token::SparqlExpr(SparqlExpr::Times))
         .to(Solution::All)
         .map_with_span(spanned)
@@ -93,7 +93,7 @@ fn select_clause() -> impl Parser<Token, SelectClause, Error = Simple<Token>> + 
         })
 }
 
-fn sub_select() -> impl Parser<Token, SubSelect, Error = Simple<Token>> + Clone {
+fn sub_select() -> impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone {
     recursive(|sub_select| {
         let modi = modifier().map_with_span(spanned).repeated();
         modi.then(where_clause(sub_select))
@@ -107,9 +107,9 @@ fn sub_select() -> impl Parser<Token, SubSelect, Error = Simple<Token>> + Clone 
 }
 
 fn group_graph_pattern_sub(
-    ggp: impl Parser<Token, GroupGraphPattern, Error = Simple<Token>> + Clone,
-) -> impl Parser<Token, GroupGraphPatternSub, Error = Simple<Token>> + Clone {
-    let next_check = none_of([Token::CurlOpen]).rewind();
+    ggp: impl Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone,
+) -> impl Parser<PToken, GroupGraphPatternSub, Error = Simple<PToken>> + Clone {
+    let next_check = not(Token::CurlOpen).rewind();
 
     let trip = triple()
         .map_with_span(spanned)
@@ -143,20 +143,20 @@ fn group_graph_pattern_sub(
 fn expect_it(
     token: Token,
     st: &'static str,
-) -> impl Parser<Token, Token, Error = Simple<Token>> + Clone {
-    just(token.clone()).or(none_of([token.clone()]).try_map(move |x: Token, span| {
+) -> impl Parser<PToken, Token, Error = Simple<PToken>> + Clone {
+    just(token.clone()).or(not(token.clone()).try_map(move |x: Token, span| {
         println!("{} didn't expect {}", st, x);
         Err(Simple::expected_input_found(
             span,
-            [Some(token.clone())],
-            Some(x.clone()),
+            [Some(PToken(token.clone(), 0))],
+            Some(PToken(x.clone(), 0)),
         ))
     }))
 }
 
 fn group_graph_pattern(
-    select: impl Parser<Token, SubSelect, Error = Simple<Token>> + Clone + 'static,
-) -> impl Parser<Token, GroupGraphPattern, Error = Simple<Token>> + Clone {
+    select: impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'static,
+) -> impl Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone {
     let s = select.clone();
     recursive(|ggp| {
         let select = s
@@ -178,17 +178,17 @@ fn group_graph_pattern(
 }
 
 fn where_clause(
-    select: impl Parser<Token, SubSelect, Error = Simple<Token>> + Clone + 'static,
-) -> impl Parser<Token, WhereClause, Error = Simple<Token>> + Clone {
+    select: impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'static,
+) -> impl Parser<PToken, WhereClause, Error = Simple<PToken>> + Clone {
     group_graph_pattern(select)
         .map_with_span(spanned)
         .then(sparql_kwd(SparqlKeyword::Where).or_not())
         .map(|(ggp, kwd)| WhereClause { ggp, kwd })
 }
 
-fn modifier() -> impl Parser<Token, Modifier, Error = Simple<Token>> + Clone {
+fn modifier() -> impl Parser<PToken, Modifier, Error = Simple<PToken>> + Clone {
     let num = select!(
-        Token::Number(x) => x,
+        PToken(Token::Number(x), _) => x,
     )
     .map_with_span(spanned);
     let limit_offset = num
@@ -197,7 +197,7 @@ fn modifier() -> impl Parser<Token, Modifier, Error = Simple<Token>> + Clone {
     limit_offset
 }
 
-pub fn query(base: lsp_types::Url) -> impl Parser<Token, Query, Error = Simple<Token>> + Clone {
+pub fn query(base: lsp_types::Url) -> impl Parser<PToken, Query, Error = Simple<PToken>> + Clone {
     let prologues = prologue().map_with_span(spanned).repeated().map(|xs| {
         let mut base = None;
         let mut prefixes = vec![];
@@ -236,15 +236,17 @@ pub fn parse(
     source: &str,
     base: lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
-) -> (Spanned<Query>, Vec<(usize, Simple<Token>)>) {
+) -> (Spanned<Query>, Vec<(usize, Simple<PToken>)>) {
     let len = source.len();
     let rev_range = |range: std::ops::Range<usize>| (len - range.end)..(len - range.start);
     let stream = chumsky::Stream::from_iter(
         0..len,
         tokens
             .into_iter()
+            .enumerate()
+            .filter(|(_, x)| !x.is_comment())
+            .map(|(i, t)| t.map(|x| PToken(x, i)))
             .rev()
-            .filter(|x| !x.is_comment())
             .map(|Spanned(x, s)| (x, rev_range(s))),
     );
 
@@ -267,10 +269,10 @@ mod tests {
 
     use super::*;
     use crate::lang::{parsing::select_clause, tokenizer};
-    pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(
+    pub fn parse_it<T, P: Parser<PToken, T, Error = Simple<PToken>>>(
         turtle: &str,
         parser: P,
-    ) -> (Option<T>, Vec<Simple<Token>>) {
+    ) -> (Option<T>, Vec<Simple<PToken>>) {
         let (tokens, _) = tokenizer::tokenize(turtle);
         for token in &tokens {
             println!("token {:?}", token);
@@ -280,9 +282,11 @@ mod tests {
             end,
             tokens
                 .into_iter()
+                .enumerate()
+                .filter(|x| !x.1.is_comment())
+                .map(|(i, t)| t.map(|x| PToken(x, i)))
                 .map(|Spanned(x, y)| (x, y))
-                .rev()
-                .filter(|x| !x.0.is_comment()),
+                .rev(),
         );
 
         parser

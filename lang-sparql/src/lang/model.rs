@@ -412,7 +412,7 @@ impl Query {
             .as_ref()
             .iter()
             .find_map(|x| match x.iri.value() {
-                NamedNode::Full(x) => lsp_types::Url::parse(&x).ok(),
+                NamedNode::Full(x, _) => lsp_types::Url::parse(&x).ok(),
                 _ => None,
             })
             .unwrap_or_else(|| base.clone());

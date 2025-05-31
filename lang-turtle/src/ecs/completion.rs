@@ -44,6 +44,7 @@ pub fn subject_completion(
             Token::PNameLN(pref, value) => NamedNode::Prefixed {
                 prefix: pref.clone().unwrap_or_default(),
                 value: value.clone(),
+                idx: 0,
             }
             .expand(turtle.0.value()),
             _ => continue,

@@ -4,13 +4,15 @@ use lsp_core::prelude::{MyQuad, MyTerm, Spanned, StringStyle, Triples2};
 use sophia_iri::resolve::{BaseIri, IriParseError};
 use tracing::info;
 
+use super::context::{Context, ContextKind};
+
 pub trait Based {
     fn get_base(&self) -> &lsp_types::Url;
     fn prefixes(&self) -> &[Spanned<TurtlePrefix>];
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Variable(pub String);
+pub struct Variable(pub String, pub usize);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Literal {
@@ -44,6 +46,9 @@ pub struct RDFLiteral {
     pub quote_style: StringStyle,
     pub lang: Option<String>,
     pub ty: Option<NamedNode>,
+    // Span of tokens
+    pub idx: usize,
+    pub len: usize,
 }
 
 impl RDFLiteral {
@@ -71,9 +76,13 @@ impl Display for RDFLiteral {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NamedNode {
-    Full(String),
-    Prefixed { prefix: String, value: String },
-    A,
+    Full(String, usize),
+    Prefixed {
+        prefix: String,
+        value: String,
+        idx: usize,
+    },
+    A(usize),
     Invalid,
 }
 
@@ -93,8 +102,12 @@ impl NamedNode {
         mut done: HashSet<&'a str>,
     ) -> Option<String> {
         match self {
-            Self::Full(s) => s.clone().into(),
-            Self::Prefixed { prefix, value } => {
+            Self::Full(s, _) => s.clone().into(),
+            Self::Prefixed {
+                prefix,
+                value,
+                idx: _,
+            } => {
                 if done.contains(prefix.as_str()) {
                     return None;
                 }
@@ -107,7 +120,7 @@ impl NamedNode {
                 let expaned = prefix.value.expand_step(turtle, done)?;
                 Some(format!("{}{}", expaned, value))
             }
-            Self::A => Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string()),
+            Self::A(_) => Some("http://www.w3.org/1999/02/22-rdf-syntax-ns#type".to_string()),
             Self::Invalid => None,
         }
     }
@@ -116,9 +129,13 @@ impl NamedNode {
 impl Display for NamedNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            NamedNode::Full(x) => write!(f, "<{}>", x),
-            NamedNode::Prefixed { prefix, value } => write!(f, "{}:{}", prefix, value),
-            NamedNode::A => write!(f, "a"),
+            NamedNode::Full(x, _) => write!(f, "<{}>", x),
+            NamedNode::Prefixed {
+                prefix,
+                value,
+                idx: _,
+            } => write!(f, "{}:{}", prefix, value),
+            NamedNode::A(_) => write!(f, "a"),
             NamedNode::Invalid => write!(f, "invalid"),
         }
     }
@@ -126,8 +143,8 @@ impl Display for NamedNode {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlankNode {
-    Named(String),
-    Unnamed(Vec<Spanned<PO>>),
+    Named(String, usize),
+    Unnamed(Vec<Spanned<PO>>, usize, usize),
     Invalid,
 }
 
@@ -138,7 +155,7 @@ fn rev_range(range: &std::ops::Range<usize>, len: usize) -> std::ops::Range<usiz
 impl BlankNode {
     pub fn fix_spans(&mut self, len: usize) {
         match self {
-            BlankNode::Unnamed(ref mut pos) => {
+            BlankNode::Unnamed(ref mut pos, _, _) => {
                 pos.iter_mut().for_each(|span| {
                     span.1 = rev_range(&span.1, len);
                     span.0.fix_spans(len);
@@ -152,8 +169,8 @@ impl BlankNode {
 impl Display for BlankNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BlankNode::Named(x) => write!(f, "_:{}", x),
-            BlankNode::Unnamed(pos) => {
+            BlankNode::Named(x, _) => write!(f, "_:{}", x),
+            BlankNode::Unnamed(pos, _, _) => {
                 if pos.len() == 0 {
                     write!(f, "[ ]")
                 } else {
@@ -182,6 +199,26 @@ pub enum Term {
 }
 
 impl Term {
+    pub fn set_context(&self, ctx: &mut Context, kind: ContextKind) {
+        match self {
+            Term::Literal(Literal::RDF(RDFLiteral { idx, len, .. })) => {
+                for i in *idx..*idx + *len {
+                    ctx.add(i, kind);
+                }
+            }
+
+            Term::BlankNode(BlankNode::Unnamed(_, start, end)) => {
+                ctx.add(*start, kind);
+                ctx.add(*end, kind);
+            }
+            Term::BlankNode(BlankNode::Named(_, idx))
+            | Term::Variable(Variable(_, idx))
+            | Term::NamedNode(NamedNode::Full(_, idx))
+            | Term::NamedNode(NamedNode::A(idx))
+            | Term::NamedNode(NamedNode::Prefixed { idx, .. }) => ctx.add(*idx, kind),
+            _ => {}
+        }
+    }
     pub fn fix_spans(&mut self, len: usize) {
         match self {
             Term::BlankNode(bn) => bn.fix_spans(len),
@@ -206,7 +243,7 @@ impl Term {
         match self {
             Term::BlankNode(_) => true,
             Term::Variable(_) => true,
-            Term::NamedNode(NamedNode::A) => false,
+            Term::NamedNode(NamedNode::A(_)) => false,
             Term::NamedNode(_) => true,
             Term::Invalid => true,
             Term::Collection(_) => true,
@@ -224,7 +261,7 @@ impl Term {
 
     pub fn is_object(&self) -> bool {
         match self {
-            Term::NamedNode(NamedNode::A) => false,
+            Term::NamedNode(NamedNode::A(_)) => false,
             Term::Variable(_) => true,
             Term::Invalid => true,
             Term::Collection(_) => true,
@@ -296,6 +333,14 @@ impl Triple {
             span.0.fix_spans(len);
         });
     }
+
+    pub fn set_context(&self, ctx: &mut Context) {
+        self.subject.set_context(ctx, ContextKind::Subject);
+
+        for po in &self.po {
+            po.set_context(ctx);
+        }
+    }
 }
 
 impl Display for Triple {
@@ -325,6 +370,14 @@ impl PO {
             span.0.fix_spans(len);
         });
     }
+
+    pub fn set_context(&self, ctx: &mut Context) {
+        self.predicate.set_context(ctx, ContextKind::Predicate);
+
+        for o in &self.object {
+            o.set_context(ctx, ContextKind::Object);
+        }
+    }
 }
 
 impl Display for PO {
@@ -352,7 +405,7 @@ impl Base {
     }
     pub fn resolve_location(&mut self, location: &lsp_types::Url) {
         match self.1.value_mut() {
-            NamedNode::Full(s) => {
+            NamedNode::Full(s, _) => {
                 if let Some(ns) = location.join(&s).ok() {
                     *s = ns.to_string();
                 }
@@ -545,7 +598,7 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
         term: Result<Spanned<&'a Term>, MyTerm<'a>>,
     ) -> Result<MyTerm<'a>, TurtleSimpleError> {
         let object = match term {
-            Ok(Spanned(Term::Variable(Variable(var)), span)) => MyTerm::variable(var, span),
+            Ok(Spanned(Term::Variable(Variable(var, _)), span)) => MyTerm::variable(var, span),
             Ok(Spanned(Term::NamedNode(NamedNode::Invalid), span)) => MyTerm::invalid(span),
             Ok(Spanned(Term::NamedNode(nn), span)) => MyTerm::named_node(
                 nn.expand_step(self.based, HashSet::new())
@@ -564,8 +617,8 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
                 MyTerm::literal(literal.plain_string(), span)
             }
             Ok(Spanned(Term::BlankNode(bn), span)) => match bn {
-                BlankNode::Named(v) => MyTerm::blank_node(v, span),
-                BlankNode::Unnamed(v) => {
+                BlankNode::Named(v, _) => MyTerm::blank_node(v, span),
+                BlankNode::Unnamed(v, _, _) => {
                     let out = (self.blank_node)(span.clone());
                     self.handle_po(v, span, out.clone())?;
                     out
@@ -631,10 +684,10 @@ impl<'a, T: Based> TriplesBuilder<'a, T> {
         Spanned(ref triple, span): &'a Spanned<Triple>,
     ) -> Result<(), TurtleSimpleError> {
         let sub = match triple.subject.value() {
-            Term::BlankNode(BlankNode::Named(vs)) => {
+            Term::BlankNode(BlankNode::Named(vs, _)) => {
                 MyTerm::blank_node(vs, triple.subject.span().clone())
             }
-            Term::BlankNode(BlankNode::Unnamed(vs)) => {
+            Term::BlankNode(BlankNode::Unnamed(vs, _, _)) => {
                 let out = (self.blank_node)(triple.subject.span().clone());
                 self.handle_po(&vs, triple.subject.span().clone(), out.clone())?;
                 out
@@ -713,6 +766,12 @@ impl Turtle {
             prefixes,
             triples,
             set_base: location.clone(),
+        }
+    }
+
+    pub fn set_context(&self, ctx: &mut Context) {
+        for t in &self.triples {
+            t.set_context(ctx);
         }
     }
 

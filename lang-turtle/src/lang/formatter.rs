@@ -273,8 +273,8 @@ impl FormatState<'_> {
 
     fn write_bnode(&mut self, bnode: &BlankNode) -> io::Result<()> {
         match bnode {
-            BlankNode::Named(x) => write!(self.buf, "_:{}", x)?,
-            BlankNode::Unnamed(pos) => {
+            BlankNode::Named(x, _) => write!(self.buf, "_:{}", x)?,
+            BlankNode::Unnamed(pos, _, _) => {
                 if pos.len() == 0 {
                     return write!(self.buf, "[ ]");
                 }
@@ -473,10 +473,8 @@ mod tests {
     use ropey::Rope;
 
     use crate::lang::{
-        formatter::format_turtle,
-        model::Turtle,
-        parser::self as parser2,
-        tokenizer::{parse_tokens_str_safe},
+        formatter::format_turtle, model::Turtle, parser as parser2,
+        tokenizer::parse_tokens_str_safe,
     };
 
     #[derive(Debug)]

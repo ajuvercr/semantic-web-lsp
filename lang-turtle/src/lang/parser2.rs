@@ -27,11 +27,11 @@ impl<'a> Ctx<'a> {
         }
         Some(())
     }
-    fn current(&mut self) -> Option<&Spanned<Token>> {
+    fn current(&mut self) -> Option<(&Spanned<Token>, usize)> {
         self.skip_comments();
         self.finished()?;
 
-        Some(&self.tokens[self.idx])
+        Some((&self.tokens[self.idx], self.idx))
     }
 
     fn skip_comments(&mut self) {
@@ -41,7 +41,7 @@ impl<'a> Ctx<'a> {
     }
 
     fn parse_token<T>(&mut self, token: Token, t: T) -> Option<Spanned<T>> {
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
         if c.value() == &token {
             let span = self.tokens[self.idx].span().clone();
             self.inc();
@@ -102,10 +102,11 @@ impl<'a> Ctx<'a> {
 
     fn parse_named_node(&mut self) -> Option<Spanned<Term>> {
         self.finished()?;
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
 
         if c.is_i_r_i_ref() {
-            let o = c.map_ref(|t| Term::NamedNode(NamedNode::Full(t.clone().into_i_r_i_ref())));
+            let o =
+                c.map_ref(|t| Term::NamedNode(NamedNode::Full(t.clone().into_i_r_i_ref(), idx)));
             self.inc();
             return Some(o);
         }
@@ -116,6 +117,7 @@ impl<'a> Ctx<'a> {
                 Term::NamedNode(NamedNode::Prefixed {
                     prefix: prefix.unwrap_or_default(),
                     value,
+                    idx,
                 })
             });
             self.inc();
@@ -128,7 +130,7 @@ impl<'a> Ctx<'a> {
     fn parse_literal(&mut self) -> Option<Spanned<Term>> {
         self.finished()?;
         let start = self.at();
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
 
         if c.is_str() {
             let (value, style) = c.value().clone().into_str();
@@ -137,13 +139,16 @@ impl<'a> Ctx<'a> {
                 quote_style: style,
                 lang: None,
                 ty: None,
+                idx,
+                len: 1,
             };
             self.inc();
 
-            if let Some(c) = self.current() {
+            if let Some((c, _)) = self.current() {
                 match c.value() {
                     Token::LangTag(tag) => {
                         literal.lang = Some(tag.clone());
+                        literal.len += 1;
                         self.inc();
                     }
 
@@ -151,6 +156,7 @@ impl<'a> Ctx<'a> {
                         self.inc();
                         if let Term::NamedNode(nn) = self.parse_named_node()?.into_value() {
                             literal.ty = Some(nn);
+                            literal.len += 2;
                         } else {
                             return None;
                         }
@@ -190,15 +196,19 @@ impl<'a> Ctx<'a> {
         let end = self.at();
         let span = self.span(start, end);
 
-        Some(Spanned(Term::BlankNode(BlankNode::Unnamed(po)), span))
+        Some(Spanned(
+            Term::BlankNode(BlankNode::Unnamed(po, start, end - 1)),
+            span,
+        ))
     }
 
     fn parse_blank_node(&mut self) -> Option<Spanned<Term>> {
         self.finished()?;
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
         if c.is_blank_node_label() {
-            let o =
-                c.map_ref(|t| Term::BlankNode(BlankNode::Named(t.clone().into_blank_node_label())));
+            let o = c.map_ref(|t| {
+                Term::BlankNode(BlankNode::Named(t.clone().into_blank_node_label(), idx))
+            });
             self.inc();
             return Some(o);
         }
@@ -207,8 +217,13 @@ impl<'a> Ctx<'a> {
             return self.parse_unnamed_bn();
         }
 
-        self.parse_token(Token::ANON, ())
-            .map(|v| v.map(|_| Term::BlankNode(BlankNode::Unnamed(Vec::new()))))
+        if c.is_a_n_o_n() {
+            let o = c.map_ref(|t| Term::BlankNode(BlankNode::Unnamed(Vec::new(), idx, idx)));
+            self.inc();
+            return Some(o);
+        }
+
+        None
     }
 
     fn parse_collection(&mut self) -> Option<Spanned<Term>> {
@@ -228,9 +243,9 @@ impl<'a> Ctx<'a> {
     }
 
     fn parse_variable(&mut self) -> Option<Spanned<Term>> {
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
         if c.is_variable() {
-            let o = c.map_ref(|t| Term::Variable(Variable(t.clone().into_variable())));
+            let o = c.map_ref(|t| Term::Variable(Variable(t.clone().into_variable(), idx)));
             self.inc();
             return Some(o);
         }
@@ -247,7 +262,13 @@ impl<'a> Ctx<'a> {
     }
 
     fn parse_predtype(&mut self) -> Option<Spanned<Term>> {
-        self.parse_token(Token::PredType, Term::NamedNode(NamedNode::A))
+        let (c, idx) = self.current()?;
+        if c.is_pred_type() {
+            let o = c.map_ref(|t| Term::NamedNode(NamedNode::A(idx)));
+            self.inc();
+            return Some(o);
+        }
+        None
     }
 
     fn parse_predicate(&mut self) -> Option<Spanned<Term>> {
@@ -340,7 +361,7 @@ impl<'a> Ctx<'a> {
 
     fn parse_base(&mut self) -> Option<Spanned<Base>> {
         let start = self.at();
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
 
         let needs_stop = match c.value() {
             Token::SparqlBase => false,
@@ -368,7 +389,7 @@ impl<'a> Ctx<'a> {
 
     fn parse_prefix(&mut self) -> Option<Spanned<TurtlePrefix>> {
         let start = self.at();
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
 
         let needs_stop = match c.value() {
             Token::SparqlPrefix => false,
@@ -378,7 +399,7 @@ impl<'a> Ctx<'a> {
         let kwd_span = c.span().clone();
         self.inc();
 
-        let c = self.current()?;
+        let (c, idx) = self.current()?;
         let prefix = match c.value() {
             Token::PNameLN(x, _) => {
                 let v = x.clone().unwrap_or_default();

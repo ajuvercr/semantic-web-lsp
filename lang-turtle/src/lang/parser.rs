@@ -1,5 +1,5 @@
 use chumsky::prelude::*;
-use lsp_core::prelude::*;
+use lsp_core::{prelude::*, util::token::PToken};
 use tracing::info;
 
 use crate::lang::model::{
@@ -9,6 +9,20 @@ use crate::lang::model::{
 
 type S = std::ops::Range<usize>;
 
+pub fn just(token: Token) -> impl Parser<PToken, Token, Error = Simple<PToken, S>> + Clone {
+    filter(move |PToken(ref t, _)| t == &token).map(|t| t.0)
+}
+
+pub fn not(token: Token) -> impl Parser<PToken, Token, Error = Simple<PToken, S>> + Clone {
+    filter(move |PToken(ref t, _)| t != &token).map(|t| t.0)
+}
+
+pub fn one_of<const C: usize>(
+    tokens: [Token; C],
+) -> impl Parser<PToken, Token, Error = Simple<PToken, S>> + Clone {
+    filter(move |PToken(ref t, _)| tokens.iter().any(|t2| t == t2)).map(|t| t.0)
+}
+
 #[derive(Clone)]
 pub enum LiteralHelper {
     LangTag(String),
@@ -17,32 +31,38 @@ pub enum LiteralHelper {
 }
 
 impl LiteralHelper {
-    pub fn to_lit(self, (value, quote_style): (String, StringStyle)) -> RDFLiteral {
+    pub fn to_lit(self, (value, quote_style): (String, StringStyle), idx: usize) -> RDFLiteral {
         match self {
             LiteralHelper::LangTag(lang) => RDFLiteral {
                 value,
                 quote_style,
                 lang: Some(lang),
                 ty: None,
+                idx,
+                len: 2,
             },
             LiteralHelper::DataType(dt) => RDFLiteral {
                 value,
                 quote_style,
                 lang: None,
                 ty: Some(dt),
+                idx,
+                len: 3,
             },
             LiteralHelper::None => RDFLiteral {
                 value,
                 quote_style,
                 lang: None,
                 ty: None,
+                idx,
+                len: 1,
             },
         }
     }
 }
 
-fn literal() -> impl Parser<Token, Literal, Error = Simple<Token, S>> + Clone {
-    let lt = select! { Token::LangTag(x) => LiteralHelper::LangTag(x)};
+fn literal() -> impl Parser<PToken, Literal, Error = Simple<PToken, S>> + Clone {
+    let lt = select! { PToken(Token::LangTag(x), _) => LiteralHelper::LangTag(x)};
 
     let dt = named_node()
         .then_ignore(just(Token::DataTypeDelim))
@@ -51,20 +71,20 @@ fn literal() -> impl Parser<Token, Literal, Error = Simple<Token, S>> + Clone {
     lt.or(dt)
         .or(empty().to(LiteralHelper::None))
         .then(select! {
-            Token::Str(x, style) => (x, style)
+            PToken(Token::Str(x, style), idx) => (x, style, idx)
         })
-        .map(|(h, x)| h.to_lit(x))
+        .map(|(h, (x, y, idx))| h.to_lit((x, y), idx))
         .map(|x| Literal::RDF(x))
         .or(select! {
-            Token::Number(x) => Literal::Numeric(x),
-            Token::True => Literal::Boolean(true),
-            Token::False => Literal::Boolean(false),
+            PToken(Token::Number(x), _) => Literal::Numeric(x),
+            PToken(Token::True, _) => Literal::Boolean(true),
+            PToken(Token::False, _) => Literal::Boolean(false),
         })
 }
 
-pub fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> + Clone {
+pub fn named_node() -> impl Parser<PToken, NamedNode, Error = Simple<PToken, S>> + Clone {
     let invalid = select! {
-        Token::Invalid(_) => NamedNode::Invalid,
+        PToken(Token::Invalid(_), _) => NamedNode::Invalid,
     }
     .validate(move |x, span: S, emit| {
         emit(Simple::custom(
@@ -75,9 +95,9 @@ pub fn named_node() -> impl Parser<Token, NamedNode, Error = Simple<Token, S>> +
     });
 
     select! {
-        Token::PredType => NamedNode::A,
-        Token::IRIRef(x) => NamedNode::Full(x),
-        Token::PNameLN(x, b) => NamedNode::Prefixed { prefix: x.unwrap_or_default(), value: b },
+        PToken(Token::PredType, idx) => NamedNode::A(idx),
+        PToken(Token::IRIRef(x), idx) => NamedNode::Full(x, idx),
+        PToken(Token::PNameLN(x, b), idx) => NamedNode::Prefixed { prefix: x.unwrap_or_default(), value: b, idx },
     }
     .or(invalid)
 }
@@ -106,9 +126,9 @@ pub fn is_term_like(token: &Token) -> bool {
 pub fn expect_token(
     token: Token,
     valid: impl Fn(&Token) -> bool + Clone,
-) -> impl Parser<Token, Token, Error = Simple<Token, S>> + Clone {
+) -> impl Parser<PToken, Token, Error = Simple<PToken, S>> + Clone {
     let inner_token = token.clone();
-    just(token.clone()).or(none_of([token.clone()])
+    just(token.clone()).or(not(token.clone())
         .rewind()
         .try_map(move |t, span| {
             if valid(&t) {
@@ -116,40 +136,49 @@ pub fn expect_token(
             } else {
                 Err(Simple::expected_input_found(
                     span,
-                    [Some(inner_token.clone())],
-                    Some(t),
+                    [Some(PToken(inner_token.clone(), 0))],
+                    Some(PToken(t, 0)),
                 ))
             }
         })
         .validate(move |_, span: S, emit| {
             emit(Simple::expected_input_found(
                 span,
-                [Some(token.clone())],
+                [Some(PToken(token.clone(), 0))],
                 None,
             ));
             token.clone()
         }))
 }
 
-fn blank_node() -> impl Parser<Token, BlankNode, Error = Simple<Token>> + Clone {
+fn blank_node() -> impl Parser<PToken, BlankNode, Error = Simple<PToken>> + Clone {
     recursive(|bn| {
-        po(bn)
-            .map_with_span(spanned)
-            .separated_by(just(Token::PredicateSplit))
-            .allow_leading()
-            .map(|mut x| {
-                x.reverse();
-                x
-            })
-            .delimited_by(just(Token::SqClose), just(Token::SqOpen))
-            .map(|x| BlankNode::Unnamed(x))
-            .or(select! {
-                Token::BlankNodeLabel(x) => BlankNode::Named(x),
-            })
+        let start = select! {
+            PToken(Token::SqOpen, idx) => idx
+        };
+
+        let end = select! {
+            PToken(Token::SqClose, idx) => idx
+        };
+        end.then(
+            po(bn)
+                .map_with_span(spanned)
+                .separated_by(just(Token::PredicateSplit))
+                .allow_leading()
+                .map(|mut x| {
+                    x.reverse();
+                    x
+                }),
+        )
+        .then(start)
+        .map(|((end, x), start)| BlankNode::Unnamed(x, start, end))
+        .or(select! {
+            PToken(Token::BlankNodeLabel(x), idx) => BlankNode::Named(x, idx),
+        })
     })
 }
 
-fn subject() -> impl Parser<Token, Term, Error = Simple<Token, S>> + Clone {
+fn subject() -> impl Parser<PToken, Term, Error = Simple<PToken, S>> + Clone {
     term(blank_node())
     // let nn = named_node().map(|x| Term::NamedNode(x));
     // let bn = blank_node().map(|x| Term::BlankNode(x));
@@ -158,15 +187,15 @@ fn subject() -> impl Parser<Token, Term, Error = Simple<Token, S>> + Clone {
     // nn.or(bn).or(var)
 }
 
-fn variable() -> impl Parser<Token, Variable, Error = Simple<Token, S>> + Clone {
+fn variable() -> impl Parser<PToken, Variable, Error = Simple<PToken, S>> + Clone {
     select! {
-        Token::Variable(x) => Variable(x),
+        PToken(Token::Variable(x), idx) => Variable(x, idx),
     }
 }
 
 fn term(
-    bn: impl Clone + Parser<Token, BlankNode, Error = Simple<Token>> + 'static,
-) -> impl Parser<Token, Term, Error = Simple<Token>> + Clone {
+    bn: impl Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'static,
+) -> impl Parser<PToken, Term, Error = Simple<PToken>> + Clone {
     recursive(|term| {
         let collection = term
             .map_with_span(spanned)
@@ -187,8 +216,8 @@ fn term(
 }
 
 fn po(
-    bn: impl Clone + Parser<Token, BlankNode, Error = Simple<Token>> + 'static,
-) -> impl Parser<Token, PO, Error = Simple<Token>> + Clone {
+    bn: impl Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'static,
+) -> impl Parser<PToken, PO, Error = Simple<PToken>> + Clone {
     term(bn.clone())
         .labelled("object")
         .map_with_span(spanned)
@@ -233,7 +262,7 @@ fn po(
         .map(|(object, predicate)| PO { predicate, object })
 }
 
-fn po_list() -> impl Parser<Token, (Vec<Spanned<PO>>, bool), Error = Simple<Token>> + Clone {
+fn po_list() -> impl Parser<PToken, (Vec<Spanned<PO>>, bool), Error = Simple<PToken>> + Clone {
     po(blank_node())
         .map_with_span(spanned)
         .separated_by(just(Token::PredicateSplit).repeated().at_least(1))
@@ -263,18 +292,18 @@ fn po_list() -> impl Parser<Token, (Vec<Spanned<PO>>, bool), Error = Simple<Toke
             }
         })
 }
-fn bn_triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
+fn bn_triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
     expect_token(Token::Stop, |_| true)
         .ignore_then(expect_token(Token::SqClose, |_| true))
         .ignore_then(po_list())
         .then_ignore(just(Token::SqOpen))
         .map_with_span(|pos, span| Triple {
-            subject: spanned(Term::BlankNode(BlankNode::Unnamed(pos.0)), span),
+            subject: spanned(Term::BlankNode(BlankNode::Unnamed(pos.0, 0, 0)), span),
             po: Vec::new(),
         })
 }
 
-pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
+pub fn triple() -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone {
     expect_token(Token::Stop, |_| true)
         .ignore_then(po_list())
         .then_with(move |(po, succesful)| {
@@ -341,7 +370,7 @@ pub fn triple() -> impl Parser<Token, Triple, Error = Simple<Token>> + Clone {
         .or(bn_triple())
 }
 
-fn base() -> impl Parser<Token, Base, Error = Simple<Token>> + Clone {
+fn base() -> impl Parser<PToken, Base, Error = Simple<PToken>> + Clone {
     let turtle_base = expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
         .then(just(Token::BaseTag).map_with_span(|_, s| s))
@@ -354,10 +383,10 @@ fn base() -> impl Parser<Token, Base, Error = Simple<Token>> + Clone {
     turtle_base.or(sparql_base)
 }
 
-fn prefix() -> impl Parser<Token, TurtlePrefix, Error = Simple<Token>> {
+fn prefix() -> impl Parser<PToken, TurtlePrefix, Error = Simple<PToken>> {
     let turtle_prefix = expect_token(Token::Stop, |_| true)
         .ignore_then(named_node().map_with_span(spanned))
-        .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
+        .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::PrefixTag).map_with_span(|_, s| s))
         .map(|((value, prefix), span)| TurtlePrefix {
             span,
@@ -367,7 +396,7 @@ fn prefix() -> impl Parser<Token, TurtlePrefix, Error = Simple<Token>> {
 
     let sparql_prefix = named_node()
         .map_with_span(spanned)
-        .then(select! { |span| Token::PNameLN(x, _) => Spanned(x.unwrap_or_default(), span)})
+        .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
         .then(just(Token::SparqlPrefix).map_with_span(|_, s| s))
         .map(|((value, prefix), span)| TurtlePrefix {
             span,
@@ -387,7 +416,7 @@ enum Statement {
 
 pub fn turtle<'a>(
     location: &'a lsp_types::Url,
-) -> impl Parser<Token, Turtle, Error = Simple<Token>> + 'a {
+) -> impl Parser<PToken, Turtle, Error = Simple<PToken>> + 'a {
     let base = base().map_with_span(spanned).map(|b| Statement::Base(b));
     let prefix = prefix()
         .map_with_span(spanned)
@@ -422,14 +451,16 @@ pub fn parse_turtle(
     location: &lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
     len: usize,
-) -> (Spanned<Turtle>, Vec<(usize, Simple<Token>)>) {
+) -> (Spanned<Turtle>, Vec<(usize, Simple<PToken>)>) {
     let rev_range = |range: std::ops::Range<usize>| (len - range.end)..(len - range.start);
     let stream = chumsky::Stream::from_iter(
         0..len,
         tokens
             .into_iter()
+            .enumerate()
+            .filter(|(_, x)| !x.is_comment())
+            .map(|(i, t)| t.map(|x| PToken(x, i)))
             .rev()
-            .filter(|x| !x.is_comment())
             .map(|Spanned(x, s)| (x, rev_range(s))),
     );
 
@@ -455,7 +486,7 @@ pub mod turtle_tests {
     use std::str::FromStr;
 
     use chumsky::{prelude::Simple, Parser, Stream};
-    use lsp_core::prelude::{Spanned, Token};
+    use lsp_core::prelude::{PToken, Spanned};
 
     use super::literal;
     use crate::lang::{
@@ -463,37 +494,41 @@ pub mod turtle_tests {
         tokenizer::{parse_tokens_str, parse_tokens_str_safe},
     };
 
-    pub fn parse_it<T, P: Parser<Token, T, Error = Simple<Token>>>(
+    pub fn parse_it<T, P: Parser<PToken, T, Error = Simple<PToken>>>(
         turtle: &str,
         parser: P,
-    ) -> (Option<T>, Vec<Simple<Token>>) {
+    ) -> (Option<T>, Vec<Simple<PToken>>) {
         let tokens = parse_tokens_str_safe(turtle).unwrap();
         let end = turtle.len()..turtle.len();
         let stream = Stream::from_iter(
             end,
             tokens
                 .into_iter()
+                .enumerate()
+                .filter(|(_, x)| !x.is_comment())
+                .map(|(i, t)| t.map(|x| PToken(x, i)))
                 .map(|Spanned(x, y)| (x, y))
-                .rev()
-                .filter(|x| !x.0.is_comment()),
+                .rev(),
         );
 
         parser.parse_recovery(stream)
     }
 
-    pub fn parse_it_recovery<T, P: Parser<Token, T, Error = Simple<Token>>>(
+    pub fn parse_it_recovery<T, P: Parser<PToken, T, Error = Simple<PToken>>>(
         turtle: &str,
         parser: P,
-    ) -> (Option<T>, Vec<Simple<Token>>) {
+    ) -> (Option<T>, Vec<Simple<PToken>>) {
         let (tokens, _) = parse_tokens_str(turtle);
         let end = turtle.len()..turtle.len();
         let stream = Stream::from_iter(
             end,
             tokens
                 .into_iter()
+                .enumerate()
+                .filter(|(_, x)| !x.is_comment())
+                .map(|(i, t)| t.map(|x| PToken(x, i)))
                 .map(|Spanned(x, y)| (x, y))
-                .rev()
-                .filter(|x| !x.0.is_comment()),
+                .rev(),
         );
 
         parser.parse_recovery(stream)
@@ -559,7 +594,7 @@ pub mod turtle_tests {
         let turtle = "[]";
         let output = parse_it(turtle, blank_node()).0.expect("anon");
         let is_unamed = match output {
-            BlankNode::Unnamed(_) => true,
+            BlankNode::Unnamed(_, _, _) => true,
             _ => false,
         };
         assert!(is_unamed);
@@ -567,7 +602,7 @@ pub mod turtle_tests {
         let turtle = "_:foobar";
         let output = parse_it(turtle, blank_node()).0.expect("other bn");
         let is_named = match output {
-            BlankNode::Named(_) => true,
+            BlankNode::Named(_, _) => true,
             _ => false,
         };
         assert!(is_named);

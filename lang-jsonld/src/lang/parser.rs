@@ -20,6 +20,7 @@ struct ObjectMemberManager<'a> {
     current_value: Option<Spanned<Json>>,
     emit: &'a mut dyn FnMut(Simple<Token>),
 }
+
 impl<'a> ObjectMemberManager<'a> {
     fn new(span: &Range<usize>, emit: &'a mut dyn FnMut(Simple<Token>)) -> Self {
         Self {
@@ -50,6 +51,7 @@ impl<'a> ObjectMemberManager<'a> {
         (self.emit)(Simple::custom(span.clone(), "Expected valid token"));
         Spanned(Token::Invalid("".to_string()), span)
     }
+
     fn invalid_json(&mut self, span: Range<usize>) -> Spanned<Json> {
         (self.emit)(Simple::custom(span.clone(), "Expected valid json"));
         Spanned(Json::Invalid, span)
