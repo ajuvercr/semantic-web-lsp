@@ -21,7 +21,7 @@ fn check_turtle_defined_prefixes(turtle: Option<&Turtle>) -> bool {
     }
 }
 
-fn test_syntax(location: &str, is_positive: bool) {
+pub fn test_syntax(location: &str, is_positive: bool) {
     let url = lsp_types::Url::from_str(location).unwrap();
     let path = url.to_file_path().expect("file path");
     let turtle_source = std::fs::read_to_string(&path).expect("Failed to turtle");
@@ -84,7 +84,7 @@ fn check_triple(triple: &Triple, defined: &HashSet<String>) -> bool {
 
 fn check_term(term: &Term, defined: &HashSet<String>) -> bool {
     match term {
-        Term::BlankNode(lang_turtle::lang::model::BlankNode::Unnamed(pos)) => {
+        Term::BlankNode(lang_turtle::lang::model::BlankNode::Unnamed(pos, _, _)) => {
             for po in pos {
                 if !check_term(&po.predicate, defined) {
                     return false;
@@ -96,7 +96,7 @@ fn check_term(term: &Term, defined: &HashSet<String>) -> bool {
             }
             true
         }
-        Term::NamedNode(lang_turtle::lang::model::NamedNode::Prefixed { prefix, value: _ }) => {
+        Term::NamedNode(lang_turtle::lang::model::NamedNode::Prefixed { prefix, .. }) => {
             defined.contains(prefix)
         }
         Term::Collection(spanneds) => spanneds.iter().all(|t| check_term(t, defined)),

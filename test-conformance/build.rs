@@ -138,7 +138,7 @@ impl TurtleEval {
         string.push_str(&format!(
             "
 #[test]
-fn {}() {{
+pub fn {}() {{
     test_syntax(\"{}\", {});
 }}\n",
             name, self.action, true
@@ -174,7 +174,7 @@ impl TurtleSyntax {
         string.push_str(&format!(
             "
 #[test]
-fn {}() {{
+pub fn {}() {{
     test_syntax(\"{}\", {});
 }}",
             name, self.action, self.is_positive

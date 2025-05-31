@@ -4,7 +4,8 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 SELECT  *
 {
    ?class a foaf:Image;
-    foaf:
+    foaf:focus <#me>;
+    .
 }
 
 
