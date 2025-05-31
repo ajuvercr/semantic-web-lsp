@@ -714,6 +714,7 @@ mod tests {
 
         let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
         let (output, comments) = parse_turtle(txt, &url).expect("Simple");
+        println!("OUtput {:?}", output);
         let formatted = format_turtle(
             &output,
             lsp_types::FormattingOptions {

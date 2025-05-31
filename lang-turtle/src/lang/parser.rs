@@ -445,7 +445,6 @@ pub fn parse_turtle(
     tokens: Vec<Spanned<Token>>,
     len: usize,
 ) -> (Spanned<Turtle>, Vec<(usize, Simple<PToken>)>) {
-    let rev_range = |range: std::ops::Range<usize>| (len - range.end)..(len - range.start);
     let stream = chumsky::Stream::from_iter(
         0..len,
         tokens
@@ -462,9 +461,7 @@ pub fn parse_turtle(
         .then_ignore(end().recover_with(skip_then_retry_until([])));
 
     info!("Parsing {}", location.as_str());
-    let (mut json, json_errors) = parser.parse_recovery(stream);
-
-    json.iter_mut().for_each(|turtle| turtle.0.fix_spans(len));
+    let (json, json_errors) = parser.parse_recovery(stream);
 
     let json_errors: Vec<_> = json_errors.into_iter().map(|error| (len, error)).collect();
 
