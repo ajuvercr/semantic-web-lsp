@@ -4,14 +4,41 @@ use std::{
 };
 
 use bevy_ecs::component::Component;
+use lsp_core::{prelude::Token, util::Spanned};
 use similar::ChangeTag;
 
+pub struct TokenIdx<'a> {
+    pub tokens: &'a Vec<Spanned<Token>>,
+}
+impl<'a> Index<usize> for TokenIdx<'a> {
+    type Output = Token;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.tokens[index].value()
+    }
+}
 #[derive(Clone, Copy)]
 pub struct Ctx<'a> {
     context: &'a Context,
 }
 
 impl<'a> Ctx<'a> {
+    pub fn find_was(&self, idx: usize) -> Option<ContextKind> {
+        if let Some(idx) = self.context.current_to_prev.get(&idx) {
+            if self.context.subjects.contains(idx) {
+                return Some(ContextKind::Subject);
+            }
+
+            if self.context.predicates.contains(idx) {
+                return Some(ContextKind::Predicate);
+            }
+
+            if self.context.objects.contains(idx) {
+                return Some(ContextKind::Object);
+            }
+        }
+        None
+    }
     pub fn was(&self, idx: usize, kind: ContextKind) -> bool {
         match kind {
             ContextKind::Subject => self.was_subject(idx),
@@ -45,7 +72,7 @@ impl<'a> Ctx<'a> {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Debug, Clone)]
 pub enum ContextKind {
     Subject,
     Predicate,

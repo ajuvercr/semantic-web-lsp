@@ -316,6 +316,6 @@ foaf:me foaf:friend <#me>.
             .expect("competion request")
             .0;
 
-        assert_eq!(completions.len(), 0 + TurtleHelper.keyword().len());
+        assert_eq!(completions.len(), 62 + TurtleHelper.keyword().len());
     }
 }

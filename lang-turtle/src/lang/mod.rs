@@ -34,7 +34,7 @@ pub fn parse_source(url: &Url, string: &str) -> (Option<Turtle>, Vec<String>) {
             .enumerate()
             .filter(|(_, x)| !x.is_comment())
             .map(|(i, t)| t.map(|x| PToken(x, i)))
-            .rev()
+            // .rev()
             .map(|Spanned(x, y)| (x, y)),
     );
 

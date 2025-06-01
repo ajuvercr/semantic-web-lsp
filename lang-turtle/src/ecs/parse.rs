@@ -1,14 +1,15 @@
-use std::{
-    collections::HashMap,
-    ops::{DerefMut, Index},
-};
+use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use lsp_core::prelude::*;
 use tracing::{info, instrument};
 
 use crate::{
-    lang::{context::Context, parser::parse_turtle, tokenizer::parse_tokens_str},
+    lang::{
+        context::{Context, TokenIdx},
+        parser::parse_turtle,
+        tokenizer::parse_tokens_str,
+    },
     TurtleLang,
 };
 
@@ -22,17 +23,6 @@ pub fn parse_source(
         let t = Tokens(tok);
         commands.entity(entity).insert(t);
         commands.entity(entity).insert(Errors(es));
-    }
-}
-
-struct TokenIdx<'a> {
-    tokens: &'a Vec<Spanned<Token>>,
-}
-impl<'a> Index<usize> for TokenIdx<'a> {
-    type Output = Token;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.tokens[index].value()
     }
 }
 
@@ -70,18 +60,25 @@ pub fn parse_turtle_system(
             }
         }
 
-        let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx());
+        let empty = Context::new();
+        let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), empty.ctx());
+        let (turtle, es) = es.is_empty().then_some((turtle, es)).unwrap_or_else(|| {
+            parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx())
+        });
+        // let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx());
 
-        let es: Vec<_> = es
-            .into_iter()
-            .map(|(idx, e)| (idx, e.map(|PToken(t, _)| t)))
-            .collect();
+        let es: Vec<_> = es.into_iter().map(|e| (e.map(|PToken(t, _)| t))).collect();
 
         info!(
             "{} triples ({} errors)",
             turtle.value().triples.len(),
             es.len()
         );
+        if open.is_some() {
+            for e in &es {
+                info!("Error {:?}", e);
+            }
+        }
 
         *old_tokens = tokens.0.clone();
         context.clear();

@@ -40,6 +40,9 @@ pub fn test_syntax(location: &str, is_positive: bool) {
         );
 
         println!("Trutle\n{:?}", turtle2);
+        for e in &errors {
+            eprintln!("Error {:?}", e)
+        }
 
         assert!(false, "Expected new parser to be the same as the old one");
     }
@@ -49,7 +52,6 @@ pub fn test_syntax(location: &str, is_positive: bool) {
                 "Failed to parse turtle\n{}\n\nErrors {:?}",
                 turtle_source, errors
             );
-
             assert!(false, "Parsing failed, and shouldn't have failed");
         }
     } else {

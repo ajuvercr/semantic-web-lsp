@@ -75,7 +75,7 @@ impl Lang for TurtleLang {
 
     type Element = crate::lang::model::Turtle;
 
-    type ElementError = (usize, Simple<Token>);
+    type ElementError = Simple<Token>;
 
     const LANG: &'static str = "turtle";
 

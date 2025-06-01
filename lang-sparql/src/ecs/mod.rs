@@ -1,8 +1,11 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::{prelude::*, world::World};
 use completion::{CompletionRequest, SimpleCompletion};
-use lang_turtle::lang::model::TriplesBuilder;
+use lang_turtle::lang::{
+    context::{Context, TokenIdx},
+    model::TriplesBuilder,
+};
 use lsp_core::{components::*, prelude::*, systems::prefix::prefix_completion_helper};
 use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
@@ -52,10 +55,31 @@ fn parse_source(
 fn parse_sparql_system(
     query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<Sparql>)>,
     mut commands: Commands,
+    mut old: Local<HashMap<String, (Vec<Spanned<Token>>, Context)>>,
 ) {
     for (entity, source, tokens, label) in &query {
-        let (jsonld, es) = parse(source.as_str(), label.0.clone(), tokens.0.clone());
+        let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
+
+        context.setup_current_to_prev(
+            TokenIdx { tokens: &tokens },
+            tokens.len(),
+            TokenIdx {
+                tokens: &old_tokens,
+            },
+            old_tokens.len(),
+        );
+        let ctx = context.ctx();
+
+        let (jsonld, es) = parse(source.as_str(), label.0.clone(), tokens.0.clone(), ctx);
+
+        *old_tokens = tokens.0.clone();
+        context.clear();
+
+        // TODO: Setup subject predicate and objects
+
+        // turtle.set_context(context);
         info!("{} triples ({} errors)", label.0, es.len());
+
         if es.is_empty() {
             let element = Element::<Sparql>(jsonld);
             commands

@@ -455,17 +455,21 @@ impl Default for Query {
 
 #[cfg(test)]
 mod tests {
+    use lang_turtle::lang::context::Context;
     use sophia_iri::resolve::BaseIri;
 
     use super::*;
     use crate::lang::{parsing::parse, tokenizer};
 
     fn parse_sparql(inp: &str) -> Query {
+        let context = Context::new();
+        let ctx = context.ctx();
         let (tokens, _) = tokenizer::tokenize(inp);
         let (jsonld, _) = parse(
             inp,
             lsp_types::Url::parse("memory::myFile.sq").unwrap(),
             tokens,
+            ctx,
         );
 
         jsonld.0

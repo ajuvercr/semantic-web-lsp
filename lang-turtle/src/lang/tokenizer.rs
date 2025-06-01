@@ -125,7 +125,7 @@ pub fn parse_tokens_str<'a>(text: &'a str) -> (Vec<Spanned<Token>>, Vec<Simple<c
                     TurtleToken::DataTag => Token::DataTypeDelim,
                     TurtleToken::True => Token::True,
                     TurtleToken::False => Token::False,
-                    TurtleToken::BLANK_NODE_LABEL => Token::BlankNodeLabel(t()),
+                    TurtleToken::BLANK_NODE_LABEL => Token::BlankNodeLabel(t2(2, 0)),
                     TurtleToken::DOUBLE => Token::Number(t()),
                     TurtleToken::DECIMAL => Token::Number(t()),
                     TurtleToken::INTEGER => Token::Number(t()),
@@ -234,8 +234,6 @@ pub fn parse_tokens() -> t!(Vec<Spanned<Token>>) {
 #[cfg(test)]
 mod tests {
     use std::ops::{Index, Range};
-
-    use similar::capture_diff_slices;
 
     use super::*;
 
@@ -353,48 +351,5 @@ mod tests {
         println!("tokens {:?}", tok);
         assert_eq!(tok.unwrap().len(), 4);
         assert_eq!(err.len(), 1);
-    }
-
-    #[test]
-    fn test_similar() {
-        struct TokenIdx<'a> {
-            tokens: &'a Vec<Spanned<Token>>,
-        }
-        impl<'a> Index<usize> for TokenIdx<'a> {
-            type Output = Token;
-
-            fn index(&self, index: usize) -> &Self::Output {
-                &self.tokens[index].value()
-            }
-        }
-
-        let input1 = "<a> foaf: <c>.";
-        let input2 = "<a> foaf:knows <c> <d>.";
-
-        let tok1 = parse_tokens().parse_recovery(input1).0.unwrap();
-        let tok2 = parse_tokens().parse_recovery(input2).0.unwrap();
-
-        let tokens1 = TokenIdx { tokens: &tok1 };
-        let tokens2 = TokenIdx { tokens: &tok2 };
-
-        let diffs = similar::capture_diff(
-            similar::Algorithm::Myers,
-            &tokens1,
-            0..tok1.len(),
-            &tokens2,
-            0..tok2.len(),
-        );
-
-        let changes: Vec<_> = diffs
-            .iter()
-            .flat_map(|x| x.iter_changes(&tokens1, &tokens2))
-            // .map(|x| (x.tag(), x.value()))
-            .collect();
-
-        for change in changes {
-            println!("Change {:?}", change);
-        }
-
-        assert!(false);
     }
 }

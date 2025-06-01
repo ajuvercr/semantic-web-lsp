@@ -432,8 +432,20 @@ pub enum Token {
 }
 
 /// Token struct holding the token and the index in the token array
-#[derive(Clone, PartialEq, Ord, PartialOrd, Eq, Hash, Debug)]
+#[derive(Clone, Ord, PartialOrd, Hash, Debug)]
 pub struct PToken(pub Token, pub usize);
+impl PartialEq for PToken {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+impl Into<PToken> for Token {
+    fn into(self) -> PToken {
+        PToken(self, 0)
+    }
+}
+
+impl Eq for PToken {}
 
 impl TokenTrait for Token {
     fn token(&self) -> Option<lsp_types::SemanticTokenType> {

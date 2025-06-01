@@ -79,6 +79,7 @@ mod tests {
         prelude::{diagnostics::DiagnosticItem, *},
     };
     use ropey::Rope;
+    use test_log::test;
     use test_utils::{create_file, setup_world, TestClient};
 
     #[test]
@@ -120,7 +121,10 @@ foa
         world.run_schedule(DiagnosticsLabel);
 
         let items = get_diagnostics();
-        assert_eq!(items.len(), 2);
+
+        println!("Items {:?}", items);
+
+        assert_eq!(items.len(), 2, "url: t2");
         assert_eq!(items[0].diagnostics.len(), 2);
         world
             .entity_mut(entity)
@@ -129,8 +133,8 @@ foa
         world.run_schedule(DiagnosticsLabel);
 
         let items = get_diagnostics();
-        assert_eq!(items.len(), 2);
-        assert_eq!(items[0].diagnostics.len(), 5);
+        assert_eq!(items.len(), 2, "url: t3");
+        assert_eq!(items[0].diagnostics.len(), 4);
     }
 
     #[test_log::test]

@@ -1,7 +1,8 @@
 use chumsky::{prelude::*, Error};
 use lang_turtle::lang::{
+    context::Ctx,
     model::TurtlePrefix,
-    parser::{just, named_node, not, one_of, triple},
+    parser::{named_node, not, triple},
 };
 use lsp_core::prelude::{spanned, PToken, Spanned, SparqlExpr, SparqlKeyword, Token};
 
@@ -10,10 +11,14 @@ use crate::lang::model::{
     Prologue, Query, QueryClause, SelectClause, Solution, SubSelect, Variable, WhereClause,
 };
 
+fn j(token: Token) -> impl Parser<PToken, Token, Error = Simple<PToken>> + Clone {
+    just(PToken(token, 0)).map(|x| x.0)
+}
+
 fn sparql_kwd(
     kwd: SparqlKeyword,
 ) -> impl Parser<PToken, Spanned<SparqlKeyword>, Error = Simple<PToken>> + Clone {
-    just(Token::SparqlKeyword(kwd.clone()))
+    just(PToken(Token::SparqlKeyword(kwd.clone()), 0))
         .to(kwd)
         .map_with_span(spanned)
 }
@@ -21,13 +26,13 @@ fn sparql_kwd(
 fn prologue() -> impl Parser<PToken, Prologue, Error = Simple<PToken>> + Clone {
     let base = named_node()
         .map_with_span(spanned)
-        .then(just(Token::SparqlBase).map_with_span(spanned))
+        .then(j(Token::SparqlBase).map_with_span(spanned))
         .map(|(iri, token)| Prologue::Base { token, iri });
 
     let prefix = named_node()
         .map_with_span(spanned)
         .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
-        .then(just(Token::SparqlPrefix).map_with_span(|_, s| s))
+        .then(j(Token::SparqlPrefix).map_with_span(|_, s| s))
         .map(|((value, prefix), span)| {
             Prologue::Prefix(TurtlePrefix {
                 span,
@@ -66,13 +71,13 @@ fn variable() -> impl Parser<PToken, Variable, Error = Simple<PToken>> + Clone {
 }
 
 fn select_clause() -> impl Parser<PToken, SelectClause, Error = Simple<PToken>> + Clone {
-    let star = just(Token::SparqlExpr(SparqlExpr::Times))
+    let star = j(Token::SparqlExpr(SparqlExpr::Times))
         .to(Solution::All)
         .map_with_span(spanned)
         .map(|x| vec![x]);
 
     let others = bind()
-        .delimited_by(just(Token::CurlClose), just(Token::CurlOpen))
+        .delimited_by(j(Token::CurlClose), j(Token::CurlOpen))
         .map(Solution::VarAs)
         .or(variable().map(Solution::Var))
         .map_with_span(spanned)
@@ -93,10 +98,12 @@ fn select_clause() -> impl Parser<PToken, SelectClause, Error = Simple<PToken>> 
         })
 }
 
-fn sub_select() -> impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone {
+fn sub_select<'a>(
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + use<'a> {
     recursive(|sub_select| {
         let modi = modifier().map_with_span(spanned).repeated();
-        modi.then(where_clause(sub_select))
+        modi.then(where_clause(sub_select, ctx))
             .then(select_clause())
             .map(|((modifier, where_clause), select)| SubSelect {
                 modifier,
@@ -106,16 +113,20 @@ fn sub_select() -> impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clon
     })
 }
 
-fn group_graph_pattern_sub(
-    ggp: impl Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone,
-) -> impl Parser<PToken, GroupGraphPatternSub, Error = Simple<PToken>> + Clone {
+fn group_graph_pattern_sub<
+    'a,
+    T: Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone,
+>(
+    ggp: T,
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, GroupGraphPatternSub, Error = Simple<PToken>> + Clone + use<'a, T> {
     let next_check = not(Token::CurlOpen).rewind();
 
-    let trip = triple()
+    let trip = triple(ctx)
         .map_with_span(spanned)
         .map(GroupGraphPatternSub::Triple)
         .labelled("triple");
-    let kwd = just(Token::CurlClose)
+    let kwd = j(Token::CurlClose)
         .rewind()
         .ignore_then(ggp.clone())
         .clone()
@@ -123,7 +134,7 @@ fn group_graph_pattern_sub(
         .then(sparql_kwd(SparqlKeyword::Minus).or(sparql_kwd(SparqlKeyword::Optional)))
         .map(|(ggp, kwd)| GroupGraphPatternSub::Kwd(kwd, ggp));
 
-    let union = just(Token::CurlClose)
+    let union = j(Token::CurlClose)
         .rewind()
         .ignore_then(ggp.clone())
         .map_with_span(spanned)
@@ -144,19 +155,22 @@ fn expect_it(
     token: Token,
     st: &'static str,
 ) -> impl Parser<PToken, Token, Error = Simple<PToken>> + Clone {
-    just(token.clone()).or(not(token.clone()).try_map(move |x: Token, span| {
-        println!("{} didn't expect {}", st, x);
-        Err(Simple::expected_input_found(
-            span,
-            [Some(PToken(token.clone(), 0))],
-            Some(PToken(x.clone(), 0)),
-        ))
-    }))
+    j(token.clone()).or(not(token.clone())
+        .map(|x| x.0)
+        .try_map(move |x: Token, span| {
+            println!("{} didn't expect {}", st, x);
+            Err(Simple::expected_input_found(
+                span,
+                [Some(PToken(token.clone(), 0))],
+                Some(PToken(x.clone(), 0)),
+            ))
+        }))
 }
 
-fn group_graph_pattern(
-    select: impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'static,
-) -> impl Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone {
+fn group_graph_pattern<'a, T: Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'a>(
+    select: T,
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone + use<'a, T> {
     let s = select.clone();
     recursive(|ggp| {
         let select = s
@@ -165,7 +179,7 @@ fn group_graph_pattern(
             .map(GroupGraphPattern::SubSelect)
             .labelled("sub_select");
 
-        let gg = group_graph_pattern_sub(ggp)
+        let gg = group_graph_pattern_sub(ggp, ctx)
             .map_with_span(spanned)
             .repeated()
             .map(GroupGraphPattern::GroupGraph);
@@ -177,10 +191,11 @@ fn group_graph_pattern(
     })
 }
 
-fn where_clause(
-    select: impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'static,
-) -> impl Parser<PToken, WhereClause, Error = Simple<PToken>> + Clone {
-    group_graph_pattern(select)
+fn where_clause<'a, T: Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'a>(
+    select: T,
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, WhereClause, Error = Simple<PToken>> + Clone + use<'a, T> {
+    group_graph_pattern(select, ctx)
         .map_with_span(spanned)
         .then(sparql_kwd(SparqlKeyword::Where).or_not())
         .map(|(ggp, kwd)| WhereClause { ggp, kwd })
@@ -197,7 +212,10 @@ fn modifier() -> impl Parser<PToken, Modifier, Error = Simple<PToken>> + Clone {
     limit_offset
 }
 
-pub fn query(base: lsp_types::Url) -> impl Parser<PToken, Query, Error = Simple<PToken>> + Clone {
+pub fn query<'a>(
+    base: lsp_types::Url,
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, Query, Error = Simple<PToken>> + Clone + use<'a> {
     let prologues = prologue().map_with_span(spanned).repeated().map(|xs| {
         let mut base = None;
         let mut prefixes = vec![];
@@ -209,7 +227,7 @@ pub fn query(base: lsp_types::Url) -> impl Parser<PToken, Query, Error = Simple<
     });
     let kwds = select_clause().map(QueryClause::Select);
     let datasets = dataset_clause().map_with_span(spanned).repeated();
-    let where_clause = where_clause(sub_select()).map_with_span(spanned);
+    let where_clause = where_clause(sub_select(ctx), ctx).map_with_span(spanned);
     let modifiers = modifier().map_with_span(spanned).repeated();
 
     modifiers
@@ -236,6 +254,7 @@ pub fn parse(
     source: &str,
     base: lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
+    ctx: Ctx<'_>,
 ) -> (Spanned<Query>, Vec<(usize, Simple<PToken>)>) {
     let len = source.len();
     let rev_range = |range: std::ops::Range<usize>| (len - range.end)..(len - range.start);
@@ -250,7 +269,7 @@ pub fn parse(
             .map(|Spanned(x, s)| (x, rev_range(s))),
     );
 
-    let parser = query(base)
+    let parser = query(base, ctx)
         .map_with_span(spanned)
         .then_ignore(end().recover_with(skip_then_retry_until([])));
     let (mut json, json_errors) = parser.parse_recovery(stream);
@@ -266,6 +285,7 @@ pub fn parse(
 #[cfg(test)]
 mod tests {
     use chumsky::Stream;
+    use lang_turtle::lang::context::Context;
 
     use super::*;
     use crate::lang::{parsing::select_clause, tokenizer};
@@ -325,11 +345,13 @@ SELECT  ?title ?price
 
     #[test]
     fn parse_triple() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let inp = r#"
   ?x ns:discount ?discount .
         "#;
 
-        let (q, tok) = parse_it(inp, triple());
+        let (q, tok) = parse_it(inp, triple(ctx));
 
         assert_eq!(tok, vec![]);
         assert!(q.is_some());
@@ -337,13 +359,15 @@ SELECT  ?title ?price
 
     #[test]
     fn parse_group_graph_pattern_sub() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let inp = r#"
  ?x ns:price ?p .
         "#;
 
         let (q, tok) = parse_it(
             inp,
-            group_graph_pattern_sub(group_graph_pattern(sub_select())),
+            group_graph_pattern_sub(group_graph_pattern(sub_select(ctx), ctx), ctx),
         );
 
         assert_eq!(tok, vec![]);
@@ -352,11 +376,13 @@ SELECT  ?title ?price
 
     #[test]
     fn parse_group_graph_pattern() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let inp = r#"{
     ?x ns:price ?p .
 }"#;
 
-        let (q, tok) = parse_it(inp, group_graph_pattern(sub_select()));
+        let (q, tok) = parse_it(inp, group_graph_pattern(sub_select(ctx), ctx));
 
         assert_eq!(tok, vec![]);
         assert!(q.is_some());
@@ -364,6 +390,8 @@ SELECT  ?title ?price
 
     #[test]
     fn simple_test() {
+        let context = Context::new();
+        let ctx = context.ctx();
         let inp = r#"PREFIX  dc:  <http://purl.org/dc/elements/1.1/>
 PREFIX  ns:  <http://example.org/ns#>
 SELECT  ?title ?price
@@ -375,7 +403,7 @@ SELECT  ?title ?price
 
         let (q, tok) = parse_it(
             inp,
-            query(lsp_types::Url::parse("memory://myFile.sq").unwrap()),
+            query(lsp_types::Url::parse("memory://myFile.sq").unwrap(), ctx),
         );
 
         assert_eq!(tok, vec![]);
