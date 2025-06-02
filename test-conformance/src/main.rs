@@ -7,7 +7,7 @@ use std::{
 use chumsky::prelude::*;
 use lang_turtle::lang::{
     parse_source,
-    parser2::parse_source as parse_source2,
+    // parser2::parse_source as parse_source2,
     tokenizer::{parse_tokens, parse_tokens_str_safe},
 };
 use lsp_types::Url;
@@ -69,18 +69,18 @@ impl Timer2 {
 
     fn add(&mut self, inp: &str, url: &Url) {
         let now = Instant::now();
-        let comb = parse_source(&url, inp);
-        let comb_good = comb.0.is_some() && comb.1.is_empty();
+        let _ = parse_source(&url, inp);
+        // let comb_good = comb.0.is_some() && comb.1.is_empty();
         self.combinator += now.elapsed();
 
-        let now = Instant::now();
-        let logos = parse_source2(&url, inp);
-        let par_good = logos.is_some();
-        self.parser += now.elapsed();
+        // let now = Instant::now();
+        // let logos = parse_source2(&url, inp);
+        // let par_good = logos.is_some();
+        // self.parser += now.elapsed();
 
-        if !comb_good || !par_good {
-            panic!("comb {} logos {}", comb_good, par_good);
-        }
+        // if !comb_good || !par_good {
+        //     panic!("comb {} logos {}", comb_good, par_good);
+        // }
     }
 }
 

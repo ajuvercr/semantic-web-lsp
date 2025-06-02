@@ -1,13 +1,10 @@
-use std::{ops::Range, str::FromStr as _};
 
-use chumsky::{prelude::*, Error};
+use chumsky::prelude::*;
 use logos::Logos;
 use lsp_core::prelude::{
-    spanned, Membered, Spanned, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword,
+    spanned, Spanned, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword,
     StringStyle, Token,
 };
-use text::ident;
-use token_helpers::*;
 
 #[allow(non_camel_case_types)]
 #[derive(Logos, Debug, PartialEq)]

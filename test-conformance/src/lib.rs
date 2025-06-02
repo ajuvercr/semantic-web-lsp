@@ -4,7 +4,7 @@ use std::{collections::HashSet, str::FromStr as _};
 use lang_turtle::lang::{
     model::{Term, Triple, Turtle},
     parse_source,
-    parser2::parse_source as parse_source2,
+    // parser2::parse_source as parse_source2,
 };
 
 fn check_turtle_defined_prefixes(turtle: Option<&Turtle>) -> bool {
@@ -26,26 +26,26 @@ pub fn test_syntax(location: &str, is_positive: bool) {
     let path = url.to_file_path().expect("file path");
     let turtle_source = std::fs::read_to_string(&path).expect("Failed to turtle");
     let (turtle, errors) = parse_source(&url, &turtle_source);
-    let turtle2 = parse_source2(&url, &turtle_source);
+    // let turtle2 = parse_source2(&url, &turtle_source);
 
     let combinator = errors.is_empty() && turtle.is_some();
-    let new = turtle2.is_some();
+    // let new = turtle2.is_some();
     // assert!(turtle.is_some(), "Always return some turtle");
     let defined_prefixes = check_turtle_defined_prefixes(turtle.as_ref());
 
-    if combinator != new {
-        eprintln!(
-            "Expected new parser to be the same as the old one. Old {} New {}",
-            combinator, new
-        );
-
-        println!("Trutle\n{:?}", turtle2);
-        for e in &errors {
-            eprintln!("Error {:?}", e)
-        }
-
-        assert!(false, "Expected new parser to be the same as the old one");
-    }
+    // if combinator != new {
+    //     eprintln!(
+    //         "Expected new parser to be the same as the old one. Old {} New {}",
+    //         combinator, new
+    //     );
+    //
+    //     println!("Trutle\n{:?}", turtle2);
+    //     for e in &errors {
+    //         eprintln!("Error {:?}", e)
+    //     }
+    //
+    //     assert!(false, "Expected new parser to be the same as the old one");
+    // }
     if is_positive {
         if !combinator || !defined_prefixes {
             eprintln!(

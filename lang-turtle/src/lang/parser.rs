@@ -175,7 +175,7 @@ pub fn expect_token(
                     ))
                 }
             })
-            .validate(move |e, span: S, emit| {
+            .validate(move |_, span: S, emit| {
                 emit(Simple::expected_input_found(
                     span,
                     [Some(PToken(token.clone(), 0))],

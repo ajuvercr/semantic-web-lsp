@@ -299,7 +299,7 @@ mod tests {
     use super::*;
     use crate::lang::{
         parsing::select_clause,
-        tokenizer::{self, parse_tokens_str},
+        tokenizer::{parse_tokens_str},
     };
     pub fn parse_it<T, P: Parser<PToken, T, Error = Simple<PToken>>>(
         turtle: &str,

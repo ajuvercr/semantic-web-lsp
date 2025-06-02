@@ -10,7 +10,7 @@ use lsp_bin::{client::BinFs, timings, TowerClient};
 use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
 use tower_lsp::{LspService, Server};
-use tracing::{info, level_filters::LevelFilter, Level};
+use tracing::{info, level_filters::LevelFilter};
 
 fn setup_world<C: Client + ClientSync + Resource + Clone>(
     client: C,
