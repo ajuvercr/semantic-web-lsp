@@ -54,30 +54,16 @@ fn setup_world<C: Client + ClientSync + Resource + Clone>(
     (sender, semantic_tokens)
 }
 
-#[allow(unused)]
-fn get_level() -> Level {
-    match std::env::var_os("LOG")
-        .and_then(|x| x.into_string().ok())
-        .map(|x| x.to_lowercase())
-    {
-        Some(x) if &x == "info" => Level::INFO,
-        Some(x) if &x == "debug" => Level::DEBUG,
-        Some(x) if &x == "trace" => Level::TRACE,
-        _ => Level::INFO,
-    }
-}
-
-fn setup_global_subscriber() -> impl Drop {
-    use tracing_flame::FlameLayer;
+fn setup_global_subscriber() {
     use tracing_subscriber::{fmt, prelude::*, registry::Registry};
 
-    let target: Box<dyn io::Write + Send + Sync + 'static> =
-        match File::create("/tmp/turtle-lsp.txt") {
-            Ok(x) => Box::new(x),
-            Err(_) => Box::new(std::io::stdout()),
-        };
+    let mut tmp = std::env::temp_dir();
+    tmp.push("turtle-lsp.txt");
+    let target: Box<dyn io::Write + Send + Sync + 'static> = match File::create(tmp) {
+        Ok(x) => Box::new(x),
+        Err(_) => Box::new(std::io::stderr()),
+    };
 
-    let (flame_layer, _guard) = FlameLayer::with_file("/tmp/tracing.folded").unwrap();
     let fmt_layer = fmt::Layer::default()
         .with_line_number(true)
         .with_writer(Mutex::new(target))
@@ -85,17 +71,10 @@ fn setup_global_subscriber() -> impl Drop {
 
     let subscriber = Registry::default()
         .with(timings::TracingLayer::new())
-        .with(fmt_layer)
-        .with(
-            flame_layer
-                .with_empty_samples(false)
-                .with_file_and_line(false)
-                .with_threads_collapsed(true)
-                .with_module_path(false),
-        );
+        .with(fmt_layer);
 
     tracing::subscriber::set_global_default(subscriber).expect("Could not set global default");
-    _guard
+    // _guard
 }
 
 #[tokio::main]
