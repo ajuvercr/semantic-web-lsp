@@ -11,7 +11,7 @@ use lsp_types::CompletionItemKind;
 use sophia_iri::resolve::BaseIri;
 
 use crate::{
-    lang::{parsing::parse, tokenizer::tokenize},
+    lang::{parsing::parse, tokenizer::parse_tokens_str},
     Sparql,
 };
 
@@ -45,7 +45,7 @@ fn parse_source(
     mut commands: Commands,
 ) {
     for (entity, source) in &query {
-        let (tok, es) = tokenize(source.0.as_str());
+        let (tok, es) = parse_tokens_str(source.0.as_str());
         info!("tokenized  {} tokens ({} errors)", tok.len(), es.len());
         commands.entity(entity).insert((Tokens(tok), Errors(es)));
     }

@@ -23,17 +23,18 @@ fn sparql_kwd(
         .map_with_span(spanned)
 }
 
+// DONE
 fn prologue() -> impl Parser<PToken, Prologue, Error = Simple<PToken>> + Clone {
-    let base = named_node()
+    let base = j(Token::SparqlBase)
         .map_with_span(spanned)
-        .then(j(Token::SparqlBase).map_with_span(spanned))
-        .map(|(iri, token)| Prologue::Base { token, iri });
+        .then(named_node().map_with_span(spanned))
+        .map(|(token, iri)| Prologue::Base { token, iri });
 
-    let prefix = named_node()
-        .map_with_span(spanned)
+    let prefix = j(Token::SparqlPrefix).map_with_span(|_, s| s)
         .then(select! { |span| PToken(Token::PNameLN(x, _), _) => Spanned(x.unwrap_or_default(), span)})
-        .then(j(Token::SparqlPrefix).map_with_span(|_, s| s))
-        .map(|((value, prefix), span)| {
+        .then(named_node()
+        .map_with_span(spanned))
+        .map(|((span, prefix), value)| {
             Prologue::Prefix(TurtlePrefix {
                 span,
                 prefix,
@@ -44,24 +45,26 @@ fn prologue() -> impl Parser<PToken, Prologue, Error = Simple<PToken>> + Clone {
     base.or(prefix)
 }
 
+// DONE
 fn dataset_clause() -> impl Parser<PToken, DatasetClause, Error = Simple<PToken>> + Clone {
-    named_node()
-        .map_with_span(spanned)
+    sparql_kwd(SparqlKeyword::From)
         .then(sparql_kwd(SparqlKeyword::Named).or_not())
-        .then(sparql_kwd(SparqlKeyword::From))
-        .map(|((iri, named), from)| DatasetClause { from, named, iri })
+        .then(named_node().map_with_span(spanned))
+        .map(|((from, named), iri)| DatasetClause { from, named, iri })
 }
 
 fn expression() -> impl Parser<PToken, Expression, Error = Simple<PToken>> + Clone {
     todo()
 }
 
+// DONE
 fn bind() -> impl Parser<PToken, Bind, Error = Simple<PToken>> + Clone {
-    variable()
+    sparql_kwd(SparqlKeyword::Bind)
+        .ignore_then(expression())
         .map_with_span(spanned)
         .then(sparql_kwd(SparqlKeyword::As))
-        .then(expression().map_with_span(spanned))
-        .map(|((var, kwd), expr)| Bind { var, kwd, expr })
+        .then(variable().map_with_span(spanned))
+        .map(|((expr, kwd), var)| Bind { var, kwd, expr })
 }
 
 fn variable() -> impl Parser<PToken, Variable, Error = Simple<PToken>> + Clone {
@@ -70,6 +73,7 @@ fn variable() -> impl Parser<PToken, Variable, Error = Simple<PToken>> + Clone {
     }
 }
 
+// DONE
 fn select_clause() -> impl Parser<PToken, SelectClause, Error = Simple<PToken>> + Clone {
     let star = j(Token::SparqlExpr(SparqlExpr::Times))
         .to(Solution::All)
@@ -77,35 +81,38 @@ fn select_clause() -> impl Parser<PToken, SelectClause, Error = Simple<PToken>> 
         .map(|x| vec![x]);
 
     let others = bind()
-        .delimited_by(j(Token::CurlClose), j(Token::CurlOpen))
+        .delimited_by(j(Token::CurlOpen), j(Token::CurlClose))
         .map(Solution::VarAs)
         .or(variable().map(Solution::Var))
         .map_with_span(spanned)
         .repeated();
 
     // This might be different to support ask and describe
-    star.or(others)
+
+    sparql_kwd(SparqlKeyword::Select)
         .then(
             sparql_kwd(SparqlKeyword::Distinct)
                 .or(sparql_kwd(SparqlKeyword::Reduced))
                 .or_not(),
         )
-        .then(sparql_kwd(SparqlKeyword::Select))
-        .map(|((solutions, modifier), kwd)| SelectClause {
+        .then(star.or(others))
+        .map(|((kwd, modifier), solutions)| SelectClause {
             kwd,
             modifier,
             solutions,
         })
 }
 
+// DONE
 fn sub_select<'a>(
     ctx: Ctx<'a>,
 ) -> impl Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + use<'a> {
     recursive(|sub_select| {
         let modi = modifier().map_with_span(spanned).repeated();
-        modi.then(where_clause(sub_select, ctx))
-            .then(select_clause())
-            .map(|((modifier, where_clause), select)| SubSelect {
+        select_clause()
+            .then(where_clause(sub_select, ctx))
+            .then(modi)
+            .map(|((select, where_clause), modifier)| SubSelect {
                 modifier,
                 where_clause,
                 select,
@@ -113,6 +120,7 @@ fn sub_select<'a>(
     })
 }
 
+// DONE
 fn group_graph_pattern_sub<
     'a,
     T: Parser<PToken, GroupGraphPattern, Error = Simple<PToken>> + Clone,
@@ -120,21 +128,21 @@ fn group_graph_pattern_sub<
     ggp: T,
     ctx: Ctx<'a>,
 ) -> impl Parser<PToken, GroupGraphPatternSub, Error = Simple<PToken>> + Clone + use<'a, T> {
-    let next_check = not(Token::CurlOpen).rewind();
+    let next_check = not(Token::CurlClose).rewind();
 
     let trip = triple(ctx)
         .map_with_span(spanned)
         .map(GroupGraphPatternSub::Triple)
         .labelled("triple");
-    let kwd = j(Token::CurlClose)
-        .rewind()
-        .ignore_then(ggp.clone())
-        .clone()
-        .map_with_span(spanned)
-        .then(sparql_kwd(SparqlKeyword::Minus).or(sparql_kwd(SparqlKeyword::Optional)))
-        .map(|(ggp, kwd)| GroupGraphPatternSub::Kwd(kwd, ggp));
 
-    let union = j(Token::CurlClose)
+    let kwd = sparql_kwd(SparqlKeyword::Minus)
+        .or(sparql_kwd(SparqlKeyword::Optional))
+        .clone()
+        .then_ignore(j(Token::CurlOpen).rewind())
+        .then(ggp.clone().map_with_span(spanned))
+        .map(|(kwd, ggp)| GroupGraphPatternSub::Kwd(kwd, ggp));
+
+    let union = j(Token::CurlOpen)
         .rewind()
         .ignore_then(ggp.clone())
         .map_with_span(spanned)
@@ -167,6 +175,7 @@ fn expect_it(
         }))
 }
 
+// DONE
 fn group_graph_pattern<'a, T: Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'a>(
     select: T,
     ctx: Ctx<'a>,
@@ -187,28 +196,32 @@ fn group_graph_pattern<'a, T: Parser<PToken, SubSelect, Error = Simple<PToken>> 
         let close = expect_it(Token::CurlClose, "close").labelled("CurlClose");
         let open = expect_it(Token::CurlOpen, "open").labelled("CurlOpen");
 
-        close.ignore_then(gg.or(select)).then_ignore(open)
+        open.ignore_then(gg.or(select)).then_ignore(close)
     })
 }
 
+// DONE
 fn where_clause<'a, T: Parser<PToken, SubSelect, Error = Simple<PToken>> + Clone + 'a>(
     select: T,
     ctx: Ctx<'a>,
 ) -> impl Parser<PToken, WhereClause, Error = Simple<PToken>> + Clone + use<'a, T> {
-    group_graph_pattern(select, ctx)
-        .map_with_span(spanned)
-        .then(sparql_kwd(SparqlKeyword::Where).or_not())
-        .map(|(ggp, kwd)| WhereClause { ggp, kwd })
+    sparql_kwd(SparqlKeyword::Where)
+        .or_not()
+        .then(group_graph_pattern(select, ctx).map_with_span(spanned))
+        .map(|(kwd, ggp)| WhereClause { ggp, kwd })
 }
 
+// DONE
 fn modifier() -> impl Parser<PToken, Modifier, Error = Simple<PToken>> + Clone {
     let num = select!(
         PToken(Token::Number(x), _) => x,
     )
     .map_with_span(spanned);
-    let limit_offset = num
-        .then(sparql_kwd(SparqlKeyword::Limit).or(sparql_kwd(SparqlKeyword::Offset)))
-        .map(|(num, kwd)| Modifier::LimitOffset(kwd, num));
+
+    let limit_offset = sparql_kwd(SparqlKeyword::Limit)
+        .or(sparql_kwd(SparqlKeyword::Offset))
+        .then(num)
+        .map(|(kwd, num)| Modifier::LimitOffset(kwd, num));
     limit_offset
 }
 
@@ -230,13 +243,13 @@ pub fn query<'a>(
     let where_clause = where_clause(sub_select(ctx), ctx).map_with_span(spanned);
     let modifiers = modifier().map_with_span(spanned).repeated();
 
-    modifiers
-        .then(where_clause)
-        .then(datasets)
+    prologues
         .then(kwds)
-        .then(prologues)
+        .then(datasets)
+        .then(where_clause)
+        .then(modifiers)
         .map(
-            move |((((modifier, where_clause), datasets), kwds), (base_statement, prefixes))| {
+            move |(((((base_statement, prefixes), kwds), datasets), where_clause), modifier)| {
                 Query {
                     base_statement,
                     prefixes,
@@ -255,9 +268,8 @@ pub fn parse(
     base: lsp_types::Url,
     tokens: Vec<Spanned<Token>>,
     ctx: Ctx<'_>,
-) -> (Spanned<Query>, Vec<(usize, Simple<PToken>)>) {
+) -> (Spanned<Query>, Vec<Simple<PToken>>) {
     let len = source.len();
-    let rev_range = |range: std::ops::Range<usize>| (len - range.end)..(len - range.start);
     let stream = chumsky::Stream::from_iter(
         0..len,
         tokens
@@ -265,17 +277,14 @@ pub fn parse(
             .enumerate()
             .filter(|(_, x)| !x.is_comment())
             .map(|(i, t)| t.map(|x| PToken(x, i)))
-            .rev()
-            .map(|Spanned(x, s)| (x, rev_range(s))),
+            .map(|Spanned(x, s)| (x, s)),
     );
 
     let parser = query(base, ctx)
         .map_with_span(spanned)
         .then_ignore(end().recover_with(skip_then_retry_until([])));
-    let (mut json, json_errors) = parser.parse_recovery(stream);
+    let (json, json_errors) = parser.parse_recovery(stream);
 
-    json.iter_mut().for_each(|query| query.fix_spans(len));
-    let json_errors: Vec<_> = json_errors.into_iter().map(|error| (len, error)).collect();
     (
         json.unwrap_or(Spanned(Query::default(), 0..source.len())),
         json_errors,
@@ -288,12 +297,15 @@ mod tests {
     use lang_turtle::lang::context::Context;
 
     use super::*;
-    use crate::lang::{parsing::select_clause, tokenizer};
+    use crate::lang::{
+        parsing::select_clause,
+        tokenizer::{self, parse_tokens_str},
+    };
     pub fn parse_it<T, P: Parser<PToken, T, Error = Simple<PToken>>>(
         turtle: &str,
         parser: P,
     ) -> (Option<T>, Vec<Simple<PToken>>) {
-        let (tokens, _) = tokenizer::tokenize(turtle);
+        let (tokens, _) = parse_tokens_str(turtle);
         for token in &tokens {
             println!("token {:?}", token);
         }
@@ -305,8 +317,7 @@ mod tests {
                 .enumerate()
                 .filter(|x| !x.1.is_comment())
                 .map(|(i, t)| t.map(|x| PToken(x, i)))
-                .map(|Spanned(x, y)| (x, y))
-                .rev(),
+                .map(|Spanned(x, y)| (x, y)),
         );
 
         parser

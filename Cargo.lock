@@ -1557,6 +1557,7 @@ dependencies = [
  "hashbrown 0.13.2",
  "lang-turtle",
  "lazy_static",
+ "logos",
  "lsp-core",
  "lsp-types",
  "reqwest",

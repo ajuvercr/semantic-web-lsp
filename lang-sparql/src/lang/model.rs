@@ -459,18 +459,32 @@ mod tests {
     use sophia_iri::resolve::BaseIri;
 
     use super::*;
-    use crate::lang::{parsing::parse, tokenizer};
+    use crate::lang::{parsing::parse, tokenizer::parse_tokens_str};
 
     fn parse_sparql(inp: &str) -> Query {
         let context = Context::new();
         let ctx = context.ctx();
-        let (tokens, _) = tokenizer::tokenize(inp);
-        let (jsonld, _) = parse(
+        let (tokens, errors) = parse_tokens_str(inp);
+        println!("Tokens");
+        for t in &tokens {
+            println!("t {:?}", t);
+        }
+
+        println!("errors");
+        for t in &errors {
+            println!("e {:?}", t);
+        }
+
+        let (jsonld, errors) = parse(
             inp,
             lsp_types::Url::parse("memory::myFile.sq").unwrap(),
             tokens,
             ctx,
         );
+        println!("errors");
+        for t in &errors {
+            println!("e {:?}", t);
+        }
 
         jsonld.0
     }
