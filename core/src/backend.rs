@@ -453,6 +453,7 @@ impl LanguageServer for Backend {
                 world.flush();
                 info!("Running diagnostics");
                 world.run_schedule(DiagnosticsLabel);
+                info!("Done diagnostics");
                 id
             })
             .await;
@@ -494,6 +495,7 @@ impl LanguageServer for Backend {
             world.flush();
             info!("Running diagnostics");
             world.run_schedule(DiagnosticsLabel);
+            info!("Running diagnostics done");
         })
         .await;
     }

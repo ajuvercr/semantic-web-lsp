@@ -1,9 +1,7 @@
-
 use chumsky::prelude::*;
 use logos::Logos;
 use lsp_core::prelude::{
-    spanned, Spanned, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword,
-    StringStyle, Token,
+    spanned, Spanned, SparqlAggregate, SparqlCall, SparqlExpr, SparqlKeyword, StringStyle, Token,
 };
 
 #[allow(non_camel_case_types)]
@@ -349,7 +347,6 @@ pub fn parse_tokens_str_safe(text: &str) -> Result<Vec<Spanned<Token>>, Vec<Simp
     if e.is_empty() {
         Ok(t)
     } else {
-        println!("Found tokens {:?} error {:?}", t, e);
         Err(e)
     }
 }

@@ -38,10 +38,8 @@ pub fn setup_world(world: &mut World) {
     });
 
     world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
-        println!("Turtle got create event");
         match &trigger.event().language_id {
             Some(x) if x == "turtle" => {
-                println!(" --> its turtle");
                 commands
                     .entity(trigger.entity())
                     .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));
@@ -51,7 +49,6 @@ pub fn setup_world(world: &mut World) {
         }
         // pass
         if trigger.event().url.as_str().ends_with(".ttl") {
-            println!(" --> its turtle");
             commands
                 .entity(trigger.entity())
                 .insert((TurtleLang, DynLang(Box::new(TurtleHelper))));

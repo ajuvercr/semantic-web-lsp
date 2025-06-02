@@ -29,10 +29,8 @@ pub fn setup_world(world: &mut World) {
         }
     });
     world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
-        println!("Got create event");
         match &trigger.event().language_id {
             Some(x) if x == "jsonld" => {
-                println!(" --> its jsonld");
                 commands
                     .entity(trigger.entity())
                     .insert(JsonLd)
@@ -43,7 +41,6 @@ pub fn setup_world(world: &mut World) {
         }
         // pass
         if trigger.event().url.as_str().ends_with(".jsonld") {
-            println!(" --> its jsonld");
             commands
                 .entity(trigger.entity())
                 .insert(JsonLd)

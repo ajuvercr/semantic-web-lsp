@@ -75,7 +75,7 @@ fn parse_sparql_system(
         *old_tokens = tokens.0.clone();
         context.clear();
 
-        // TODO: Setup subject predicate and objects
+        jsonld.add_to_context(context);
 
         // turtle.set_context(context);
         info!("{} triples ({} errors)", label.0, es.len());

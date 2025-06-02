@@ -203,7 +203,6 @@ pub fn parse_tokens_str_safe(text: &str) -> Result<Vec<Spanned<Token>>, Vec<Simp
     if e.is_empty() {
         Ok(t)
     } else {
-        println!("Found tokens {:?} error {:?}", t, e);
         Err(e)
     }
 }

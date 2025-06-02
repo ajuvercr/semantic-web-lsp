@@ -3590,6 +3590,7 @@ monaco-languageclient@^1.0.1:
   version "0.0.0"
   resolved "file:packages/app"
   dependencies:
+    common "file:../common"
     debounce "^1.2.1"
     json-rpc-2.0 "^1.3.0"
     monaco-editor-core "^0.33.0"
@@ -4497,7 +4498,7 @@ selfsigned@^2.1.1:
     node-forge "^1"
 
 "semantic-web-lsp@file:/home/silvius/Projects/jsonld-lsp/lsp-web/packages/vscode":
-  version "0.0.3"
+  version "0.0.7"
   resolved "file:packages/vscode"
   dependencies:
     common "file:../common"

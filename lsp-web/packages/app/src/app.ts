@@ -9,137 +9,137 @@ import { Languages } from "./language";
 import Server from "./server";
 
 class Environment implements monaco.Environment {
-  getWorkerUrl(moduleId: string, label: string) {
-    if (label === "editorWorkerService") {
-      return "./editor.worker.bundle.js";
+    getWorkerUrl(moduleId: string, label: string) {
+        if (label === "editorWorkerService") {
+            return "./editor.worker.bundle.js";
+        }
+        throw new Error(
+            `getWorkerUrl: unexpected ${JSON.stringify({ moduleId, label })}`
+        );
     }
-    throw new Error(
-      `getWorkerUrl: unexpected ${JSON.stringify({ moduleId, label })}`
-    );
-  }
 }
 
 const monacoToProtocol = new MonacoToProtocolConverter(monaco);
 
 type ModelStart = {
-  value: string;
-  url: string;
-  elementId: string;
+    value: string;
+    url: string;
+    elementId: string;
 };
 
 export default class App {
-  readonly #window: Window & monaco.Window & typeof globalThis = self;
+    readonly #window: Window & monaco.Window & typeof globalThis = self;
 
-  readonly #intoServer: IntoServer = new IntoServer();
-  readonly #fromServer: FromServer = FromServer.create();
+    readonly #intoServer: IntoServer = new IntoServer();
+    readonly #fromServer: FromServer = FromServer.create();
 
-  readonly editors: monaco.editor.IEditor[] = [];
-  initializeMonaco(): void {
-    this.#window.MonacoEnvironment = new Environment();
-  }
+    readonly editors: monaco.editor.IEditor[] = [];
+    initializeMonaco(): void {
+        this.#window.MonacoEnvironment = new Environment();
+    }
 
-  addEditor(
-    client: Client,
-    init: ModelStart,
-    languageId: string
-  ): monaco.editor.ITextModel {
-    const model = monaco.editor.createModel(
-      init.value,
-      languageId,
-      monaco.Uri.parse(init.url)
-    );
+    addEditor(
+        client: Client,
+        init: ModelStart,
+        languageId: string
+    ): monaco.editor.ITextModel {
+        const model = monaco.editor.createModel(
+            init.value,
+            languageId,
+            monaco.Uri.parse(init.url)
+        );
 
-    client.editors[init.url] = model;
+        client.editors[init.url] = model;
 
-    const change = debounce(() => {
-      const text = model.getValue();
-      client.notify(proto.DidChangeTextDocumentNotification.type.method, {
-        textDocument: {
-          version: 0,
-          uri: model.uri.toString(),
-        },
-        contentChanges: [
-          {
-            range: monacoToProtocol.asRange(model.getFullModelRange()),
-            text,
-          },
-        ],
-      } as proto.DidChangeTextDocumentParams);
-    }, 50);
-    const save = debounce(() => {
-      client.notify(proto.DidSaveTextDocumentNotification.type.method, {
-        textDocument: {
-          version: 0,
-          uri: model.uri.toString(),
-        },
-      } as proto.DidChangeTextDocumentParams);
-    }, 2000);
-    model.onDidChangeContent(() => {
-      change();
-      save();
-    });
+        const change = debounce(() => {
+            const text = model.getValue();
+            client.notify(proto.DidChangeTextDocumentNotification.type.method, {
+                textDocument: {
+                    version: 0,
+                    uri: model.uri.toString(),
+                },
+                contentChanges: [
+                    {
+                        range: monacoToProtocol.asRange(model.getFullModelRange()),
+                        text,
+                    },
+                ],
+            } as proto.DidChangeTextDocumentParams);
+        }, 50);
 
-    // eslint-disable-next-line @typescript-eslint/require-await
-    client.pushAfterInitializeHook(async () => {
-      client.notify(proto.DidOpenTextDocumentNotification.type.method, {
-        textDocument: {
-          uri: model.uri.toString(),
-          languageId: languageId,
-          version: 0,
-          text: model.getValue(),
-        },
-      } as proto.DidOpenTextDocumentParams);
+        const save = debounce(() => {
+            client.notify(proto.DidSaveTextDocumentNotification.type.method, {
+                textDocument: {
+                    version: 0,
+                    uri: model.uri.toString(),
+                },
+            } as proto.DidChangeTextDocumentParams);
+        }, 2000);
+        model.onDidChangeContent(() => {
+            change();
+            save();
+        });
 
-      save();
-    });
+        // eslint-disable-next-line @typescript-eslint/require-await
+        client.pushAfterInitializeHook(async () => {
+            client.notify(proto.DidOpenTextDocumentNotification.type.method, {
+                textDocument: {
+                    uri: model.uri.toString(),
+                    languageId: languageId,
+                    version: 0,
+                    text: model.getValue(),
+                },
+            } as proto.DidOpenTextDocumentParams);
 
-    const container = document.getElementById(init.elementId)!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-    const editor = monaco.editor.create(container, {
-      model,
-      automaticLayout: true,
-      "semanticHighlighting.enabled": true,
-      minimap: {
-        enabled: false,
-      },
-      quickSuggestions: false,
-      scrollBeyondLastLine: false,
-      links: false,
-    });
+            save();
+        });
 
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
-      console.log("Should rename");
-      const focusedEditor = this.editors.find((e) => e.hasTextFocus());
-      if (focusedEditor) {
-        focusedEditor.trigger("keyboard", "editor.action.rename", null);
-      }
-    });
+        const container = document.getElementById(init.elementId)!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+        const editor = monaco.editor.create(container, {
+            model,
+            automaticLayout: true,
+            "semanticHighlighting.enabled": true,
+            minimap: {
+                enabled: false,
+            },
+            quickSuggestions: false,
+            scrollBeyondLastLine: false,
+            links: false,
+        });
 
-    this.editors.push(editor);
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+            const focusedEditor = this.editors.find((e) => e.hasTextFocus());
+            if (focusedEditor) {
+                focusedEditor.trigger("keyboard", "editor.action.rename", null);
+            }
+        });
 
-    return model;
-  }
+        this.editors.push(editor);
 
-  async run(): Promise<void> {
-    const client = new Client(this.#fromServer, this.#intoServer);
-    const server = await Server.initialize(this.#intoServer, this.#fromServer);
-    const turtleId = client.addLanguage(Languages.turtle);
-    const sparqlId = client.addLanguage(Languages.sparql);
+        return model;
+    }
 
-    this.initializeMonaco();
+    async run(): Promise<void> {
+        const client = new Client(this.#fromServer, this.#intoServer);
+        const server = await Server.initialize(this.#intoServer, this.#fromServer);
+        const turtleId = client.addLanguage(Languages.turtle);
+        const sparqlId = client.addLanguage(Languages.sparql);
 
-    this.addEditor(client, editors.turtle, turtleId);
-    this.addEditor(client, editors.owl, turtleId);
-    this.addEditor(client, editors.shacl, turtleId);
-    this.addEditor(client, editors.sparql, sparqlId);
+        this.initializeMonaco();
 
-    await Promise.all([server.start(), client.start()]);
-  }
+        this.addEditor(client, editors.sparql, sparqlId);
+        this.addEditor(client, editors.turtle, turtleId);
+        this.addEditor(client, editors.owl, turtleId);
+        this.addEditor(client, editors.shacl, turtleId);
+
+        await Promise.all([server.start(), client.start()]);
+    }
 }
 
 type Keys = "turtle" | "sparql" | "owl" | "shacl";
 const editors: { [K in Keys]: ModelStart } = {
-  turtle: {
-    value: `@prefix owl: <http://www.w3.org/2002/07/owl#>.
+    turtle: {
+        value: `@prefix owl: <http://www.w3.org/2002/07/owl#>.
 @prefix ex: <http://example.org/>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
@@ -155,12 +155,13 @@ const editors: { [K in Keys]: ModelStart } = {
 
 <SWLS> a ed:LanguageServer;
   rdfs:label "test1", "test2";
-  ed:hasFeature <HoverFeature>, <CompleteFeature>.`,
-    url: "inmemory://examples.this/turtle.ttl",
-    elementId: "editor",
-  },
-  sparql: {
-    value: `PREFIX  ed: <./owl.ttl#>
+  ed:hasFeature <HoverFeature>, <CompleteFeature>.
+`,
+        url: "inmemory://examples.this/turtle.ttl",
+        elementId: "editor",
+    },
+    sparql: {
+        value: `PREFIX  ed: <./owl.ttl#>
 
 SELECT  *
 {
@@ -172,12 +173,12 @@ SELECT  *
     ?feature ed:isCool ?isCool.
   }
 }
-    `,
-    url: "inmemory://examples.this/query.sq",
-    elementId: "editor2",
-  },
-  owl: {
-    value: `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+`,
+        url: "inmemory://examples.this/query.sq",
+        elementId: "editor2",
+    },
+    owl: {
+        value: `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix owl: <http://www.w3.org/2002/07/owl#>.
@@ -225,11 +226,11 @@ SELECT  *
   rdfs:domain :Feature;
   rdfs:range xsd:boolean.
 `,
-    url: "inmemory://examples.this/owl.ttl",
-    elementId: "editor3",
-  },
-  shacl: {
-    value: `@prefix ex: <http://example.org/>.
+        url: "inmemory://examples.this/owl.ttl",
+        elementId: "editor3",
+    },
+    shacl: {
+        value: `@prefix ex: <http://example.org/>.
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -255,8 +256,8 @@ ed:LanguageServerShape
         sh:minCount 3;
         sh:node ed:LanguageFeatureShape;
     ].
-    `,
-    url: "inmemory://examples.this/shacl.ttl",
-    elementId: "editor4",
-  },
+`,
+        url: "inmemory://examples.this/shacl.ttl",
+        elementId: "editor4",
+    },
 };

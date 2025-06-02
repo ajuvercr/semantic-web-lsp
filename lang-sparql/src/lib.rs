@@ -23,10 +23,9 @@ pub fn setup_world(world: &mut World) {
         }
     });
     world.observe(|trigger: Trigger<CreateEvent>, mut commands: Commands| {
-        println!("Got create event");
         match &trigger.event().language_id {
             Some(x) if x == "sparql" => {
-                println!(" --> its sparql");
+                info!("Found sparql documnet!");
                 commands
                     .entity(trigger.entity())
                     .insert(Sparql)
@@ -37,7 +36,7 @@ pub fn setup_world(world: &mut World) {
         }
 
         if trigger.event().url.as_str().ends_with(".sq") {
-            println!(" --> its sparql");
+            info!("Found sparql documnet!");
             commands
                 .entity(trigger.entity())
                 .insert(Sparql)
@@ -65,7 +64,7 @@ impl Lang for Sparql {
 
     type Element = crate::lang::model::Query;
 
-    type ElementError = (usize, Simple<Token>);
+    type ElementError = Simple<Token>;
 
     const PATTERN: Option<&'static str> = None;
 

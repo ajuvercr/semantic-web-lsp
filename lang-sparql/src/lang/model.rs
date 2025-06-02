@@ -1,27 +1,13 @@
-use lang_turtle::lang::model::{
-    Based, NamedNode, Triple, TriplesBuilder, TurtlePrefix, TurtleSimpleError,
+use lang_turtle::lang::{
+    context::Context,
+    model::{Based, NamedNode, Triple, TriplesBuilder, TurtlePrefix, TurtleSimpleError},
 };
 use lsp_core::prelude::{Spanned, SparqlKeyword, Token};
-
-fn rev_range(range: &std::ops::Range<usize>, len: usize) -> std::ops::Range<usize> {
-    (len - range.end)..(len - range.start)
-}
-
-fn fix_span<T>(spanned: &mut Spanned<T>, len: usize) {
-    spanned.1 = rev_range(&spanned.1, len);
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Base {
     pub token: Spanned<Token>,
     pub iri: Spanned<NamedNode>,
-}
-
-impl Base {
-    pub fn fix_spans(&mut self, len: usize) {
-        fix_span(&mut self.token, len);
-        fix_span(&mut self.iri, len);
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,34 +18,12 @@ pub enum Prologue {
     },
     Prefix(TurtlePrefix),
 }
-impl Prologue {
-    pub fn fix_spans(&mut self, len: usize) {
-        match self {
-            Prologue::Base { token, iri } => {
-                fix_span(token, len);
-                fix_span(iri, len);
-            }
-            Prologue::Prefix(pref) => {
-                pref.fix_spans(len);
-            }
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DatasetClause {
     pub from: Spanned<SparqlKeyword>,
     pub named: Option<Spanned<SparqlKeyword>>,
     pub iri: Spanned<NamedNode>,
-}
-impl DatasetClause {
-    pub fn fix_spans(&mut self, len: usize) {
-        fix_span(&mut self.from, len);
-        if let Some(ref mut n) = &mut self.named {
-            fix_span(n, len);
-        }
-        fix_span(&mut self.iri, len);
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -69,14 +33,17 @@ pub enum GroupGraphPattern {
     Invalid,
 }
 impl GroupGraphPattern {
-    pub fn fix_spans(&mut self, len: usize) {
+    fn add_to_context(&self, ctx: &mut Context) {
         match self {
-            GroupGraphPattern::SubSelect(sub_select) => sub_select.fix_spans(len),
-            GroupGraphPattern::GroupGraph(vec) => vec.iter_mut().for_each(|x| {
-                x.fix_spans(len);
-                fix_span(x, len);
-            }),
-            GroupGraphPattern::Invalid => todo!(),
+            GroupGraphPattern::SubSelect(sub_select) => {
+                sub_select.add_to_context(ctx);
+            }
+            GroupGraphPattern::GroupGraph(spanneds) => {
+                for s in spanneds {
+                    s.value().add_to_context(ctx);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -103,20 +70,16 @@ pub struct WhereClause {
     pub ggp: Spanned<GroupGraphPattern>,
 }
 impl WhereClause {
-    pub fn fix_spans(&mut self, len: usize) {
-        if let Some(ref mut n) = &mut self.kwd {
-            fix_span(n, len);
-        }
-        fix_span(&mut self.ggp, len);
-        self.ggp.fix_spans(len);
-    }
-
     pub fn ingest_triples<'a>(
         &'a self,
         builder: &mut TriplesBuilder<'a, Query>,
     ) -> Result<(), TurtleSimpleError> {
         self.ggp.ingest_triples(builder)?;
         Ok(())
+    }
+
+    fn add_to_context(&self, ctx: &mut Context) {
+        self.ggp.value().add_to_context(ctx);
     }
 }
 
@@ -132,13 +95,6 @@ pub struct Bind {
     pub kwd: Spanned<SparqlKeyword>,
     pub var: Spanned<Variable>,
 }
-impl Bind {
-    pub fn fix_spans(&mut self, len: usize) {
-        fix_span(&mut self.expr, len);
-        fix_span(&mut self.kwd, len);
-        fix_span(&mut self.var, len);
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Solution {
@@ -146,33 +102,12 @@ pub enum Solution {
     Var(Variable),
     VarAs(Bind),
 }
-impl Solution {
-    pub fn fix_spans(&mut self, len: usize) {
-        match self {
-            Solution::All => {}
-            Solution::Var(_) => {}
-            Solution::VarAs(bind) => bind.fix_spans(len),
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SelectClause {
     pub kwd: Spanned<SparqlKeyword>,
     pub modifier: Option<Spanned<SparqlKeyword>>,
     pub solutions: Vec<Spanned<Solution>>,
-}
-impl SelectClause {
-    pub fn fix_spans(&mut self, len: usize) {
-        if let Some(ref mut n) = &mut self.modifier {
-            fix_span(n, len);
-        }
-        fix_span(&mut self.kwd, len);
-        self.solutions.iter_mut().for_each(|x| {
-            fix_span(x, len);
-            x.fix_spans(len);
-        });
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -184,36 +119,12 @@ pub struct ConstructClause {
         Spanned<Token>,
     )>,
 }
-impl ConstructClause {
-    pub fn fix_spans(&mut self, len: usize) {
-        fix_span(&mut self.kwd, len);
-
-        if let Some((ref mut t1, ref mut ggps, ref mut t2)) = &mut self.template {
-            fix_span(t1, len);
-            fix_span(t2, len);
-            ggps.iter_mut().for_each(|x| {
-                fix_span(x, len);
-                x.fix_spans(len);
-            });
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum QueryClause {
     Select(SelectClause),
     Construct(ConstructClause),
     Invalid,
-}
-
-impl QueryClause {
-    pub fn fix_spans(&mut self, len: usize) {
-        match self {
-            QueryClause::Select(select_clause) => select_clause.fix_spans(len),
-            QueryClause::Construct(construct_clause) => construct_clause.fix_spans(len),
-            QueryClause::Invalid => {}
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -224,14 +135,10 @@ pub struct SubSelect {
     // TODO values
 }
 impl SubSelect {
-    pub fn fix_spans(&mut self, len: usize) {
-        self.select.fix_spans(len);
-        self.where_clause.fix_spans(len);
-        self.modifier.iter_mut().for_each(|x| {
-            fix_span(x, len);
-            x.fix_spans(len);
-        });
+    fn add_to_context(&self, ctx: &mut Context) {
+        self.where_clause.add_to_context(ctx);
     }
+
     pub fn ingest_triples<'a>(
         &'a self,
         builder: &mut TriplesBuilder<'a, Query>,
@@ -267,48 +174,18 @@ pub enum GroupGraphPatternSub {
     Inline(Spanned<()>),
 }
 impl GroupGraphPatternSub {
-    pub fn fix_spans(&mut self, len: usize) {
+    fn add_to_context(&self, ctx: &mut Context) {
         match self {
-            GroupGraphPatternSub::Triple(triple) => {
-                fix_span(triple, len);
-                triple.fix_spans(len);
-            }
-            GroupGraphPatternSub::Kwd(spanned, spanned1) => {
-                fix_span(spanned, len);
-                fix_span(spanned1, len);
-                spanned1.fix_spans(len);
-            }
-            GroupGraphPatternSub::Union(spanned, xs) => {
-                fix_span(spanned, len);
-                spanned.fix_spans(len);
-                xs.iter_mut().for_each(|(ref mut kwd, ref mut x)| {
-                    fix_span(kwd, len);
-                    fix_span(x, len);
-                    x.fix_spans(len);
-                })
-            }
-            GroupGraphPatternSub::Filter(spanned, _) => {
-                fix_span(spanned, len);
-            }
-            GroupGraphPatternSub::GraphOrService(spanned, spanned1, spanned2, spanned3) => {
-                fix_span(spanned, len);
-                if let Some(ref mut x) = spanned1 {
-                    fix_span(x, len);
+            GroupGraphPatternSub::Triple(t) => t.value().set_context(ctx),
+            GroupGraphPatternSub::Kwd(_, beta) => beta.add_to_context(ctx),
+            GroupGraphPatternSub::Union(a, b) => {
+                a.add_to_context(ctx);
+                for (_, b) in b {
+                    b.add_to_context(ctx);
                 }
-                fix_span(spanned2, len);
-                fix_span(spanned3, len);
-                spanned3.fix_spans(len);
             }
-            GroupGraphPatternSub::Bind(spanned, spanned1, spanned2, spanned3) => {
-                fix_span(spanned, len);
-                fix_span(spanned1, len);
-                fix_span(spanned2, len);
-                spanned2.fix_spans(len);
-                fix_span(spanned3, len);
-            }
-            GroupGraphPatternSub::Inline(spanned) => {
-                fix_span(spanned, len);
-            }
+            GroupGraphPatternSub::GraphOrService(_, _, _, a) => a.add_to_context(ctx),
+            _ => {}
         }
     }
 
@@ -340,31 +217,6 @@ pub enum Modifier {
     LimitOffset(Spanned<SparqlKeyword>, Spanned<String>),
 }
 
-impl Modifier {
-    pub fn fix_spans(&mut self, len: usize) {
-        match self {
-            Modifier::GroupBy(spanned, spanned1, spanned2) => {
-                fix_span(spanned, len);
-                fix_span(spanned1, len);
-                fix_span(spanned2, len);
-            }
-            Modifier::Having(spanned, spanned1) => {
-                fix_span(spanned, len);
-                fix_span(spanned1, len);
-            }
-            Modifier::OrderBy(spanned, spanned1, spanned2) => {
-                fix_span(spanned, len);
-                fix_span(spanned1, len);
-                fix_span(spanned2, len);
-            }
-            Modifier::LimitOffset(spanned, spanned1) => {
-                fix_span(spanned, len);
-                fix_span(spanned1, len);
-            }
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Query {
     pub base: lsp_types::Url,
@@ -376,26 +228,8 @@ pub struct Query {
     pub modifier: Vec<Spanned<Modifier>>,
 }
 impl Query {
-    pub fn fix_spans(&mut self, len: usize) {
-        self.prefixes.iter_mut().for_each(|x| {
-            fix_span(x, len);
-            x.fix_spans(len);
-        });
-        if let Some(b) = &mut self.base_statement {
-            b.fix_spans(len);
-            fix_span(b, len);
-        }
-        self.kwds.fix_spans(len);
-        self.datasets.iter_mut().for_each(|x| {
-            fix_span(x, len);
-            x.fix_spans(len);
-        });
-        fix_span(&mut self.where_clause, len);
-        self.where_clause.fix_spans(len);
-        self.modifier.iter_mut().for_each(|x| {
-            fix_span(x, len);
-            x.fix_spans(len);
-        });
+    pub fn add_to_context(&self, ctx: &mut Context) {
+        self.where_clause.add_to_context(ctx);
     }
 
     pub fn ingest_triples<'a>(

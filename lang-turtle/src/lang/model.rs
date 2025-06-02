@@ -827,10 +827,7 @@ mod test {
     ) -> Result<(Turtle, Vec<Spanned<String>>), Err> {
         let context = Context::new();
         let ctx = context.ctx();
-        let tokens = parse_tokens_str_safe(inp).map_err(|e| {
-            println!("Error {:?}", e);
-            Err::Tokenizing
-        })?;
+        let tokens = parse_tokens_str_safe(inp).map_err(|e| Err::Tokenizing)?;
 
         let mut comments: Vec<_> = tokens
             .iter()

@@ -98,6 +98,8 @@ pub fn open_imports<C: Client + Resource>(
                         world.run_schedule(SaveLabel);
                     });
                     let _ = sender.unbounded_send(command_queue);
+                } else {
+                    info!("No content found for {}", object);
                 }
             };
             client.spawn(fut);

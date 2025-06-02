@@ -50,9 +50,6 @@ mod tests {
             .get::<Element<JsonLd>>()
             .expect("jsonld exists");
 
-        println!("Tokens {:?}", tokens);
-        println!("JsonLd {:?}", jsonld);
-
         assert_eq!(tokens.0.len(), 17);
 
         let triples = world
@@ -264,7 +261,6 @@ mod tests {
             .expect("triple component");
 
         assert_eq!(triple.target, TripleTarget::Predicate);
-        println!("Triple {:?}", triple);
 
         let comppletions = world
             .entity_mut(entity)

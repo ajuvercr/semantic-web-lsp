@@ -122,8 +122,6 @@ foa
 
         let items = get_diagnostics();
 
-        println!("Items {:?}", items);
-
         assert_eq!(items.len(), 2, "url: t2");
         assert_eq!(items[0].diagnostics.len(), 2);
         world

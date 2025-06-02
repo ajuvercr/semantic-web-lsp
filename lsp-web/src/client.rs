@@ -67,11 +67,11 @@ impl FsTrait for WebFs {
         {
             Ok(ReadFileResult::Success { content }) => Some(content),
             Ok(ReadFileResult::Failed { error }) => {
-                tracing::error!("Failed {:?}", error);
+                tracing::error!("Failed (1) {:?}", error);
                 None
             }
             Err(e) => {
-                tracing::error!("Failed {:?}", e);
+                tracing::error!("Failed (2) {:?}", e);
                 None
             }
         }
@@ -90,7 +90,8 @@ impl FsTrait for WebFs {
             changes: Some(map),
             ..Default::default()
         };
-        self.0.apply_edit(edit).await;
+        info!("Should apply edit, but am not doing that now");
+        // self.0.apply_edit(edit).await;
         Some(())
     }
 }
