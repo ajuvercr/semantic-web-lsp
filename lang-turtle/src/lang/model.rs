@@ -207,9 +207,12 @@ impl Term {
                 }
             }
 
-            Term::BlankNode(BlankNode::Unnamed(_, start, end)) => {
+            Term::BlankNode(BlankNode::Unnamed(pos, start, end)) => {
                 ctx.add(*start, kind);
                 ctx.add(*end, kind);
+                for po in pos {
+                    po.set_context(ctx);
+                }
             }
             Term::BlankNode(BlankNode::Named(_, idx))
             | Term::Variable(Variable(_, idx))

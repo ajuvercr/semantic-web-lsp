@@ -199,12 +199,7 @@ fn blank_node<'a>(
         .recover_with(skip_parser(empty().map(|_| 0)));
 
         start
-            .then(
-                po(bn, ctx)
-                    .map_with_span(spanned)
-                    .separated_by(just([Token::PredicateSplit.into()]))
-                    .allow_trailing(),
-            )
+            .then(po_list(bn, ctx))
             .then(end)
             .map(|((end, x), start)| BlankNode::Unnamed(x, start, end))
             .or(select! {
@@ -304,10 +299,11 @@ fn po<'a, T: Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'a>(
         .map(|(predicate, object)| PO { predicate, object })
 }
 
-fn po_list<'a>(
+fn po_list<'a, T: Clone + Parser<PToken, BlankNode, Error = Simple<PToken>> + 'a>(
+    bn: T,
     ctx: Ctx<'a>,
-) -> impl Parser<PToken, Vec<Spanned<PO>>, Error = Simple<PToken>> + Clone + use<'a> {
-    po(blank_node(ctx), ctx)
+) -> impl Parser<PToken, Vec<Spanned<PO>>, Error = Simple<PToken>> + Clone + use<'a, T> {
+    po(bn, ctx)
         .labelled("po")
         .map_with_span(spanned)
         .separated_by(
@@ -318,21 +314,26 @@ fn po_list<'a>(
             .ignore_then(just([Token::PredicateSplit.into()]).repeated()),
         )
         .allow_trailing()
-        .recover_with(skip_parser(empty().map_with_span(|_, span: S| {
-            vec![spanned(
-                PO {
-                    predicate: spanned(Term::Invalid, span.clone()),
-                    object: vec![spanned(Term::Invalid, span.clone())],
-                },
-                span,
-            )]
-        })))
+}
+
+fn po_list_recovery<'a>(
+    ctx: Ctx<'a>,
+) -> impl Parser<PToken, Vec<Spanned<PO>>, Error = Simple<PToken>> + Clone + use<'a> {
+    po_list(blank_node(ctx), ctx).recover_with(skip_parser(empty().map_with_span(|_, span: S| {
+        vec![spanned(
+            PO {
+                predicate: spanned(Term::Invalid, span.clone()),
+                object: vec![spanned(Term::Invalid, span.clone())],
+            },
+            span,
+        )]
+    })))
 }
 
 fn bn_triple(
     ctx: Ctx<'_>,
 ) -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone + use<'_> {
-    let pos = po_list(ctx).validate(|po, span, emit| {
+    let pos = po_list_recovery(ctx).validate(|po, span, emit| {
         if po.is_empty() {
             emit(Simple::custom(
                 span.clone(),
@@ -362,7 +363,7 @@ fn bn_triple(
 pub fn triple(
     ctx: Ctx<'_>,
 ) -> impl Parser<PToken, Triple, Error = Simple<PToken>> + Clone + use<'_> {
-    let pos = po_list(ctx)
+    let pos = po_list_recovery(ctx)
         .validate(|po, span, emit| {
             if po.is_empty() {
                 emit(Simple::custom(
@@ -1029,5 +1030,43 @@ foaf: foaf:name "Arthur".
         }
         assert_eq!(turtle_1.triples.len(), 1);
         assert_eq!(turtle_2.triples.len(), 1);
+    }
+
+    #[test]
+    fn context_works_in_blanknodes() {
+        let mut context = Context::new();
+        let ctx = context.ctx();
+        // I don't see what this test does :(
+        let txt = r#"
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+[ ] foaf:knows [ foaf:name "Arthur" ];
+  foaf:name "Arthur".
+            "#;
+        let url = lsp_types::Url::from_str("http://example.com/ns#").unwrap();
+
+        let tokens_2 = parse_tokens_str_safe(txt).unwrap();
+
+        let output = parse_it(txt, turtle(&url, ctx)).0.expect("simple");
+        output.set_context(&mut context);
+
+        context.setup_current_to_prev(
+            TokenIdx { tokens: &tokens_2 },
+            tokens_2.len(),
+            TokenIdx { tokens: &tokens_2 },
+            tokens_2.len(),
+        );
+
+        let ctx = context.ctx();
+        for (i, t) in tokens_2.iter().enumerate() {
+            println!(
+                "t ({} {} {}) {}",
+                ctx.was_subject(i),
+                ctx.was_predicate(i),
+                ctx.was_object(i),
+                &txt[t.span().clone()]
+            )
+        }
+
+        assert!(false);
     }
 }
