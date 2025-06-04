@@ -11,6 +11,7 @@ import {
     MessageTransports,
 } from "vscode-languageclient";
 import * as rpc from "vscode-jsonrpc";
+import { json } from "stream/consumers";
 
 class ReadableS {
     readonly onError: rpc.Event<Error>;
@@ -116,7 +117,6 @@ class LanguageClient extends BaseLanguageClient {
 
 // Your extension is activated the very first time the command is executed
 export async function activate() {
-
     const channel = vscode.window.createOutputChannel("swls");
     logger.init(
         (st) => channel.appendLine(st.trim()),
@@ -140,6 +140,9 @@ export async function activate() {
     logger.set(debug);
 
     logger.info("Debug is on " + debug);
+    const turtle = vscode.workspace.getConfiguration().get("swls.turtle");
+    const jsonld = vscode.workspace.getConfiguration().get("swls.jsonld");
+    const sparql = vscode.workspace.getConfiguration().get("swls.sparql");
 
     vscode.workspace.onDidChangeConfiguration((event) => {
         // Check if the specific setting has changed
@@ -171,7 +174,11 @@ export async function activate() {
             },
         ],
         synchronize: {},
-        initializationOptions: {},
+        initializationOptions: {
+            sparql,
+            turtle,
+            jsonld
+        },
     };
 
     const client = new LanguageClient(

@@ -56,7 +56,11 @@ fn parse_sparql_system(
     query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<Sparql>)>,
     mut commands: Commands,
     mut old: Local<HashMap<String, (Vec<Spanned<Token>>, Context)>>,
+    config: Res<ServerConfig>,
 ) {
+    if !config.config.sparql.unwrap_or(true) {
+        return;
+    }
     for (entity, source, tokens, label) in &query {
         let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
 

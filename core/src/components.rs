@@ -197,11 +197,17 @@ pub struct ServerConfig {
 pub struct Config {
     #[serde(default = "debug")]
     pub log: String,
+    pub turtle: Option<bool>,
+    pub jsonld: Option<bool>,
+    pub sparql: Option<bool>,
 }
 impl Default for Config {
     fn default() -> Self {
         Self {
             log: "debug".to_string(),
+            turtle: None,
+            jsonld: None,
+            sparql: None,
         }
     }
 }

@@ -34,7 +34,11 @@ pub fn parse_turtle_system(
     >,
     mut commands: Commands,
     mut old: Local<HashMap<String, (Vec<Spanned<Token>>, Context)>>,
+    config: Res<ServerConfig>,
 ) {
+    if !config.config.turtle.unwrap_or(true) {
+        return;
+    }
     for (entity, source, tokens, label, open) in &query {
         let (ref mut old_tokens, ref mut context) = old.entry(label.to_string()).or_default();
         context.setup_current_to_prev(

@@ -26,7 +26,11 @@ pub fn parse_source(
 pub fn parse_jsonld_system(
     query: Query<(Entity, &Source, &Tokens, &Label), (Changed<Tokens>, With<JsonLd>)>,
     mut commands: Commands,
+    config: Res<ServerConfig>,
 ) {
+    if !config.config.jsonld.unwrap_or(true) {
+        return;
+    }
     for (entity, source, tokens, label) in &query {
         let (jsonld, es) = parse(source.as_str(), tokens.0.clone());
         info!("{} triples ({} errors)", label.0, es.len());

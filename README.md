@@ -61,6 +61,8 @@ However the language server protocol enables swift integration into other editor
 Install the semantic web lsp extension ([vscode](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp) or [open-vscode](https://open-vsx.org/extension/ajuvercr/semantic-web-lsp)).
 The extension starts the lsp from WASM and starts the vscode LSP client.
 
+You can configure the LSP to disable certain languages, this is useful as SPARQL is not fully supported yet, but comes bundled in the LSP.
+
 ### Jetbrains
 
 A zip of the Jetbrains plugin is available with the latest releases.
@@ -96,10 +98,17 @@ vim.api.nvim_create_autocmd("FileType", {
             name = "swls",
             cmd = { "swls" },
             root_dir = vim.fn.getcwd(),
+            init_options = {
+                sparql = false, -- disable sparql support
+                -- turtle = false,
+                -- jsonld = false,
+            },
         })
     end,
 })
 ```
+
+You can configure the LSP to disable certain languages, this is useful as SPARQL is not fully supported yet, but comes bundled in the LSP.
 
 <details>
 <summary>Instructions for configuring an autocmd to detect and assign filetypes automatically.</summary>

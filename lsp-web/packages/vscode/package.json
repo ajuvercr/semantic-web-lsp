@@ -5,7 +5,7 @@
   "license": "MIT",
   "displayName": "semantic web lsp",
   "description": "A language server for semantic web standards",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "icon": "favicon.png",
   "engines": {
     "vscode": "^1.90.0"
@@ -93,6 +93,21 @@
             "type": "boolean",
             "default": false,
             "description": "Log debug information."
+          },
+          "swls.turtle": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable Turtle Language."
+          },
+          "swls.jsonld": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable JSON-LD Language."
+          },
+          "swls.sparql": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable SPARQL Language."
           }
         }
       }

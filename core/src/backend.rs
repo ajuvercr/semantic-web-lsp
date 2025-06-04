@@ -101,6 +101,19 @@ impl LanguageServer for Backend {
 
         let server_config = ServerConfig { config, workspaces };
         info!("Initialize {:?}", server_config);
+        let document_selectors: Vec<_> = [
+            ("sparql", server_config.config.sparql.unwrap_or(true)),
+            ("turtle", server_config.config.turtle.unwrap_or(true)),
+            ("jsonld", server_config.config.jsonld.unwrap_or(true)),
+        ]
+        .into_iter()
+        .filter(|(_, x)| *x)
+        .map(|(x, _)| DocumentFilter {
+            language: Some(String::from(x)),
+            scheme: None,
+            pattern: None,
+        })
+        .collect();
 
         self.run(|world| {
             world.insert_resource(server_config);
@@ -135,28 +148,7 @@ impl LanguageServer for Backend {
                         SemanticTokensRegistrationOptions {
                             text_document_registration_options: {
                                 TextDocumentRegistrationOptions {
-                                    document_selector: Some(vec![
-                                        DocumentFilter {
-                                            language: Some(String::from("turtle")),
-                                            scheme: None,
-                                            pattern: None,
-                                        },
-                                        DocumentFilter {
-                                            language: Some(String::from("jsonld")),
-                                            scheme: None,
-                                            pattern: None,
-                                        },
-                                        DocumentFilter {
-                                            language: Some(String::from("sparql")),
-                                            scheme: None,
-                                            pattern: None,
-                                        },
-                                        // DocumentFilter {
-                                        //     language: Some(String::from("sparql")),
-                                        //     scheme: None,
-                                        //     pattern: Some(String::from("*.rq")),
-                                        // },
-                                    ]),
+                                    document_selector: Some(document_selectors),
                                 }
                             },
                             semantic_tokens_options: SemanticTokensOptions {
