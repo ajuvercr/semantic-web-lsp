@@ -36,11 +36,11 @@ jobs:
         run: |
           mkdir -p release
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            cp target/release/lsp-bin release/swls-linux-x86_64
+            cp target/release/swls release/swls-linux-x86_64
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            cp target/release/lsp-bin release/swls-macos-x86_64
+            cp target/release/swls release/swls-macos-x86_64
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            cp target/release/lsp-bin.exe release/swls-windows-x86_64.exe
+            cp target/release/slws.exe release/swls-windows-x86_64.exe
           fi
 
       - name: Upload Native Binary
