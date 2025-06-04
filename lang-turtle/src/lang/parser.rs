@@ -1066,7 +1066,5 @@ foaf: foaf:name "Arthur".
                 &txt[t.span().clone()]
             )
         }
-
-        assert!(false);
     }
 }
