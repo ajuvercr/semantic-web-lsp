@@ -61,6 +61,15 @@ However the language server protocol enables swift integration into other editor
 Install the semantic web lsp extension ([vscode](https://marketplace.visualstudio.com/items?itemName=ajuvercr.semantic-web-lsp) or [open-vscode](https://open-vsx.org/extension/ajuvercr/semantic-web-lsp)).
 The extension starts the lsp from WASM and starts the vscode LSP client.
 
+### Jetbrains
+
+A zip of the Jetbrains plugin is available with the latest releases.
+To install the plugin you should download the zip (swls-1.1-SNAPSHOT.zip) and go to Settings (ctrl + alt + s) > Plugins > Gear > Install Plugin from Disk and select the file.
+Currently the plugin checks the Github releases on each startup to check if the latest binary is installed, and installs the latest binary.
+This is not very user friendly, certainly on low quality internet connections.
+
+PRs are much appreciated on the Jetbrains plugin.
+
 ### NeoVim
 
 To use the LSP you will always have to install the binary.
