@@ -91,24 +91,23 @@ impl Backend {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    #[tracing::instrument(skip(self, _init))]
-    async fn initialize(&self, _init: InitializeParams) -> Result<InitializeResult> {
+    #[tracing::instrument(skip(self, init))]
+    async fn initialize(&self, init: InitializeParams) -> Result<InitializeResult> {
         info!("Initialize");
-        // iew
-        // let cache = Cache::from_client(&self.client).await;
-        // info!("Initialize2");
-        // let helper = LovHelper::from_cache(&cache);
+        let workspaces = init.workspace_folders.clone().unwrap_or_default();
+        let config: Config =
+            serde_json::from_value(init.initialization_options.clone().unwrap_or_default())
+                .unwrap_or_default();
+
+        let server_config = ServerConfig { config, workspaces };
+        info!("Initialize {:?}", server_config);
 
         self.run(|world| {
-            // world.insert_resource(cache);
-            // world.insert_resource(helper);
-            info!("Initialize3");
+            world.insert_resource(server_config);
             world.run_schedule(Startup);
-            info!("Initialize4");
         })
         .await;
 
-        info!("Initialized");
         // let triggers = L::TRIGGERS.iter().copied().map(String::from).collect();
         Ok(InitializeResult {
             server_info: None,
@@ -180,6 +179,24 @@ impl LanguageServer for Backend {
                 ..ServerCapabilities::default()
             },
         })
+    }
+
+    async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) -> () {
+        self.run(move |world| {
+            let mut config = world.resource_mut::<ServerConfig>();
+            let WorkspaceFoldersChangeEvent { added, removed } = params.event;
+
+            for r in removed {
+                if let Some(idx) = config.workspaces.iter().position(|x| x == &r) {
+                    config.workspaces.remove(idx);
+                }
+            }
+
+            // This is nice and all, but we don't bubble this event up in the world
+            config.workspaces.extend(added);
+        })
+        .await;
+        ()
     }
 
     #[tracing::instrument(skip(self, params), fields(uri = %params.text_document.uri.as_str()))]
@@ -518,26 +535,6 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        //         let content = r#"@prefix foaf: <http://xmlns.com/foaf/0.1/>.
-        //
-        // <#me> foaf:knows <#you>."#;
-        //         let url = Url::parse("virtual://ontologies/myFile.ttl").unwrap();
-        //
-        //         let mut edits = HashMap::new();
-        //         edits.insert(
-        //             url.clone(),
-        //             vec![TextEdit::new(
-        //                 Range::new(Position::new(0, 0), Position::new(0, 0)),
-        //                 content.to_string(),
-        //             )],
-        //         );
-        //         let res = self.client.apply_edit(WorkspaceEdit::new(edits)).await;
-        //
-        //         Ok(Some(GotoDefinitionResponse::Scalar(Location::new(
-        //             url.clone(),
-        //             Range::new(Position::new(2, 0), Position::new(2, 5)),
-        //         ))))
-
         let entity = {
             let map = self.entities.lock().await;
             if let Some(entity) = map.get(

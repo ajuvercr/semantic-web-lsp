@@ -1,5 +1,5 @@
 [package]
-name = "lsp-bin"
+name = "swls"
 
 edition = "2021"
 version = "0.1.0"

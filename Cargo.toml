@@ -30,7 +30,7 @@ default-members = [
   "lang-turtle",
   "lang-jsonld",
   "lang-sparql",
-  "lsp-bin",
+  "swls",
 ]
 members = [
   "core",
@@ -39,9 +39,9 @@ members = [
   "lang-turtle",
   "lang-jsonld",
   "lang-sparql",
-  "lsp-bin",
+  "swls",
   "test-utils",
   "token-helpers",
-  "test-conformance",
+  "conformance",
 ]
 resolver = "2"

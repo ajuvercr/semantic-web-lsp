@@ -6,9 +6,9 @@ use std::{
 
 use bevy_ecs::{system::Resource, world::World};
 use futures::{channel::mpsc::unbounded, StreamExt as _};
-use lsp_bin::{client::BinFs, timings, TowerClient};
 use lsp_core::prelude::*;
 use lsp_types::SemanticTokenType;
+use swls::{client::BinFs, timings, TowerClient};
 use tower_lsp::{LspService, Server};
 use tracing::{info, level_filters::LevelFilter};
 
@@ -59,7 +59,7 @@ fn setup_global_subscriber() {
 
     let mut tmp = std::env::temp_dir();
     tmp.push("turtle-lsp.txt");
-    let target: Box<dyn io::Write + Send + Sync + 'static> = match File::create(tmp) {
+    let target: Box<dyn io::Write + Send + Sync + 'static> = match File::create(&tmp) {
         Ok(x) => Box::new(x),
         Err(_) => Box::new(std::io::stderr()),
     };
@@ -74,7 +74,6 @@ fn setup_global_subscriber() {
         .with(fmt_layer);
 
     tracing::subscriber::set_global_default(subscriber).expect("Could not set global default");
-    // _guard
 }
 
 #[tokio::main]
@@ -92,6 +91,7 @@ async fn main() {
 
     let (service, socket) = LspService::build(|client| {
         let (sender, rt) = setup_world(TowerClient::new(client.clone()));
+
         Backend::new(sender, client, rt)
     })
     .finish();

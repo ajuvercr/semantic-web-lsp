@@ -44,11 +44,11 @@ pub fn derive_prefix_links(
 
 #[instrument(skip(query, commands))]
 pub fn derive_owl_imports_links(
-    mut query: Query<(Entity, &Triples, Option<&mut DocumentLinks>), Changed<Triples>>,
+    mut query: Query<(Entity, &Label, &Triples, Option<&mut DocumentLinks>), Changed<Triples>>,
     mut commands: Commands,
 ) {
     const SOURCE: &'static str = "owl:imports";
-    for (e, triples, mut links) in &mut query {
+    for (e, label, triples, mut links) in &mut query {
         if let Some(links) = links.as_mut() {
             links.retain(|e| e.1 != SOURCE);
         }
@@ -60,6 +60,10 @@ pub fn derive_owl_imports_links(
             .flat_map(|t| Url::parse(t.object.as_str()))
             .map(|obj| (obj, SOURCE))
             .collect();
+
+        for (u, _) in &new_links {
+            tracing::debug!("owl:imports {} to {}", label.as_str(), u);
+        }
 
         if !new_links.is_empty() {
             match links {

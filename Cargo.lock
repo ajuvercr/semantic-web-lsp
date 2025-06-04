@@ -645,7 +645,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "conformance-tests"
+name = "conformance"
 version = "0.1.0"
 dependencies = [
  "chumsky",
@@ -1700,33 +1700,6 @@ dependencies = [
 [[package]]
 name = "lov"
 version = "0.1.0"
-
-[[package]]
-name = "lsp-bin"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bevy_ecs",
- "chumsky",
- "enum-methods",
- "futures",
- "hashbrown 0.13.2",
- "lang-jsonld",
- "lang-sparql",
- "lang-turtle",
- "lsp-core",
- "lsp-types",
- "reqwest",
- "ropey",
- "serde_json",
- "sophia_api",
- "sophia_iri",
- "tokio",
- "tower-lsp",
- "tracing",
- "tracing-flame",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "lsp-core"
@@ -3374,6 +3347,33 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "swls"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bevy_ecs",
+ "chumsky",
+ "enum-methods",
+ "futures",
+ "hashbrown 0.13.2",
+ "lang-jsonld",
+ "lang-sparql",
+ "lang-turtle",
+ "lsp-core",
+ "lsp-types",
+ "reqwest",
+ "ropey",
+ "serde_json",
+ "sophia_api",
+ "sophia_iri",
+ "tokio",
+ "tower-lsp",
+ "tracing",
+ "tracing-flame",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "syn"

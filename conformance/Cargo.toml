@@ -1,5 +1,5 @@
 [package]
-name = "conformance-tests"
+name = "conformance"
 
 authors = ["Arthur Vercruysse <arthur.vercruysse@outlook.com>"]
 edition = "2021"

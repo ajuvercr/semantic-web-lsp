@@ -7,7 +7,8 @@ use std::{
 use bevy_ecs::{prelude::*, world::CommandQueue};
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use lsp_types::Position;
+use lsp_types::{Position, WorkspaceFolder};
+use serde::Deserialize;
 
 use crate::{
     lang::{Lang, LangHelper},
@@ -184,4 +185,27 @@ impl<'a> TypeHierarchy<'a> {
             None
         })
     }
+}
+
+#[derive(Resource, Debug, Default)]
+pub struct ServerConfig {
+    pub workspaces: Vec<WorkspaceFolder>,
+    pub config: Config,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    #[serde(default = "debug")]
+    pub log: String,
+}
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            log: "debug".to_string(),
+        }
+    }
+}
+
+fn debug() -> String {
+    String::from("debug")
 }

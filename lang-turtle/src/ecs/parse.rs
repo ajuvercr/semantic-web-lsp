@@ -45,27 +45,14 @@ pub fn parse_turtle_system(
             },
             old_tokens.len(),
         );
-        let ctx = context.ctx();
-
-        if open.is_some() {
-            for (i, nt) in tokens.iter().enumerate() {
-                let span = nt.span();
-                info!(
-                    "Token {} ({}, {}, {})",
-                    &source[span.start..span.end],
-                    ctx.was_subject(i),
-                    ctx.was_predicate(i),
-                    ctx.was_object(i)
-                );
-            }
-        }
-
+        // First parse it without context
+        // This assures that if the model is correct, the parser will parse it correctly
         let empty = Context::new();
         let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), empty.ctx());
+        // If that didn't work, retry with the context
         let (turtle, es) = es.is_empty().then_some((turtle, es)).unwrap_or_else(|| {
             parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx())
         });
-        // let (turtle, es) = parse_turtle(&label.0, tokens.0.clone(), source.0.len(), context.ctx());
 
         let es: Vec<_> = es.into_iter().map(|e| (e.map(|PToken(t, _)| t))).collect();
 
@@ -82,9 +69,6 @@ pub fn parse_turtle_system(
 
         *old_tokens = tokens.0.clone();
         context.clear();
-
-        // TODO: Setup subject predicate and objects
-
         turtle.set_context(context);
 
         if es.is_empty() {
