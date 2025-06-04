@@ -215,6 +215,7 @@ pub fn setup_world(
 
     let (publisher, rx) = DiagnosticPublisher::new();
     world.insert_resource(publisher);
+    world.insert_resource(ServerConfig::default());
 
     world.run_schedule(Startup);
 
