@@ -40,7 +40,7 @@ jobs:
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             cp target/release/swls release/swls-macos-x86_64
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            cp target/release/slws.exe release/swls-windows-x86_64.exe
+            cp target/release/swls.exe release/swls-windows-x86_64.exe
           fi
 
       - name: Upload Native Binary
