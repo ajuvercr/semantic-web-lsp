@@ -29,24 +29,24 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build LSP Binary
-        run: cargo build --release -p lsp-bin
+        run: cargo build --release -p swls
 
       - name: Rename binary for release
         shell: bash
         run: |
           mkdir -p release
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            cp target/release/lsp-bin release/lsp_bin-linux-x86_64
+            cp target/release/lsp-bin release/swls-linux-x86_64
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            cp target/release/lsp-bin release/lsp_bin-macos-x86_64
+            cp target/release/lsp-bin release/swls-macos-x86_64
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            cp target/release/lsp-bin.exe release/lsp_bin-windows-x86_64.exe
+            cp target/release/lsp-bin.exe release/swls-windows-x86_64.exe
           fi
 
       - name: Upload Native Binary
         uses: actions/upload-artifact@v4
         with:
-          name: lsp_bin-${{ runner.os }}-x86_64
+          name: swls-${{ runner.os }}-x86_64
           path: release/*
   
   create-release:
