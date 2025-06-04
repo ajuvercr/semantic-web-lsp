@@ -1,3 +1,4 @@
 [submodule "conformance/w3c"]
 	path = conformance/w3c
 	url = git@github.com:w3c/rdf-tests.git
+
