@@ -76,38 +76,59 @@ To use the LSP you will always have to install the binary.
 So do that first:
 
 ```
-cargo install --git https://github.com/ajuvercr/semantic-web-lsp --bin lsp-bin
+cargo install --git https://github.com/ajuvercr/semantic-web-lsp swls
 ```
 Or locally
 ```
 git clone https://github.com/ajuvercr/semantic-web-lsp.git
-cargo install --path lsp-bin
+cargo install --path swls
 ```
+
+Or download the latest binary from the Github releases.
 
 Configure the LSP in NeoVim.
 
 ```lua
-#  Add a config to lspconfig.configs
-local configs = require("lspconfig.configs")
-
-configs.jsonld = {
-  default_config = {
-    cmd = { 'lsp-bin' },
-    filetypes = { 'jsonld', 'turtle', 'sparql' },
-    root_dir = require("lspconfig.util").find_git_ancestor,
-    single_file_support = true,
-    init_options = {},
-  }
-}
-
-# Start the LSP
-local lspconfig = require("lspconfig")
-
-lspconfig.jsonld.setup {
-  on_attach = M.on_attach,
-  capabilities = M.capabilities,
-}
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = { "turtle", "sparql", "jsonld" },
+    callback = function()
+        vim.lsp.start({
+            name = "swls",
+            cmd = { "swls" },
+            root_dir = vim.fn.getcwd(),
+        })
+    end,
+})
 ```
+
+<details>
+<summary>Instructions for configuring an autocmd to detect and assign filetypes automatically.</summary>
+
+```lua
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
+    pattern = "*.ttl",
+    callback = function(args)
+        vim.bo[args.buf].filetype = "turtle"
+        vim.bo.commentstring = "# %s"
+    end,
+})
+
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
+    pattern = { "*.sq", "*.rq", "*.sparql" },
+    callback = function(args)
+        vim.bo[args.buf].filetype = "sparql"
+        vim.bo.commentstring = "# %s"
+    end,
+})
+
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
+    pattern = { "*.jsonld" },
+    callback = function(args)
+        vim.bo[args.buf].filetype = "jsonld"
+    end,
+})
+```
+</details>
 
 
 ## Screenshots
