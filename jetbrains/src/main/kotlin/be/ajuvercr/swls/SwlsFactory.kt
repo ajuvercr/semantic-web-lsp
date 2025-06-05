@@ -53,27 +53,13 @@ class SwlsServer(project: Project) : ProcessStreamConnectionProvider() {
         val cacheDir = Paths.get(System.getProperty("user.home"), ".cache", "swls", "bin")
         Files.createDirectories(cacheDir)
 
-        // 2. Fetch latest release metadata from GitHub
-        val apiUrl = "https://api.github.com/repos/ajuvercr/semantic-web-lsp/releases/latest"
-        val conn = (URL(apiUrl).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            setRequestProperty("Accept", "application/vnd.github.v3+json")
-        }
-
-        if (conn.responseCode != 200) {
-            throw RuntimeException("Failed to fetch latest release: HTTP ${conn.responseCode}")
-        }
-
-        val payload = conn.inputStream.bufferedReader().readText()
-        val json  = JsonParser.parseString(payload).asJsonObject
-        val latestTag = json.get("tag_name").asString
 
         // 3. Determine the correct asset name for this OS
         val os   = System.getProperty("os.name").lowercase()
         val assetName = when {
-            os.contains("win")  -> "lsp_bin-windows-x86_64.exe"
-            os.contains("mac")  -> "lsp_bin-macos-x86_64"
-            else                -> "lsp_bin-linux-x86_64"
+            os.contains("win")  -> "swls-windows-x86_64.exe"
+            os.contains("mac")  -> "swls-macos-x86_64"
+            else                -> "swls-linux-x86_64"
         }
 
         // 4. Paths to the binary and version marker
@@ -84,11 +70,25 @@ class SwlsServer(project: Project) : ProcessStreamConnectionProvider() {
         val needDownload = when {
             !Files.exists(binPath)               -> true
             !Files.exists(versionFile)           -> true
-            Files.readString(versionFile) != latestTag -> true
             else                                 -> false
         }
 
         if (needDownload) {
+            // 2. Fetch latest release metadata from GitHub
+            val apiUrl = "https://api.github.com/repos/ajuvercr/semantic-web-lsp/releases/latest"
+            val conn = (URL(apiUrl).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/vnd.github.v3+json")
+            }
+
+            if (conn.responseCode != 200) {
+                throw RuntimeException("Failed to fetch latest release: HTTP ${conn.responseCode}")
+            }
+
+            val payload = conn.inputStream.bufferedReader().readText()
+            val json  = JsonParser.parseString(payload).asJsonObject
+            val latestTag = json.get("tag_name").asString
+
             // find the right asset URL
             val assets = json.getAsJsonArray("assets")
             val assetUrl = assets
@@ -108,9 +108,10 @@ class SwlsServer(project: Project) : ProcessStreamConnectionProvider() {
             }
             // record the downloaded version
             Files.writeString(versionFile, latestTag)
+            LOG.info("Downloaded $latestTag")
         }
 
-        LOG.info("Using SWLS binary at: $binPath (version: $latestTag)")
+        LOG.info("Using SWLS binary at: $binPath")
 
         return binPath
     }
