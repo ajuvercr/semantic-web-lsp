@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CommandReceiver","CommandSender","CurrentType","Dirty","DocumentLinks","DynLang","Element","Errors","KeyWords","Label","Open","PositionComponent","RopeC","Source","TypeHierarchy","Types","Wrapped"]};
+window.SIDEBAR_ITEMS = {"struct":["CommandReceiver","CommandSender","Config","CurrentType","Dirty","DocumentLinks","DynLang","Element","Errors","KeyWords","Label","Open","PositionComponent","RopeC","ServerConfig","Source","TypeHierarchy","Types","Wrapped"]};

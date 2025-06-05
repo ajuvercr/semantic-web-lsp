@@ -215,53 +215,54 @@
 <a href=#215 id=215 data-nosnippet>215</a>
 <a href=#216 id=216 data-nosnippet>216</a>    <span class="kw">let </span>(publisher, rx) = DiagnosticPublisher::new();
 <a href=#217 id=217 data-nosnippet>217</a>    world.insert_resource(publisher);
-<a href=#218 id=218 data-nosnippet>218</a>
-<a href=#219 id=219 data-nosnippet>219</a>    world.run_schedule(Startup);
-<a href=#220 id=220 data-nosnippet>220</a>
-<a href=#221 id=221 data-nosnippet>221</a>    (world, rx)
-<a href=#222 id=222 data-nosnippet>222</a>}
-<a href=#223 id=223 data-nosnippet>223</a>
-<a href=#224 id=224 data-nosnippet>224</a><span class="kw">pub fn </span>create_file(
-<a href=#225 id=225 data-nosnippet>225</a>    world: <span class="kw-2">&amp;mut </span>World,
-<a href=#226 id=226 data-nosnippet>226</a>    content: <span class="kw-2">&amp;</span>str,
-<a href=#227 id=227 data-nosnippet>227</a>    url: <span class="kw-2">&amp;</span>str,
-<a href=#228 id=228 data-nosnippet>228</a>    lang: <span class="kw-2">&amp;</span>str,
-<a href=#229 id=229 data-nosnippet>229</a>    bundle: <span class="kw">impl </span>Bundle,
-<a href=#230 id=230 data-nosnippet>230</a>) -&gt; Entity {
-<a href=#231 id=231 data-nosnippet>231</a>    <span class="kw">let </span>url = Url::from_str(url).unwrap();
-<a href=#232 id=232 data-nosnippet>232</a>    <span class="kw">let </span>item = TextDocumentItem {
-<a href=#233 id=233 data-nosnippet>233</a>        version: <span class="number">1</span>,
-<a href=#234 id=234 data-nosnippet>234</a>        uri: url.clone(),
-<a href=#235 id=235 data-nosnippet>235</a>        language_id: String::from(lang),
-<a href=#236 id=236 data-nosnippet>236</a>        text: String::new(),
-<a href=#237 id=237 data-nosnippet>237</a>    };
-<a href=#238 id=238 data-nosnippet>238</a>
-<a href=#239 id=239 data-nosnippet>239</a>    spawn_or_insert(
-<a href=#240 id=240 data-nosnippet>240</a>        url.clone(),
-<a href=#241 id=241 data-nosnippet>241</a>        (
-<a href=#242 id=242 data-nosnippet>242</a>            Source(content.to_string()),
-<a href=#243 id=243 data-nosnippet>243</a>            RopeC(ropey::Rope::from_str(content)),
-<a href=#244 id=244 data-nosnippet>244</a>            Label(url), <span class="comment">// this might crash
-<a href=#245 id=245 data-nosnippet>245</a>            </span>Wrapped(item),
-<a href=#246 id=246 data-nosnippet>246</a>            Types(HashMap::new()),
-<a href=#247 id=247 data-nosnippet>247</a>        ),
-<a href=#248 id=248 data-nosnippet>248</a>        <span class="prelude-val">Some</span>(lang.into()),
-<a href=#249 id=249 data-nosnippet>249</a>        bundle,
-<a href=#250 id=250 data-nosnippet>250</a>    )(world)
-<a href=#251 id=251 data-nosnippet>251</a>}
-<a href=#252 id=252 data-nosnippet>252</a>
-<a href=#253 id=253 data-nosnippet>253</a><span class="kw">pub fn </span>debug_world(world: <span class="kw-2">&amp;mut </span>World) {
-<a href=#254 id=254 data-nosnippet>254</a>    <span class="kw">for </span>e <span class="kw">in </span>world.query::&lt;Entity&gt;().iter(<span class="kw-2">&amp;</span>world) {
-<a href=#255 id=255 data-nosnippet>255</a>        <span class="kw">let </span>e = world.entity(e);
-<a href=#256 id=256 data-nosnippet>256</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(l) = e.get::&lt;Label&gt;() {
-<a href=#257 id=257 data-nosnippet>257</a>            <span class="macro">println!</span>(<span class="string">"-- Entity {} -- "</span>, l.as_str());
-<a href=#258 id=258 data-nosnippet>258</a>        } <span class="kw">else </span>{
-<a href=#259 id=259 data-nosnippet>259</a>            <span class="macro">println!</span>(<span class="string">"-- Nameless entity --"</span>);
-<a href=#260 id=260 data-nosnippet>260</a>        }
-<a href=#261 id=261 data-nosnippet>261</a>        <span class="kw">for </span>c <span class="kw">in </span>world.components().iter() {
-<a href=#262 id=262 data-nosnippet>262</a>            <span class="kw">if </span>e.contains_id(c.id()) {
-<a href=#263 id=263 data-nosnippet>263</a>                <span class="macro">println!</span>(<span class="string">"c {}"</span>, c.name(),);
-<a href=#264 id=264 data-nosnippet>264</a>            }
-<a href=#265 id=265 data-nosnippet>265</a>        }
-<a href=#266 id=266 data-nosnippet>266</a>    }
-<a href=#267 id=267 data-nosnippet>267</a>}</code></pre></div></section></main></body></html>
+<a href=#218 id=218 data-nosnippet>218</a>    world.insert_resource(ServerConfig::default());
+<a href=#219 id=219 data-nosnippet>219</a>
+<a href=#220 id=220 data-nosnippet>220</a>    world.run_schedule(Startup);
+<a href=#221 id=221 data-nosnippet>221</a>
+<a href=#222 id=222 data-nosnippet>222</a>    (world, rx)
+<a href=#223 id=223 data-nosnippet>223</a>}
+<a href=#224 id=224 data-nosnippet>224</a>
+<a href=#225 id=225 data-nosnippet>225</a><span class="kw">pub fn </span>create_file(
+<a href=#226 id=226 data-nosnippet>226</a>    world: <span class="kw-2">&amp;mut </span>World,
+<a href=#227 id=227 data-nosnippet>227</a>    content: <span class="kw-2">&amp;</span>str,
+<a href=#228 id=228 data-nosnippet>228</a>    url: <span class="kw-2">&amp;</span>str,
+<a href=#229 id=229 data-nosnippet>229</a>    lang: <span class="kw-2">&amp;</span>str,
+<a href=#230 id=230 data-nosnippet>230</a>    bundle: <span class="kw">impl </span>Bundle,
+<a href=#231 id=231 data-nosnippet>231</a>) -&gt; Entity {
+<a href=#232 id=232 data-nosnippet>232</a>    <span class="kw">let </span>url = Url::from_str(url).unwrap();
+<a href=#233 id=233 data-nosnippet>233</a>    <span class="kw">let </span>item = TextDocumentItem {
+<a href=#234 id=234 data-nosnippet>234</a>        version: <span class="number">1</span>,
+<a href=#235 id=235 data-nosnippet>235</a>        uri: url.clone(),
+<a href=#236 id=236 data-nosnippet>236</a>        language_id: String::from(lang),
+<a href=#237 id=237 data-nosnippet>237</a>        text: String::new(),
+<a href=#238 id=238 data-nosnippet>238</a>    };
+<a href=#239 id=239 data-nosnippet>239</a>
+<a href=#240 id=240 data-nosnippet>240</a>    spawn_or_insert(
+<a href=#241 id=241 data-nosnippet>241</a>        url.clone(),
+<a href=#242 id=242 data-nosnippet>242</a>        (
+<a href=#243 id=243 data-nosnippet>243</a>            Source(content.to_string()),
+<a href=#244 id=244 data-nosnippet>244</a>            RopeC(ropey::Rope::from_str(content)),
+<a href=#245 id=245 data-nosnippet>245</a>            Label(url), <span class="comment">// this might crash
+<a href=#246 id=246 data-nosnippet>246</a>            </span>Wrapped(item),
+<a href=#247 id=247 data-nosnippet>247</a>            Types(HashMap::new()),
+<a href=#248 id=248 data-nosnippet>248</a>        ),
+<a href=#249 id=249 data-nosnippet>249</a>        <span class="prelude-val">Some</span>(lang.into()),
+<a href=#250 id=250 data-nosnippet>250</a>        bundle,
+<a href=#251 id=251 data-nosnippet>251</a>    )(world)
+<a href=#252 id=252 data-nosnippet>252</a>}
+<a href=#253 id=253 data-nosnippet>253</a>
+<a href=#254 id=254 data-nosnippet>254</a><span class="kw">pub fn </span>debug_world(world: <span class="kw-2">&amp;mut </span>World) {
+<a href=#255 id=255 data-nosnippet>255</a>    <span class="kw">for </span>e <span class="kw">in </span>world.query::&lt;Entity&gt;().iter(<span class="kw-2">&amp;</span>world) {
+<a href=#256 id=256 data-nosnippet>256</a>        <span class="kw">let </span>e = world.entity(e);
+<a href=#257 id=257 data-nosnippet>257</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(l) = e.get::&lt;Label&gt;() {
+<a href=#258 id=258 data-nosnippet>258</a>            <span class="macro">println!</span>(<span class="string">"-- Entity {} -- "</span>, l.as_str());
+<a href=#259 id=259 data-nosnippet>259</a>        } <span class="kw">else </span>{
+<a href=#260 id=260 data-nosnippet>260</a>            <span class="macro">println!</span>(<span class="string">"-- Nameless entity --"</span>);
+<a href=#261 id=261 data-nosnippet>261</a>        }
+<a href=#262 id=262 data-nosnippet>262</a>        <span class="kw">for </span>c <span class="kw">in </span>world.components().iter() {
+<a href=#263 id=263 data-nosnippet>263</a>            <span class="kw">if </span>e.contains_id(c.id()) {
+<a href=#264 id=264 data-nosnippet>264</a>                <span class="macro">println!</span>(<span class="string">"c {}"</span>, c.name(),);
+<a href=#265 id=265 data-nosnippet>265</a>            }
+<a href=#266 id=266 data-nosnippet>266</a>        }
+<a href=#267 id=267 data-nosnippet>267</a>    }
+<a href=#268 id=268 data-nosnippet>268</a>}</code></pre></div></section></main></body></html>
