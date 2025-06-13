@@ -62,9 +62,21 @@ pub fn semantic_tokens_system(
     for (rope, types, mut req) in &mut query {
         let rope = &rope.0;
         let mut ts: Vec<Option<SemanticTokenType>> = Vec::with_capacity(rope.len_chars());
-        ts.resize(rope.len_chars(), None);
+        ts.resize(rope.len_bytes(), None);
         types.iter().for_each(|Spanned(ty, r)| {
-            r.clone().for_each(|j| ts[j] = Some(ty.clone()));
+            r.clone().for_each(|j| {
+                if j < ts.len() {
+                    ts[j] = Some(ty.clone())
+                } else {
+                    tracing::error!(
+                        "Semantic tokens type {} (index={}) falls outside of rope size (chars: {} bytes: {})",
+                        ty.as_str(),
+                        j,
+                        rope.len_chars(),
+                        rope.len_bytes()
+                    );
+                }
+            });
         });
 
         let mut last = None;
