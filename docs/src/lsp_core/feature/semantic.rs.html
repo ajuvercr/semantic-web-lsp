@@ -62,62 +62,74 @@
 <a href=#62 id=62 data-nosnippet>62</a>    <span class="kw">for </span>(rope, types, <span class="kw-2">mut </span>req) <span class="kw">in </span><span class="kw-2">&amp;mut </span>query {
 <a href=#63 id=63 data-nosnippet>63</a>        <span class="kw">let </span>rope = <span class="kw-2">&amp;</span>rope.<span class="number">0</span>;
 <a href=#64 id=64 data-nosnippet>64</a>        <span class="kw">let </span><span class="kw-2">mut </span>ts: Vec&lt;<span class="prelude-ty">Option</span>&lt;SemanticTokenType&gt;&gt; = Vec::with_capacity(rope.len_chars());
-<a href=#65 id=65 data-nosnippet>65</a>        ts.resize(rope.len_chars(), <span class="prelude-val">None</span>);
+<a href=#65 id=65 data-nosnippet>65</a>        ts.resize(rope.len_bytes(), <span class="prelude-val">None</span>);
 <a href=#66 id=66 data-nosnippet>66</a>        types.iter().for_each(|Spanned(ty, r)| {
-<a href=#67 id=67 data-nosnippet>67</a>            r.clone().for_each(|j| ts[j] = <span class="prelude-val">Some</span>(ty.clone()));
-<a href=#68 id=68 data-nosnippet>68</a>        });
-<a href=#69 id=69 data-nosnippet>69</a>
-<a href=#70 id=70 data-nosnippet>70</a>        <span class="kw">let </span><span class="kw-2">mut </span>last = <span class="prelude-val">None</span>;
-<a href=#71 id=71 data-nosnippet>71</a>        <span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
-<a href=#72 id=72 data-nosnippet>72</a>        <span class="kw">let </span><span class="kw-2">mut </span>out_tokens = Vec::new();
-<a href=#73 id=73 data-nosnippet>73</a>        <span class="kw">for </span>(i, ty) <span class="kw">in </span>ts.into_iter().enumerate() {
-<a href=#74 id=74 data-nosnippet>74</a>            <span class="kw">if </span>last != ty {
-<a href=#75 id=75 data-nosnippet>75</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(t) = last {
-<a href=#76 id=76 data-nosnippet>76</a>                    out_tokens.push(TokenHelper {
-<a href=#77 id=77 data-nosnippet>77</a>                        start,
-<a href=#78 id=78 data-nosnippet>78</a>                        length: i - start,
-<a href=#79 id=79 data-nosnippet>79</a>                        ty: res.get(<span class="kw-2">&amp;</span>t).cloned().unwrap_or(<span class="number">0</span>),
-<a href=#80 id=80 data-nosnippet>80</a>                    });
-<a href=#81 id=81 data-nosnippet>81</a>                }
-<a href=#82 id=82 data-nosnippet>82</a>
-<a href=#83 id=83 data-nosnippet>83</a>                last = ty;
-<a href=#84 id=84 data-nosnippet>84</a>                start = i;
-<a href=#85 id=85 data-nosnippet>85</a>            }
-<a href=#86 id=86 data-nosnippet>86</a>        }
-<a href=#87 id=87 data-nosnippet>87</a>
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(t) = last {
-<a href=#89 id=89 data-nosnippet>89</a>            out_tokens.push(TokenHelper {
-<a href=#90 id=90 data-nosnippet>90</a>                start,
-<a href=#91 id=91 data-nosnippet>91</a>                length: rope.len_chars() - start,
-<a href=#92 id=92 data-nosnippet>92</a>                ty: res.get(<span class="kw-2">&amp;</span>t).cloned().unwrap_or(<span class="number">0</span>),
-<a href=#93 id=93 data-nosnippet>93</a>            });
-<a href=#94 id=94 data-nosnippet>94</a>        }
-<a href=#95 id=95 data-nosnippet>95</a>
-<a href=#96 id=96 data-nosnippet>96</a>        <span class="kw">let </span><span class="kw-2">mut </span>pre_line = <span class="number">0</span>;
-<a href=#97 id=97 data-nosnippet>97</a>        <span class="kw">let </span><span class="kw-2">mut </span>pre_start = <span class="number">0</span>;
-<a href=#98 id=98 data-nosnippet>98</a>        req.<span class="number">0 </span>= out_tokens
-<a href=#99 id=99 data-nosnippet>99</a>            .into_iter()
-<a href=#100 id=100 data-nosnippet>100</a>            .flat_map(|token| {
-<a href=#101 id=101 data-nosnippet>101</a>                <span class="kw">let </span>line = rope.try_byte_to_line(token.start <span class="kw">as </span>usize).ok()<span class="question-mark">? </span><span class="kw">as </span>u32;
-<a href=#102 id=102 data-nosnippet>102</a>                <span class="kw">let </span>first = rope.try_line_to_char(line <span class="kw">as </span>usize).ok()<span class="question-mark">? </span><span class="kw">as </span>u32;
-<a href=#103 id=103 data-nosnippet>103</a>                <span class="kw">let </span>start = rope.try_byte_to_char(token.start <span class="kw">as </span>usize).ok()<span class="question-mark">? </span><span class="kw">as </span>u32 - first;
-<a href=#104 id=104 data-nosnippet>104</a>                <span class="kw">let </span>delta_line = line - pre_line;
-<a href=#105 id=105 data-nosnippet>105</a>                <span class="kw">let </span>delta_start = <span class="kw">if </span>delta_line == <span class="number">0 </span>{
-<a href=#106 id=106 data-nosnippet>106</a>                    start - pre_start
-<a href=#107 id=107 data-nosnippet>107</a>                } <span class="kw">else </span>{
-<a href=#108 id=108 data-nosnippet>108</a>                    start
-<a href=#109 id=109 data-nosnippet>109</a>                };
-<a href=#110 id=110 data-nosnippet>110</a>                <span class="kw">let </span>ret = <span class="prelude-val">Some</span>(SemanticToken {
-<a href=#111 id=111 data-nosnippet>111</a>                    delta_line,
-<a href=#112 id=112 data-nosnippet>112</a>                    delta_start,
-<a href=#113 id=113 data-nosnippet>113</a>                    length: token.length <span class="kw">as </span>u32,
-<a href=#114 id=114 data-nosnippet>114</a>                    token_type: token.ty <span class="kw">as </span>u32,
-<a href=#115 id=115 data-nosnippet>115</a>                    token_modifiers_bitset: <span class="number">0</span>,
-<a href=#116 id=116 data-nosnippet>116</a>                });
-<a href=#117 id=117 data-nosnippet>117</a>                pre_line = line;
-<a href=#118 id=118 data-nosnippet>118</a>                pre_start = start;
-<a href=#119 id=119 data-nosnippet>119</a>                ret
-<a href=#120 id=120 data-nosnippet>120</a>            })
-<a href=#121 id=121 data-nosnippet>121</a>            .collect();
-<a href=#122 id=122 data-nosnippet>122</a>    }
-<a href=#123 id=123 data-nosnippet>123</a>}</code></pre></div></section></main></body></html>
+<a href=#67 id=67 data-nosnippet>67</a>            r.clone().for_each(|j| {
+<a href=#68 id=68 data-nosnippet>68</a>                <span class="kw">if </span>j &lt; ts.len() {
+<a href=#69 id=69 data-nosnippet>69</a>                    ts[j] = <span class="prelude-val">Some</span>(ty.clone())
+<a href=#70 id=70 data-nosnippet>70</a>                } <span class="kw">else </span>{
+<a href=#71 id=71 data-nosnippet>71</a>                    <span class="macro">tracing::error!</span>(
+<a href=#72 id=72 data-nosnippet>72</a>                        <span class="string">"Semantic tokens type {} (index={}) falls outside of rope size (chars: {} bytes: {})"</span>,
+<a href=#73 id=73 data-nosnippet>73</a>                        ty.as_str(),
+<a href=#74 id=74 data-nosnippet>74</a>                        j,
+<a href=#75 id=75 data-nosnippet>75</a>                        rope.len_chars(),
+<a href=#76 id=76 data-nosnippet>76</a>                        rope.len_bytes()
+<a href=#77 id=77 data-nosnippet>77</a>                    );
+<a href=#78 id=78 data-nosnippet>78</a>                }
+<a href=#79 id=79 data-nosnippet>79</a>            });
+<a href=#80 id=80 data-nosnippet>80</a>        });
+<a href=#81 id=81 data-nosnippet>81</a>
+<a href=#82 id=82 data-nosnippet>82</a>        <span class="kw">let </span><span class="kw-2">mut </span>last = <span class="prelude-val">None</span>;
+<a href=#83 id=83 data-nosnippet>83</a>        <span class="kw">let </span><span class="kw-2">mut </span>start = <span class="number">0</span>;
+<a href=#84 id=84 data-nosnippet>84</a>        <span class="kw">let </span><span class="kw-2">mut </span>out_tokens = Vec::new();
+<a href=#85 id=85 data-nosnippet>85</a>        <span class="kw">for </span>(i, ty) <span class="kw">in </span>ts.into_iter().enumerate() {
+<a href=#86 id=86 data-nosnippet>86</a>            <span class="kw">if </span>last != ty {
+<a href=#87 id=87 data-nosnippet>87</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(t) = last {
+<a href=#88 id=88 data-nosnippet>88</a>                    out_tokens.push(TokenHelper {
+<a href=#89 id=89 data-nosnippet>89</a>                        start,
+<a href=#90 id=90 data-nosnippet>90</a>                        length: i - start,
+<a href=#91 id=91 data-nosnippet>91</a>                        ty: res.get(<span class="kw-2">&amp;</span>t).cloned().unwrap_or(<span class="number">0</span>),
+<a href=#92 id=92 data-nosnippet>92</a>                    });
+<a href=#93 id=93 data-nosnippet>93</a>                }
+<a href=#94 id=94 data-nosnippet>94</a>
+<a href=#95 id=95 data-nosnippet>95</a>                last = ty;
+<a href=#96 id=96 data-nosnippet>96</a>                start = i;
+<a href=#97 id=97 data-nosnippet>97</a>            }
+<a href=#98 id=98 data-nosnippet>98</a>        }
+<a href=#99 id=99 data-nosnippet>99</a>
+<a href=#100 id=100 data-nosnippet>100</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(t) = last {
+<a href=#101 id=101 data-nosnippet>101</a>            out_tokens.push(TokenHelper {
+<a href=#102 id=102 data-nosnippet>102</a>                start,
+<a href=#103 id=103 data-nosnippet>103</a>                length: rope.len_chars() - start,
+<a href=#104 id=104 data-nosnippet>104</a>                ty: res.get(<span class="kw-2">&amp;</span>t).cloned().unwrap_or(<span class="number">0</span>),
+<a href=#105 id=105 data-nosnippet>105</a>            });
+<a href=#106 id=106 data-nosnippet>106</a>        }
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a>        <span class="kw">let </span><span class="kw-2">mut </span>pre_line = <span class="number">0</span>;
+<a href=#109 id=109 data-nosnippet>109</a>        <span class="kw">let </span><span class="kw-2">mut </span>pre_start = <span class="number">0</span>;
+<a href=#110 id=110 data-nosnippet>110</a>        req.<span class="number">0 </span>= out_tokens
+<a href=#111 id=111 data-nosnippet>111</a>            .into_iter()
+<a href=#112 id=112 data-nosnippet>112</a>            .flat_map(|token| {
+<a href=#113 id=113 data-nosnippet>113</a>                <span class="kw">let </span>line = rope.try_byte_to_line(token.start <span class="kw">as </span>usize).ok()<span class="question-mark">? </span><span class="kw">as </span>u32;
+<a href=#114 id=114 data-nosnippet>114</a>                <span class="kw">let </span>first = rope.try_line_to_char(line <span class="kw">as </span>usize).ok()<span class="question-mark">? </span><span class="kw">as </span>u32;
+<a href=#115 id=115 data-nosnippet>115</a>                <span class="kw">let </span>start = rope.try_byte_to_char(token.start <span class="kw">as </span>usize).ok()<span class="question-mark">? </span><span class="kw">as </span>u32 - first;
+<a href=#116 id=116 data-nosnippet>116</a>                <span class="kw">let </span>delta_line = line - pre_line;
+<a href=#117 id=117 data-nosnippet>117</a>                <span class="kw">let </span>delta_start = <span class="kw">if </span>delta_line == <span class="number">0 </span>{
+<a href=#118 id=118 data-nosnippet>118</a>                    start - pre_start
+<a href=#119 id=119 data-nosnippet>119</a>                } <span class="kw">else </span>{
+<a href=#120 id=120 data-nosnippet>120</a>                    start
+<a href=#121 id=121 data-nosnippet>121</a>                };
+<a href=#122 id=122 data-nosnippet>122</a>                <span class="kw">let </span>ret = <span class="prelude-val">Some</span>(SemanticToken {
+<a href=#123 id=123 data-nosnippet>123</a>                    delta_line,
+<a href=#124 id=124 data-nosnippet>124</a>                    delta_start,
+<a href=#125 id=125 data-nosnippet>125</a>                    length: token.length <span class="kw">as </span>u32,
+<a href=#126 id=126 data-nosnippet>126</a>                    token_type: token.ty <span class="kw">as </span>u32,
+<a href=#127 id=127 data-nosnippet>127</a>                    token_modifiers_bitset: <span class="number">0</span>,
+<a href=#128 id=128 data-nosnippet>128</a>                });
+<a href=#129 id=129 data-nosnippet>129</a>                pre_line = line;
+<a href=#130 id=130 data-nosnippet>130</a>                pre_start = start;
+<a href=#131 id=131 data-nosnippet>131</a>                ret
+<a href=#132 id=132 data-nosnippet>132</a>            })
+<a href=#133 id=133 data-nosnippet>133</a>            .collect();
+<a href=#134 id=134 data-nosnippet>134</a>    }
+<a href=#135 id=135 data-nosnippet>135</a>}</code></pre></div></section></main></body></html>
