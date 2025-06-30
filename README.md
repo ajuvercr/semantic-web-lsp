@@ -150,6 +150,31 @@ vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
 |---|---|
 | ![Complete Class](./screenshots/complete_class.png) | ![Complete Property](./screenshots/complete_property.png) |
 
+## Citation
+
+When using the Semantic Web Language Server, please use the following citation:
+
+> A. Vercruysse, J. A. Rojas Melendez, and P. Colpaert, “The semantic web language server : enhancing the developer experience for semantic web practitioners,” in The Semantic Web : 22nd European Semantic Web Conference, ESWC 2025, Proceedings, Part II, Portoroz, Slovenia, 2025, vol. 15719, pp. 210–225.
+
+Bibtex:
+```bibtex
+@inproceedings{SWLS,
+  author       = {{Vercruysse, Arthur and Rojas Melendez, Julian Andres and Colpaert, Pieter}},
+  booktitle    = {{The Semantic Web : 22nd European Semantic Web Conference, ESWC 2025, Proceedings, Part II}},
+  editor       = {{Curry, Edward and Acosta, Maribel and Poveda-Villalón, Maria and van Erp, Marieke and Ojo, Adegboyega and Hose, Katja and Shimizu, Cogan and Lisena, Pasquale}},
+  isbn         = {{9783031945779}},
+  issn         = {{0302-9743}},
+  language     = {{eng}},
+  location     = {{Portoroz, Slovenia}},
+  pages        = {{210--225}},
+  publisher    = {{Springer}},
+  title        = {{The semantic web language server : enhancing the developer experience for semantic web practitioners}},
+  url          = {{http://doi.org/10.1007/978-3-031-94578-6_12}},
+  volume       = {{15719}},
+  year         = {{2025}},
+}
+```
+
 ## License
 
 Copyright &copy; 2025, IMEC - IDLab - UGent.
