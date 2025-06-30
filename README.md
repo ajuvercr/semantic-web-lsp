@@ -152,4 +152,5 @@ vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
 
 ## License
 
-Copyright &copy; 2025, IMEC - IDLab - UGent 
+Copyright &copy; 2025, IMEC - IDLab - UGent.
+Released under the [MIT License](LICENSE).
