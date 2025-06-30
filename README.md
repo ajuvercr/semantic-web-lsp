@@ -149,3 +149,7 @@ vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
 |Complete Class|Complete Property|
 |---|---|
 | ![Complete Class](./screenshots/complete_class.png) | ![Complete Property](./screenshots/complete_property.png) |
+
+## License
+
+Copyright &copy; 2025, IMEC - IDLab - UGent 
